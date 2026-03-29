@@ -1,0 +1,16 @@
+# Banco de dados (Supabase)
+spring.datasource.url=jdbc:postgresql://aws-1-sa-east-1.pooler.supabase.com:5432/postgres?user=postgres.nbktsmlnmwcllgfgujso&password=SUA_SENHA_AQUI
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# JPA
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+
+# Flyway
+spring.flyway.enabled=true
+spring.flyway.locations=classpath:db/migration
+
+# JWT
+jwt.secret=404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+jwt.expiration=86400000
