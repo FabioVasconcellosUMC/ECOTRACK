@@ -36,7 +36,7 @@ public class LoteService {
     }
 
     public Lote buscarPorId(Long id) {
-        return loteRepository.findById(id)
+        return loteRepository.findByIdWithEmpresa(id)
                 .orElseThrow(() -> new RuntimeException("Lote não encontrado"));
     }
 
