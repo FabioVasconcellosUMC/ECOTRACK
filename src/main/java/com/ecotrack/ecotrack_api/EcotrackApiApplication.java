@@ -6,8 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class EcotrackApiApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(EcotrackApiApplication.class, args);
-	}
-
+    public static void main(String[] args) {
+        SpringApplication.run(EcotrackApiApplication.class, args);
+    }
 }
