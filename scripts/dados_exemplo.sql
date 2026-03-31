@@ -4,6 +4,12 @@
 -- Senha de todos os usuários: admin123
 -- ============================================
 
+-- Limpa os dados antes de inserir
+DELETE FROM historico_lote;
+DELETE FROM lote;
+DELETE FROM empresa;
+DELETE FROM usuario;
+
 -- Usuários
 INSERT INTO usuario (nome, email, senha, perfil, ativo) VALUES
 ('Administrador', 'admin@ecotrack.com', '$2a$10$89uLxWDhOTbYcAdFUE8b6etywFAEF32MjzwnMevfOKaUXWoXtRwxq', 'ADMIN', true),
