@@ -1,58 +1,54 @@
 <template>
-  <aside class="fixed top-0 left-0 h-screen w-[228px] flex flex-col bg-bg-surface border-r border-bg-border">
-    
+  <aside class="fixed top-0 left-0 h-screen w-[228px] bg-bg-surface border-r border-bg-border flex flex-col z-20">
+
+    <!-- Logo -->
     <div class="flex items-center gap-3 px-5 py-4 border-b border-bg-border">
-      <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-brand shadow-[0_0_12px_rgba(0,76,84,0.4)]">
-        <Leaf :size="16" class="text-text-primary" />
+      <div class="w-8 h-8 rounded-lg bg-brand flex items-center justify-center">
+        <Leaf :size="18" class="text-white" />
       </div>
       <span class="text-text-primary font-bold text-lg">EcoTrack</span>
     </div>
 
-    <nav class="flex flex-col flex-1 px-3 py-4 gap-1">
-      <p class="text-xs font-semibold tracking-widest uppercase text-text-muted px-2 mb-2">Principal</p>
-      
-      <RouterLink to="/dashboard" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors"
-        :class="isActive('/dashboard') ? 'bg-brand text-text-primary' : 'text-text-secondary hover:bg-bg-border hover:text-text-primary'">
+    <!-- Menu -->
+    <nav class="flex-1 px-3 py-4 space-y-1">
+      <p class="text-text-secondary text-xs uppercase px-2 mb-2">Principal</p>
+
+      <RouterLink to="/dashboard" class="nav-item" :class="{ 'nav-item-active': route.path === '/dashboard' }">
         <LayoutDashboard :size="18" />
-        Dashboard
+        <span>Dashboard</span>
       </RouterLink>
 
-      <p class="text-xs font-semibold tracking-widest uppercase text-text-muted px-2 mt-4 mb-2">Gestão</p>
+      <p class="text-text-secondary text-xs uppercase px-2 mt-4 mb-2">Gestão</p>
 
-      <RouterLink to="/empresas" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors"
-        :class="isActive('/empresas') ? 'bg-brand text-text-primary' : 'text-text-secondary hover:bg-bg-border hover:text-text-primary'">
+      <RouterLink to="/empresas" class="nav-item" :class="{ 'nav-item-active': route.path === '/empresas' }">
         <Building2 :size="18" />
-        Empresas
+        <span>Empresas</span>
       </RouterLink>
 
-      <RouterLink to="/lotes" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors"
-        :class="isActive('/lotes') ? 'bg-brand text-text-primary' : 'text-text-secondary hover:bg-bg-border hover:text-text-primary'">
+      <RouterLink to="/lotes" class="nav-item" :class="{ 'nav-item-active': route.path === '/lotes' }">
         <Package :size="18" />
-        Lotes
+        <span>Lotes</span>
       </RouterLink>
 
-      <RouterLink to="/transportes" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors"
-        :class="isActive('/transportes') ? 'bg-brand text-text-primary' : 'text-text-secondary hover:bg-bg-border hover:text-text-primary'">
+      <RouterLink to="/transportes" class="nav-item" :class="{ 'nav-item-active': route.path === '/transportes' }">
         <Truck :size="18" />
-        Transportes
+        <span>Transportes</span>
       </RouterLink>
 
-      <RouterLink to="/relatorios" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors"
-        :class="isActive('/relatorios') ? 'bg-brand text-text-primary' : 'text-text-secondary hover:bg-bg-border hover:text-text-primary'">
+      <RouterLink to="/relatorios" class="nav-item" :class="{ 'nav-item-active': route.path === '/relatorios' }">
         <FileText :size="18" />
-        Relatórios
+        <span>Relatórios</span>
       </RouterLink>
     </nav>
 
-    <div class="border-t-2 border-danger mx-4 mb-3"></div>
-
-    <div class="flex items-center gap-3 px-4 py-4">
-      <div class="w-8 h-8 rounded-full flex items-center justify-center bg-brand text-text-primary text-sm font-bold">
+    <!-- Usuário -->
+    <div class="px-4 py-4 border-t border-bg-border flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-white text-sm font-bold">
         {{ inicial }}
       </div>
-      <div class="flex flex-col">
-        <span class="text-text-primary text-sm font-semibold">{{ nome }}</span>
-        <span class="text-text-muted text-xs">{{ email }}</span>
+      <div class="flex-1 min-w-0">
+        <p class="text-text-primary text-sm font-medium truncate">{{ nome }}</p>
+        <p class="text-text-secondary text-xs truncate">{{ perfil }}</p>
       </div>
     </div>
 
@@ -62,13 +58,20 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Leaf, LayoutDashboard, Building2, Package, Truck, FileText } from 'lucide-vue-next'
+import { LayoutDashboard, Building2, Package, Truck, FileText, Leaf } from 'lucide-vue-next'
 
 const route = useRoute()
 
 const nome = localStorage.getItem('nome') || 'Usuário'
-const email = localStorage.getItem('email') || ''
+const perfil = localStorage.getItem('perfil') || ''
 const inicial = computed(() => nome.charAt(0).toUpperCase())
-
-const isActive = (path) => route.path === path
 </script>
+
+<style scoped>
+.nav-item {
+  @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-700 hover:text-white transition-colors cursor-pointer;
+}
+.nav-item-active {
+  @apply bg-teal-900 text-teal-300;
+}
+</style>
