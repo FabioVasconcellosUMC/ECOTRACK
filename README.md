@@ -40,7 +40,7 @@ Para validar o Back-end via **Postman/Insomnia**, siga o fluxo abaixo:
 - **Criar Lote:** `POST` `https://ecotrack-d5i0.onrender.com/lotes`
 - **Buscar por ID:** `GET` `https://ecotrack-d5i0.onrender.com/lotes/1`
 - **Alterar Status:** `PATCH` `https://ecotrack-d5i0.onrender.com/lotes/1/status?novoStatus=EM_TRANSITO&observacao=Lote coletado 
-- pela transportadora`
+- pela transportadora
 - **Histórico do Lote:** `GET` `https://ecotrack-d5i0.onrender.com/lotes/1/historico`
 
 ## 🗃️ Banco de Dados
