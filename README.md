@@ -27,6 +27,7 @@ Sistema web responsivo para gestão e rastreabilidade de resíduos sólidos, des
 - ✅ **Dashboard Gerencial:** Visualização de indicadores integrada à API.
 - ✅ **Gestão de Lotes:** CRUD completo e transição de status de resíduos.
 - ✅ **Rastreabilidade Auditada:** Registro imutável de movimentações e histórico.
+- ✅ Histórico imutável de alterações de status
 
 ## 🕹️ Documentação da API (Endpoints para Teste)
 
