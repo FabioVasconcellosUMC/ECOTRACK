@@ -1,148 +1,101 @@
 <template>
-  <div class="flex flex-col gap-6">
-
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold text-text-primary">Lotes</h1>
-        <p class="text-sm text-text-secondary mt-1">Gerencie os lotes de resíduos sólidos</p>
-      </div>
-      <button @click="abrirModal"
-        class="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand text-text-primary text-sm font-semibold hover:opacity-90 transition-opacity">
-        <Plus :size="16" />
-        Novo Lote
+  <div class="p-6">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold text-white">Lotes</h1>
+      <button @click="abrirModal" class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+        + Novo Lote
       </button>
     </div>
 
-    <div class="flex items-center gap-3 flex-wrap">
+    <!-- Filtros -->
+    <div class="flex gap-2 mb-4 flex-wrap">
       <button v-for="filtro in filtros" :key="filtro.valor" @click="filtroAtivo = filtro.valor"
-        class="px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors"
-        :class="filtroAtivo === filtro.valor
-          ? 'bg-brand text-text-primary border-brand'
-          : 'text-text-secondary border-bg-border hover:border-accent hover:text-accent'">
+        class="px-3 py-1 rounded-full text-xs font-medium border transition-colors"
+        :class="filtroAtivo === filtro.valor ? 'bg-teal-600 text-white border-teal-600' : 'text-gray-400 border-gray-600 hover:border-teal-500'">
         {{ filtro.label }}
       </button>
     </div>
 
-    <div class="rounded-xl border border-bg-border bg-bg-surface overflow-hidden">
-      <table class="w-full">
-        <thead>
-          <tr class="border-b border-bg-border">
-            <th class="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-text-secondary">Código</th>
-            <th class="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-text-secondary">Tipo Resíduo</th>
-            <th class="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-text-secondary">Empresa</th>
-            <th class="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-text-secondary">Status</th>
-            <th class="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-text-secondary">Data</th>
-            <th class="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-text-secondary">Ações</th>
+    <!-- Tabela -->
+    <div class="bg-gray-800 rounded-xl overflow-hidden">
+      <table class="w-full text-sm text-left text-gray-300">
+        <thead class="text-xs uppercase bg-gray-700 text-gray-400">
+          <tr>
+            <th class="px-6 py-3">ID</th>
+            <th class="px-6 py-3">Descrição</th>
+            <th class="px-6 py-3">Tipo Resíduo</th>
+            <th class="px-6 py-3">Quantidade</th>
+            <th class="px-6 py-3">Status</th>
+            <th class="px-6 py-3">Data</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="carregando">
-            <td colspan="6" class="text-center py-8 text-text-secondary">Carregando...</td>
+            <td colspan="6" class="px-6 py-4 text-center text-gray-500">Carregando...</td>
           </tr>
           <tr v-else-if="lotesFiltrados.length === 0">
-            <td colspan="6" class="text-center py-8 text-text-secondary">Nenhum lote encontrado</td>
+            <td colspan="6" class="px-6 py-4 text-center text-gray-500">Nenhum lote encontrado</td>
           </tr>
-          <tr v-for="lote in lotesFiltrados" :key="lote.id"
-            class="border-b border-bg-border hover:bg-bg-border transition-colors">
-            <td class="px-4 py-3 text-sm font-mono text-accent">{{ lote.codigo }}</td>
-            <td class="px-4 py-3">
-              <span class="px-2 py-1 rounded-full text-xs font-semibold border" :class="tipoBadge(lote.tipoResiduo)">
-                {{ lote.tipoResiduo }}
-              </span>
+          <tr v-for="lote in lotesFiltrados" :key="lote.id" class="border-b border-gray-700 hover:bg-gray-700">
+            <td class="px-6 py-4 font-mono text-teal-400">#{{ lote.id }}</td>
+            <td class="px-6 py-4">{{ lote.descricao }}</td>
+            <td class="px-6 py-4">
+              <span class="px-2 py-1 rounded-full text-xs font-medium bg-blue-900 text-blue-300">{{ lote.tipoResiduo }}</span>
             </td>
-            <td class="px-4 py-3 text-sm text-text-primary">{{ lote.empresaId }}</td>
-            <td class="px-4 py-3">
-              <span class="flex items-center gap-1.5 text-xs font-semibold" :class="statusClasse(lote.status)">
-                <span class="w-1.5 h-1.5 rounded-full" :class="statusDot(lote.status)"></span>
-                {{ lote.status }}
-              </span>
+            <td class="px-6 py-4">{{ lote.quantidade }} {{ lote.unidade }}</td>
+            <td class="px-6 py-4">
+              <span class="px-2 py-1 rounded-full text-xs font-medium" :class="statusBadge(lote.status)">{{ lote.status }}</span>
             </td>
-            <td class="px-4 py-3 text-sm font-mono text-text-secondary">
-              {{ new Date(lote.criadoEm).toLocaleDateString('pt-BR') }}
-            </td>
-            <td class="px-4 py-3">
-              <div class="flex items-center gap-2">
-                <button class="p-1.5 rounded-lg hover:bg-bg-border transition-colors">
-                  <Eye :size="15" class="text-text-secondary" />
-                </button>
-                <button class="p-1.5 rounded-lg hover:bg-bg-border transition-colors">
-                  <Pencil :size="15" class="text-text-secondary" />
-                </button>
-                <button class="p-1.5 rounded-lg hover:bg-bg-border transition-colors">
-                  <Trash2 :size="15" class="text-danger" />
-                </button>
-              </div>
-            </td>
+            <td class="px-6 py-4 text-gray-400">{{ new Date(lote.criadoEm).toLocaleDateString('pt-BR') }}</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <div v-if="modalAberto" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div class="w-full max-w-lg rounded-xl border border-bg-border bg-bg-surface p-6 flex flex-col gap-5">
-
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-bold text-text-primary">Novo Lote</h2>
-          <button @click="fecharModal">
-            <X :size="20" class="text-text-secondary hover:text-text-primary" />
-          </button>
-        </div>
-
-        <div class="flex flex-col gap-4">
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-semibold uppercase tracking-wider text-text-secondary">Tipo de Resíduo</label>
-            <select v-model="form.tipoResiduo"
-              class="px-3 py-2.5 rounded-lg border border-bg-border bg-bg-primary text-sm text-text-primary outline-none focus:border-brand">
-              <option value="">Selecione o tipo</option>
-              <option value="RECICLAVEL">Reciclável</option>
-              <option value="ORGANICO">Orgânico</option>
-              <option value="ELETRONICO">Eletrônico</option>
-              <option value="PERIGOSO">Perigoso</option>
-              <option value="HOSPITALAR">Hospitalar</option>
-            </select>
+    <!-- Modal -->
+    <div v-if="modalAberto" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+      <div class="bg-gray-800 rounded-xl p-6 w-full max-w-lg">
+        <h2 class="text-xl font-bold text-white mb-4">Novo Lote</h2>
+        <div class="space-y-4">
+          <div>
+            <label class="text-gray-400 text-sm">Descrição</label>
+            <input v-model="form.descricao" class="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm" />
           </div>
-
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-semibold uppercase tracking-wider text-text-secondary">Quantidade (kg)</label>
-            <input v-model="form.quantidadeKg" type="number" placeholder="0"
-              class="px-3 py-2.5 rounded-lg border border-bg-border bg-bg-primary text-sm text-text-primary outline-none focus:border-brand" />
+          <div>
+            <label class="text-gray-400 text-sm">Tipo de Resíduo</label>
+            <input v-model="form.tipoResiduo" class="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm" placeholder="Ex: Químico, Eletrônico, Orgânico" />
           </div>
-
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-semibold uppercase tracking-wider text-text-secondary">Empresa ID</label>
-            <input v-model="form.empresaId" type="number" placeholder="ID da empresa"
-              class="px-3 py-2.5 rounded-lg border border-bg-border bg-bg-primary text-sm text-text-primary outline-none focus:border-brand" />
+          <div class="flex gap-3">
+            <div class="flex-1">
+              <label class="text-gray-400 text-sm">Quantidade</label>
+              <input v-model="form.quantidade" type="number" class="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div class="flex-1">
+              <label class="text-gray-400 text-sm">Unidade</label>
+              <select v-model="form.unidade" class="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm">
+                <option value="KG">KG</option>
+                <option value="TON">TON</option>
+                <option value="L">L</option>
+              </select>
+            </div>
           </div>
-
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-semibold uppercase tracking-wider text-text-secondary">Descrição</label>
-            <input v-model="form.descricao" type="text" placeholder="Descrição do lote"
-              class="px-3 py-2.5 rounded-lg border border-bg-border bg-bg-primary text-sm text-text-primary outline-none focus:border-brand" />
+          <div>
+            <label class="text-gray-400 text-sm">Empresa Geradora (ID)</label>
+            <input v-model="form.empresaGeradoraId" type="number" class="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm" />
           </div>
         </div>
-
-        <div v-if="erro" class="text-sm text-danger text-center">{{ erro }}</div>
-
-        <div class="flex gap-3 justify-end">
-          <button @click="fecharModal"
-            class="px-4 py-2 rounded-lg border border-bg-border text-sm text-text-secondary hover:bg-bg-border transition-colors">
-            Cancelar
-          </button>
-          <button @click="salvarLote"
-            class="px-4 py-2 rounded-lg bg-brand text-text-primary text-sm font-semibold hover:opacity-90 transition-opacity">
-            Salvar
-          </button>
+        <div v-if="erro" class="mt-3 text-red-400 text-sm">{{ erro }}</div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button @click="fecharModal" class="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg text-sm">Cancelar</button>
+          <button @click="salvarLote" class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm">Salvar</button>
         </div>
-
       </div>
     </div>
-
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Plus, Eye, Pencil, Trash2, X } from 'lucide-vue-next'
 import api from '../services/api'
 
 const lotes = ref([])
@@ -160,10 +113,11 @@ const filtros = [
 ]
 
 const form = ref({
-  tipoResiduo: '',
-  quantidadeKg: '',
-  empresaId: '',
   descricao: '',
+  tipoResiduo: '',
+  quantidade: '',
+  unidade: 'KG',
+  empresaGeradoraId: ''
 })
 
 const lotesFiltrados = computed(() => {
@@ -171,35 +125,14 @@ const lotesFiltrados = computed(() => {
   return lotes.value.filter(l => l.status === filtroAtivo.value)
 })
 
-const tipoBadge = (tipo) => {
+const statusBadge = (status) => {
   const map = {
-    RECICLAVEL: 'text-accent border-accent/30 bg-accent/10',
-    ORGANICO: 'text-yellow-400 border-yellow-400/30 bg-yellow-400/10',
-    ELETRONICO: 'text-purple-400 border-purple-400/30 bg-purple-400/10',
-    PERIGOSO: 'text-danger border-danger/30 bg-danger/10',
-    HOSPITALAR: 'text-orange-400 border-orange-400/30 bg-orange-400/10',
+    AGUARDANDO_COLETA: 'bg-yellow-900 text-yellow-300',
+    EM_TRANSITO: 'bg-blue-900 text-blue-300',
+    DESCARTADO: 'bg-green-900 text-green-300',
+    CANCELADO: 'bg-red-900 text-red-300',
   }
-  return map[tipo] || 'text-text-secondary border-bg-border'
-}
-
-const statusClasse = (status) => {
-  const map = {
-    AGUARDANDO_COLETA: 'text-yellow-400',
-    EM_TRANSITO: 'text-blue-400',
-    DESCARTADO: 'text-accent',
-    CANCELADO: 'text-danger',
-  }
-  return map[status] || 'text-text-secondary'
-}
-
-const statusDot = (status) => {
-  const map = {
-    AGUARDANDO_COLETA: 'bg-yellow-400',
-    EM_TRANSITO: 'bg-blue-400',
-    DESCARTADO: 'bg-accent',
-    CANCELADO: 'bg-danger',
-  }
-  return map[status] || 'bg-text-secondary'
+  return map[status] || 'bg-gray-700 text-gray-300'
 }
 
 const carregarLotes = async () => {
@@ -207,8 +140,8 @@ const carregarLotes = async () => {
   try {
     const response = await api.get('/lotes')
     lotes.value = response.data
-  } catch {
-    erro.value = 'Erro ao carregar lotes.'
+  } catch (e) {
+    console.error('Erro ao carregar lotes:', e)
   } finally {
     carregando.value = false
   }
@@ -217,21 +150,26 @@ const carregarLotes = async () => {
 const abrirModal = () => {
   modalAberto.value = true
   erro.value = ''
+  form.value = { descricao: '', tipoResiduo: '', quantidade: '', unidade: 'KG', empresaGeradoraId: '' }
 }
 
 const fecharModal = () => {
   modalAberto.value = false
-  form.value = { tipoResiduo: '', quantidadeKg: '', empresaId: '', descricao: '' }
-  erro.value = ''
 }
 
 const salvarLote = async () => {
   try {
-    await api.post('/lotes', form.value)
-    await carregarLotes()
+    await api.post('/lotes', {
+      descricao: form.value.descricao,
+      tipoResiduo: form.value.tipoResiduo,
+      quantidade: form.value.quantidade,
+      unidade: form.value.unidade,
+      empresaGeradora: { id: form.value.empresaGeradoraId }
+    })
     fecharModal()
-  } catch {
-    erro.value = 'Erro ao salvar lote.'
+    carregarLotes()
+  } catch (e) {
+    erro.value = 'Erro ao salvar lote. Verifique os dados.'
   }
 }
 
