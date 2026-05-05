@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/empresas")
@@ -34,5 +35,10 @@ public class EmpresaController {
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         empresaService.deletar(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/cnpj/{cnpj}")
+    public ResponseEntity<Map> consultarCnpj(@PathVariable String cnpj) {
+        return ResponseEntity.ok(empresaService.consultarCnpj(cnpj));
     }
 }
