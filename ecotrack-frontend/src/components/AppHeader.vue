@@ -216,7 +216,7 @@ const perfilLabel = computed(() => perfil.toLowerCase())
 
 const logout = () => {
   localStorage.clear()
-  router.push('/')
+  router.push({ name: 'login' })
 }
 
 const now = ref(new Date())
