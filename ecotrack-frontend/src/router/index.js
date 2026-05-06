@@ -10,7 +10,8 @@ import RelatoriosView  from '../views/RelatoriosView.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    { path: '/', name: 'login', component: LoginView },
+    { path: '/',      redirect: { name: 'login' } },
+    { path: '/login', name: 'login', component: LoginView },
     {
       path: '/',
       component: MainLayout,
@@ -26,13 +27,11 @@ const router = createRouter({
   ],
 })
 
-// Guarda de navegação — redireciona para login se não houver token
 router.beforeEach((to) => {
   const token = localStorage.getItem('token')
   if (to.meta.requiresAuth && !token) {
     return { name: 'login' }
   }
-  // Se já estiver logado e tentar acessar o login, vai pro dashboard
   if (to.name === 'login' && token) {
     return { name: 'dashboard' }
   }
