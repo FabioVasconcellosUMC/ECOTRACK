@@ -1,4 +1,4 @@
-CREATE TABLE transporte (
+CREATE TABLE IF NOT EXISTS transporte (
     id BIGSERIAL PRIMARY KEY,
     lote_id BIGINT NOT NULL REFERENCES lote(id),
     transportadora_id BIGINT NOT NULL REFERENCES empresa(id),
