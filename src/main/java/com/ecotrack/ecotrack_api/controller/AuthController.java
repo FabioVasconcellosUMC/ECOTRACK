@@ -1,18 +1,24 @@
 package com.ecotrack.ecotrack_api.controller;
 
+import com.ecotrack.ecotrack_api.dto.CadastroRequest;
 import com.ecotrack.ecotrack_api.dto.LoginRequest;
 import com.ecotrack.ecotrack_api.dto.LoginResponse;
 import com.ecotrack.ecotrack_api.entity.Perfil;
 import com.ecotrack.ecotrack_api.entity.Usuario;
+import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
 import com.ecotrack.ecotrack_api.repository.UsuarioRepository;
 import com.ecotrack.ecotrack_api.security.JwtService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
@@ -40,23 +46,30 @@ public class AuthController {
     }
 
     @PostMapping("/cadastro")
-    public ResponseEntity<?> cadastro(@RequestBody Map<String, String> request) {
-        String email = request.get("email");
-        String nome = request.get("nome");
-        String senha = request.get("senha");
-        String perfil = request.get("perfil");
-
-        if (usuarioRepository.findByEmail(email).isPresent()) {
-            return ResponseEntity.badRequest().body(Map.of("erro", "Email já cadastrado"));
-        }
+    public ResponseEntity<Map<String, String>> cadastro(@Valid @RequestBody CadastroRequest request) {
+        validarEmailDisponivel(request.email());
 
         Usuario usuario = new Usuario();
-        usuario.setNome(nome);
-        usuario.setEmail(email);
-        usuario.setSenha(passwordEncoder.encode(senha));
-        usuario.setPerfil(Perfil.valueOf(perfil.toUpperCase()));
+        usuario.setNome(request.nome());
+        usuario.setEmail(request.email());
+        usuario.setSenha(passwordEncoder.encode(request.senha()));
+        usuario.setPerfil(converterPerfil(request.perfil()));
         usuarioRepository.save(usuario);
 
-        return ResponseEntity.status(201).body(Map.of("mensagem", "Usuário cadastrado com sucesso"));
+        return ResponseEntity.status(201).body(Map.of("mensagem", "Usuario cadastrado com sucesso"));
+    }
+
+    private void validarEmailDisponivel(String email) {
+        if (usuarioRepository.findByEmail(email).isPresent()) {
+            throw new RegraNegocioException("Email ja cadastrado");
+        }
+    }
+
+    private Perfil converterPerfil(String perfil) {
+        try {
+            return Perfil.valueOf(perfil.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new RegraNegocioException("Perfil invalido");
+        }
     }
 }
