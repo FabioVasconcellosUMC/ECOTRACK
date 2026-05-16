@@ -3,10 +3,8 @@
 
     <header class="flex items-end justify-between flex-wrap gap-4">
       <div>
-        <p class="eyebrow-italic text-cyan mb-2">Gestão de lotes</p>
-        <h1 class="display-title text-[48px] leading-[0.98]">
-          Lotes de resíduos
-        </h1>
+        <p class="eyebrow-italic text-cyan mb-2">Operação · Resíduos</p>
+        <h1 class="display-title text-[48px] leading-[0.98]">Lotes de resíduos</h1>
         <p class="text-ink-3 text-[13px] mt-2 mono-tag">
           {{ lotes.length }} lotes · {{ contagens.AGUARDANDO_COLETA }} aguardando ·
           {{ contagens.EM_TRANSITO }} em trânsito · {{ contagens.DESCARTADO }} descartados
@@ -14,109 +12,80 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <div class="flex p-1 rounded-md bg-bg-elevated border border-bg-line">
+        <div class="flex items-center bg-bg-elevated border border-bg-line rounded-md p-0.5">
           <button
-            @click="vista = 'kanban'"
-            class="px-3 py-1.5 rounded-[5px] text-[11px] font-bold tracking-wider transition-colors flex items-center gap-1.5"
-            :class="vista === 'kanban' ? 'bg-bg-panel text-ink' : 'text-ink-3 hover:text-ink'"
+            v-for="opcao in OPCOES_VISTA"
+            :key="opcao.valor"
+            @click="vistaAtiva = opcao.valor"
+            class="flex items-center gap-1.5 px-3 h-9 rounded text-[11px] font-bold tracking-wider transition-colors"
+            :class="vistaAtiva === opcao.valor
+              ? 'bg-cyan/10 text-cyan'
+              : 'text-ink-2 hover:text-ink'"
           >
-            <Columns3 :size="13" /> KANBAN
-          </button>
-          <button
-            @click="vista = 'tabela'"
-            class="px-3 py-1.5 rounded-[5px] text-[11px] font-bold tracking-wider transition-colors flex items-center gap-1.5"
-            :class="vista === 'tabela' ? 'bg-bg-panel text-ink' : 'text-ink-3 hover:text-ink'"
-          >
-            <Rows3 :size="13" /> TABELA
+            <component :is="opcao.icone" :size="13" />
+            {{ opcao.rotulo }}
           </button>
         </div>
 
         <button
-          @click="exportarLotes"
-          class="flex items-center gap-2 h-10 px-4 rounded-md bg-bg-elevated border border-bg-line text-ink-2
-                 text-[12.5px] font-bold tracking-[0.08em] hover:border-cyan/40 hover:text-cyan transition-colors"
+          @click="exportarTodos"
+          class="flex items-center gap-2 h-10 px-4 rounded-md bg-bg-elevated border border-bg-line text-ink-2 text-[12.5px] font-bold tracking-[0.08em] hover:border-cyan/40 hover:text-cyan transition-colors"
         >
           <Download :size="15" /> EXPORTAR
         </button>
 
         <button
-          @click="abrirModal"
-          class="flex items-center gap-2 h-10 px-4 rounded-md bg-cyan text-bg-base
-                 text-[12.5px] font-bold tracking-[0.08em] hover:bg-cyan/90 transition-colors"
+          @click="abrirModalCadastro"
+          class="flex items-center gap-2 h-10 px-4 rounded-md bg-cyan text-bg-base text-[12.5px] font-bold tracking-[0.08em] hover:bg-cyan/90 transition-colors"
         >
           <Plus :size="16" /> NOVO LOTE
         </button>
       </div>
     </header>
 
-    <div v-if="carregando" class="grid grid-cols-4 gap-4">
-      <div v-for="i in 4" :key="i" class="h-[440px] skeleton rounded-2xl" />
-    </div>
-
-    <section
-      v-else-if="vista === 'kanban'"
-      class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"
-    >
+    <section v-if="vistaAtiva === 'kanban'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <div
-        v-for="(col, idx) in colunas"
-        :key="col.status"
-        class="rounded-2xl bg-bg-panel border border-bg-line-strong flex flex-col min-h-[500px] overflow-hidden fade-up"
-        :style="{ animationDelay: `${idx * 80}ms` }"
+        v-for="coluna in COLUNAS_STATUS"
+        :key="coluna.status"
+        class="rounded-2xl bg-bg-panel border border-bg-line-strong helmet-stripe overflow-hidden flex flex-col"
       >
-        <div
-          class="px-5 py-4 flex items-center justify-between border-b border-bg-line"
-          :style="{ borderTop: `2px solid ${col.cor}` }"
-        >
-          <div class="flex items-center gap-2.5">
-            <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: col.cor }" />
-            <p class="eyebrow text-ink">{{ col.label }}</p>
+        <header class="px-4 py-3 border-b border-bg-line flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: coluna.cor }" />
+            <p class="eyebrow text-[10px]" :style="{ color: coluna.cor }">{{ coluna.label }}</p>
           </div>
-          <span
-            class="mono-tag px-2 py-0.5 rounded text-[10px] font-bold"
-            :style="{ backgroundColor: `${col.cor}20`, color: col.cor }"
-          >
-            {{ contagens[col.status] || 0 }}
+          <span class="mono-tag text-ink-3 text-[11px]">
+            {{ contagens[coluna.status] || 0 }}
           </span>
-        </div>
+        </header>
 
-        <div class="flex-1 p-3 space-y-2.5 overflow-y-auto">
+        <div class="p-3 flex-1 space-y-2.5 min-h-[200px]">
           <div
-            v-if="lotesPorStatus(col.status).length === 0"
-            class="flex flex-col items-center justify-center py-12 text-center"
+            v-if="lotesPorStatus(coluna.status).length === 0"
+            class="text-center py-8 text-ink-4 text-[11px] mono-tag"
           >
-            <Package :size="22" class="text-ink-4 mb-2" />
-            <p class="mono-tag text-ink-4 text-[11px]">Sem lotes</p>
+            sem lotes
           </div>
 
           <article
-            v-for="l in lotesPorStatus(col.status)"
-            :key="l.id"
-            @click="abrirDetalheLote(l)"
-            class="group rounded-xl bg-bg-elevated border border-bg-line p-4 cursor-pointer
-                   card-hover relative overflow-hidden"
+            v-for="lote in lotesPorStatus(coluna.status)"
+            :key="lote.id"
+            @click="abrirDetalhes(lote)"
+            class="rounded-xl bg-bg-elevated border border-bg-line p-3.5 hover:border-cyan/40 transition-colors cursor-pointer"
           >
-            <span class="absolute left-0 top-0 bottom-0 w-[2px]" :style="{ backgroundColor: col.cor }" />
-
             <div class="flex items-start justify-between mb-3">
-              <span class="mono-tag text-cyan text-[12px]">
-                #{{ String(l.id).padStart(4, '0') }}
-              </span>
-              <span class="mono-tag text-ink-3 text-[10px]">
-                {{ formatarData(l.criadoEm) }}
-              </span>
+              <span class="mono-tag text-cyan text-[12px]">#{{ formatarIdentificador(lote.id) }}</span>
+              <span class="mono-tag text-ink-3 text-[10px]">{{ formatarData(lote.criadoEm) }}</span>
             </div>
 
             <p class="text-[13px] text-ink font-semibold leading-snug line-clamp-2 mb-1">
-              {{ l.descricao || 'Sem descrição' }}
+              {{ lote.descricao || 'Sem descrição' }}
             </p>
-            <p class="eyebrow text-[9.5px] mb-3">{{ l.tipoResiduo || 'Tipo não informado' }}</p>
+            <p class="eyebrow text-[9.5px] mb-3">{{ lote.tipoResiduo || 'Tipo não informado' }}</p>
 
             <div class="flex items-baseline gap-1.5 pt-3 border-t border-bg-line">
-              <span class="scoreboard text-[30px] text-ink leading-none tabular-nums">
-                {{ l.quantidade }}
-              </span>
-              <span class="font-display text-cyan text-[15px]"
-                    style="font-weight: 500; font-style: italic; letter-spacing: 0.04em;">{{ l.unidade }}</span>
+              <span class="scoreboard text-[30px] text-ink leading-none tabular-nums">{{ lote.quantidade }}</span>
+              <span class="font-display text-cyan text-[15px] unidade-italic">{{ lote.unidade }}</span>
             </div>
           </article>
         </div>
@@ -147,40 +116,33 @@
             </td>
           </tr>
           <tr
-            v-for="(l, i) in lotes"
-            :key="l.id"
-            @click="abrirDetalheLote(l)"
+            v-for="(lote, indice) in lotes"
+            :key="lote.id"
+            @click="abrirDetalhes(lote)"
             class="border-b border-bg-line hover:bg-bg-elevated transition-colors cursor-pointer"
           >
-            <td class="px-5 py-3.5 mono-tag text-ink-4 text-[11px]">
-              {{ String(i + 1).padStart(2, '0') }}
-            </td>
-            <td class="px-5 py-3.5 mono-tag text-cyan text-[12px]">
-              #{{ String(l.id).padStart(4, '0') }}
-            </td>
-            <td class="px-5 py-3.5 text-[13px] text-ink">{{ l.descricao || '—' }}</td>
+            <td class="px-5 py-3.5 mono-tag text-ink-4 text-[11px]">{{ formatarIndice(indice) }}</td>
+            <td class="px-5 py-3.5 mono-tag text-cyan text-[12px]">#{{ formatarIdentificador(lote.id) }}</td>
+            <td class="px-5 py-3.5 text-[13px] text-ink">{{ lote.descricao || '—' }}</td>
             <td class="px-5 py-3.5">
-              <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold tracking-wider
-                           bg-info-soft border border-info/30 text-info">
-                {{ l.tipoResiduo || '—' }}
+              <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold tracking-wider bg-info-soft border border-info/30 text-info">
+                {{ lote.tipoResiduo || '—' }}
               </span>
             </td>
             <td class="px-5 py-3.5 text-right">
-              <span class="scoreboard text-[20px] text-ink tabular-nums">{{ l.quantidade }}</span>
-              <span class="mono-tag text-ink-3 ml-1">{{ l.unidade }}</span>
+              <span class="scoreboard text-[20px] text-ink tabular-nums">{{ lote.quantidade }}</span>
+              <span class="mono-tag text-ink-3 ml-1">{{ lote.unidade }}</span>
             </td>
             <td class="px-5 py-3.5">
               <span
                 class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10.5px] font-bold tracking-wider border"
-                :style="statusChipStyle(l.status)"
+                :style="estiloChipStatus(lote.status)"
               >
-                <span class="w-1.5 h-1.5 rounded-full" :style="{ backgroundColor: statusCor(l.status) }" />
-                {{ statusLabel(l.status) }}
+                <span class="w-1.5 h-1.5 rounded-full" :style="{ backgroundColor: corStatus(lote.status) }" />
+                {{ rotuloStatus(lote.status) }}
               </span>
             </td>
-            <td class="px-5 py-3.5 mono-tag text-ink-3 text-[11px]">
-              {{ formatarData(l.criadoEm) }}
-            </td>
+            <td class="px-5 py-3.5 mono-tag text-ink-3 text-[11px]">{{ formatarData(lote.criadoEm) }}</td>
           </tr>
         </tbody>
       </table>
@@ -190,53 +152,46 @@
       <div
         v-if="loteSelecionado"
         class="fixed inset-0 z-50 bg-bg-base/80 backdrop-blur-sm flex items-center justify-center p-6"
-        @click.self="fecharDetalheLote"
+        @click.self="fecharDetalhes"
       >
-        <div class="w-full max-w-2xl rounded-2xl bg-bg-panel border border-bg-line-strong p-7 helmet-stripe fade-up relative overflow-hidden">
-          <svg
-            class="absolute -right-20 -top-20 w-[360px] h-[360px] opacity-[0.045] pointer-events-none"
-            viewBox="0 0 600 600" fill="none"
-          >
-            <path d="M0 600 L300 0 L600 600 L500 600 L300 200 L100 600 Z" fill="#2DD4BF" />
-          </svg>
-
-          <div class="flex items-start justify-between gap-4 relative">
-            <div>
+        <div class="w-full max-w-2xl rounded-2xl bg-bg-panel border border-bg-line-strong p-7 helmet-stripe fade-up">
+          <div class="flex items-start justify-between gap-5">
+            <div class="flex-1 min-w-0">
               <p class="eyebrow text-cyan">Detalhe do lote</p>
-              <h2 class="section-title text-[32px] mt-2">#{{ String(loteSelecionado.id).padStart(4, '0') }}</h2>
-              <p class="text-[13px] text-ink-3 mt-2">{{ loteSelecionado.descricao || 'Sem descrição informada' }}</p>
+              <h2 class="section-title text-[36px] mt-1.5">#{{ formatarIdentificador(loteSelecionado.id) }}</h2>
+              <p class="text-[13px] text-ink-2 mt-2">{{ loteSelecionado.descricao || 'Sem descrição' }}</p>
             </div>
 
             <button
-              @click="fecharDetalheLote"
-              class="w-9 h-9 rounded-md flex items-center justify-center text-ink-3 hover:text-ink hover:bg-bg-elevated transition-colors"
+              @click="fecharDetalhes"
+              class="shrink-0 w-9 h-9 rounded-md flex items-center justify-center text-ink-3 hover:text-ink hover:bg-bg-elevated transition-colors"
             >
               <X :size="18" />
             </button>
           </div>
 
-          <div class="grid grid-cols-2 gap-4 mt-7 relative">
+          <div class="grid grid-cols-2 gap-4 mt-7">
             <div class="rounded-xl bg-bg-elevated border border-bg-line p-4">
               <p class="eyebrow">Tipo de resíduo</p>
-              <p class="text-[14px] text-ink mt-2">{{ loteSelecionado.tipoResiduo || '—' }}</p>
+              <p class="text-[13px] text-ink mt-2">{{ loteSelecionado.tipoResiduo || '—' }}</p>
             </div>
             <div class="rounded-xl bg-bg-elevated border border-bg-line p-4">
               <p class="eyebrow">Status</p>
               <span
                 class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10.5px] font-bold tracking-wider border mt-2"
-                :style="statusChipStyle(loteSelecionado.status)"
+                :style="estiloChipStatus(loteSelecionado.status)"
               >
-                <span class="w-1.5 h-1.5 rounded-full" :style="{ backgroundColor: statusCor(loteSelecionado.status) }" />
-                {{ statusLabel(loteSelecionado.status) }}
+                <span class="w-1.5 h-1.5 rounded-full" :style="{ backgroundColor: corStatus(loteSelecionado.status) }" />
+                {{ rotuloStatus(loteSelecionado.status) }}
               </span>
             </div>
             <div class="rounded-xl bg-bg-elevated border border-bg-line p-4">
               <p class="eyebrow">Quantidade</p>
-              <p class="scoreboard text-[32px] text-ink mt-2">
-                {{ loteSelecionado.quantidade }}
-                <span class="font-display text-cyan text-[15px]" style="font-weight: 500; font-style: italic; letter-spacing: 0.04em;">
-                  {{ loteSelecionado.unidade }}
+              <p class="mt-2 flex items-baseline gap-1.5">
+                <span class="scoreboard text-[28px] text-ink leading-none tabular-nums">
+                  {{ loteSelecionado.quantidade }}
                 </span>
+                <span class="font-display text-cyan text-[14px] unidade-italic">{{ loteSelecionado.unidade }}</span>
               </p>
             </div>
             <div class="rounded-xl bg-bg-elevated border border-bg-line p-4">
@@ -245,14 +200,13 @@
             </div>
           </div>
 
-          <div class="mt-7 pt-5 border-t border-bg-line flex items-center justify-between gap-4 relative">
-            <p class="editorial text-[13px] max-w-lg">
-              Este detalhe confirma que o clique no lote abre uma visão individual com status, quantidade e informações principais para acompanhamento operacional.
+          <div class="mt-7 pt-5 border-t border-bg-line flex items-center justify-between gap-4">
+            <p class="mono-tag text-ink-3 text-[11px]">
+              Identificador interno · #{{ formatarIdentificador(loteSelecionado.id) }}
             </p>
             <button
-              @click="exportarLoteSelecionado"
-              class="shrink-0 flex items-center gap-2 h-9 px-3 rounded-md bg-bg-elevated border border-bg-line text-ink-2
-                     text-[11px] font-bold tracking-wider hover:border-cyan/40 hover:text-cyan transition-colors"
+              @click="exportarSelecionado"
+              class="shrink-0 flex items-center gap-2 h-9 px-3 rounded-md bg-bg-elevated border border-bg-line text-ink-2 text-[11px] font-bold tracking-wider hover:border-cyan/40 hover:text-cyan transition-colors"
             >
               <Download :size="14" /> EXPORTAR LOTE
             </button>
@@ -263,90 +217,81 @@
 
     <Transition name="page">
       <div
-        v-if="modalAberto"
+        v-if="modalCadastroAberto"
         class="fixed inset-0 z-50 bg-bg-base/80 backdrop-blur-sm flex items-center justify-center p-6"
-        @click.self="fecharModal"
+        @click.self="fecharModalCadastro"
       >
         <div class="w-full max-w-xl rounded-2xl bg-bg-panel border border-bg-line-strong p-7 helmet-stripe fade-up">
           <div class="flex items-center justify-between mb-6">
             <div>
               <p class="eyebrow text-cyan">Novo registro</p>
-              <h2 class="section-title text-[28px] mt-2">Registrar lote</h2>
+              <h2 class="section-title text-[28px] mt-2">Cadastrar lote</h2>
             </div>
             <button
-              @click="fecharModal"
-              class="w-9 h-9 rounded-md flex items-center justify-center text-ink-3
-                     hover:text-ink hover:bg-bg-elevated transition-colors"
+              @click="fecharModalCadastro"
+              class="w-9 h-9 rounded-md flex items-center justify-center text-ink-3 hover:text-ink hover:bg-bg-elevated transition-colors"
             >
               <X :size="18" />
             </button>
           </div>
 
           <div class="space-y-4">
-            <FormField v-model="form.descricao"   label="Descrição"      placeholder="Ex: Resíduo do laboratório B-12" />
-            <FormField v-model="form.tipoResiduo" label="Tipo de resíduo" placeholder="Ex: Químico, Eletrônico, Orgânico" />
+            <FormField v-model="formulario.descricao"   label="Descrição"     placeholder="Descrição resumida do lote" />
+            <FormField v-model="formulario.tipoResiduo" label="Tipo resíduo"  placeholder="Ex: Eletrônico, Plástico, Orgânico" />
 
-            <div class="grid grid-cols-3 gap-3">
-              <div class="col-span-2">
-                <label class="eyebrow block mb-1.5">Quantidade</label>
-                <div class="flex items-center px-3 h-10 rounded-md bg-bg-base border border-bg-line focus-within:border-cyan/40 transition-colors">
-                  <Hash :size="14" class="text-ink-3" />
-                  <input
-                    v-model="form.quantidade"
-                    type="number"
-                    placeholder="0"
-                    class="ml-2 flex-1 bg-transparent outline-none text-[13px] text-ink mono-tag placeholder:text-ink-4"
-                  />
-                </div>
-              </div>
+            <div class="grid grid-cols-2 gap-3">
+              <FormField v-model="formulario.quantidade" label="Quantidade" placeholder="0" type="number" />
+
               <div>
                 <label class="eyebrow block mb-1.5">Unidade</label>
-                <select
-                  v-model="form.unidade"
-                  class="w-full px-3 h-10 rounded-md bg-bg-base border border-bg-line text-[13px] text-ink mono-tag outline-none focus:border-cyan/40"
-                >
-                  <option value="KG">KG</option>
-                  <option value="TON">TON</option>
-                  <option value="L">L</option>
-                </select>
+                <div class="grid grid-cols-3 gap-1.5">
+                  <button
+                    v-for="unidade in UNIDADES"
+                    :key="unidade"
+                    @click="formulario.unidade = unidade"
+                    class="px-2 py-2.5 rounded-md text-[11px] font-bold tracking-wider border transition-colors"
+                    :class="formulario.unidade === unidade
+                      ? 'border-cyan/40 text-cyan bg-cyan/10'
+                      : 'bg-bg-elevated border-bg-line text-ink-2 hover:border-bg-line-strong'"
+                  >
+                    {{ unidade }}
+                  </button>
+                </div>
               </div>
             </div>
 
             <div>
-              <label class="eyebrow block mb-1.5">Empresa geradora · ID</label>
-              <div class="flex items-center px-3 h-10 rounded-md bg-bg-base border border-bg-line focus-within:border-cyan/40 transition-colors">
+              <label class="eyebrow block mb-1.5">Empresa geradora</label>
+              <div class="flex items-center gap-2 px-3 h-10 rounded-md bg-bg-base border border-bg-line focus-within:border-cyan/40 transition-colors">
                 <Building2 :size="14" class="text-ink-3" />
                 <input
-                  v-model="form.empresaGeradoraId"
+                  v-model="formulario.empresaGeradoraId"
                   type="number"
                   placeholder="ID da empresa geradora"
-                  class="ml-2 flex-1 bg-transparent outline-none text-[13px] text-ink mono-tag placeholder:text-ink-4"
+                  class="flex-1 bg-transparent outline-none text-[13px] text-ink mono-tag placeholder:text-ink-4"
                 />
               </div>
             </div>
           </div>
 
           <p
-            v-if="erro"
-            class="flex items-center gap-2 text-[12px] text-danger
-                   bg-danger-soft border border-danger/30 rounded-md px-3 py-2 mt-4"
+            v-if="mensagemErro"
+            class="flex items-center gap-2 text-[12px] text-danger bg-danger-soft border border-danger/30 rounded-md px-3 py-2 mt-4"
           >
-            <AlertCircle :size="14" /> {{ erro }}
+            <AlertCircle :size="14" /> {{ mensagemErro }}
           </p>
 
           <div class="flex justify-end gap-2 mt-6 pt-5 border-t border-bg-line">
             <button
-              @click="fecharModal"
-              class="px-4 h-10 rounded-md text-[11.5px] font-bold tracking-wider
-                     bg-bg-elevated border border-bg-line text-ink-2 hover:border-bg-line-strong"
+              @click="fecharModalCadastro"
+              class="px-4 h-10 rounded-md text-[11.5px] font-bold tracking-wider bg-bg-elevated border border-bg-line text-ink-2 hover:border-bg-line-strong"
             >
               CANCELAR
             </button>
             <button
               @click="salvarLote"
               :disabled="salvando"
-              class="flex items-center gap-2 px-5 h-10 rounded-md text-[11.5px] font-bold tracking-wider
-                     bg-cyan text-bg-base hover:bg-cyan/90 transition-colors disabled:opacity-50"
+              class="flex items-center gap-2 px-5 h-10 rounded-md text-[11.5px] font-bold tracking-wider bg-cyan text-bg-base hover:bg-cyan/90 transition-colors disabled:opacity-50"
             >
               <Loader2 v-if="salvando" :size="13" class="animate-spin" />
               <Check v-else :size="13" />
@@ -362,120 +307,156 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import {
-  Plus, Package, X, Check, AlertCircle, Loader2, Hash, Building2,
+  Plus, Package, X, Check, AlertCircle, Loader2, Building2,
   Columns3, Rows3, Download,
 } from 'lucide-vue-next'
 import api from '../services/api'
 import FormField from '../components/ui/FormField.vue'
 import { exportCsv } from '../utils/exportCsv'
 
-const lotes       = ref([])
-const carregando  = ref(false)
-const modalAberto = ref(false)
-const loteSelecionado = ref(null)
-const salvando    = ref(false)
-const erro        = ref('')
-const vista       = ref('kanban')
-
-const form = ref({
-  descricao: '', tipoResiduo: '', quantidade: '', unidade: 'KG', empresaGeradoraId: '',
-})
-
-const colunas = [
-  { status: 'AGUARDANDO_COLETA', label: 'Aguardando',   cor: '#F59E0B' },
-  { status: 'EM_TRANSITO',       label: 'Em trânsito',  cor: '#38BDF8' },
-  { status: 'DESCARTADO',        label: 'Descartado',   cor: '#10B981' },
-  { status: 'CANCELADO',         label: 'Cancelado',    cor: '#DC2626' },
-]
-
-const contagens = computed(() => {
-  const c = { AGUARDANDO_COLETA: 0, EM_TRANSITO: 0, DESCARTADO: 0, CANCELADO: 0 }
-  lotes.value.forEach(l => { if (c[l.status] !== undefined) c[l.status]++ })
-  return c
-})
-
-const lotesPorStatus = (s) => lotes.value.filter(l => l.status === s)
-const statusCor   = (s) => colunas.find(c => c.status === s)?.cor   || '#A5ACAF'
-const statusLabel = (s) => colunas.find(c => c.status === s)?.label || s
-
-const statusChipStyle = (s) => {
-  const c = statusCor(s)
-  return { backgroundColor: `${c}1A`, color: c, borderColor: `${c}30` }
+const STATUS = {
+  AGUARDANDO_COLETA: 'AGUARDANDO_COLETA',
+  EM_TRANSITO:       'EM_TRANSITO',
+  DESCARTADO:        'DESCARTADO',
+  CANCELADO:         'CANCELADO',
 }
 
-const formatarData = (d) =>
-  d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '—'
+const COLUNAS_STATUS = [
+  { status: STATUS.AGUARDANDO_COLETA, label: 'Aguardando',  cor: '#F59E0B' },
+  { status: STATUS.EM_TRANSITO,       label: 'Em trânsito', cor: '#38BDF8' },
+  { status: STATUS.DESCARTADO,        label: 'Descartado',  cor: '#10B981' },
+  { status: STATUS.CANCELADO,         label: 'Cancelado',   cor: '#DC2626' },
+]
 
-const loteRow = (lote) => ({
+const OPCOES_VISTA = [
+  { valor: 'kanban', rotulo: 'KANBAN', icone: Columns3 },
+  { valor: 'tabela', rotulo: 'TABELA', icone: Rows3 },
+]
+
+const UNIDADES = ['KG', 'TON', 'L']
+const COR_PADRAO = '#A5ACAF'
+const TAMANHO_ID = 4
+const TAMANHO_INDICE = 2
+
+const formularioVazio = () => ({
+  descricao: '',
+  tipoResiduo: '',
+  quantidade: '',
+  unidade: 'KG',
+  empresaGeradoraId: '',
+})
+
+const lotes = ref([])
+const loteSelecionado = ref(null)
+const modalCadastroAberto = ref(false)
+const salvando = ref(false)
+const mensagemErro = ref('')
+const vistaAtiva = ref('kanban')
+const formulario = ref(formularioVazio())
+
+const contagens = computed(() => {
+  const contagem = {
+    [STATUS.AGUARDANDO_COLETA]: 0,
+    [STATUS.EM_TRANSITO]: 0,
+    [STATUS.DESCARTADO]: 0,
+    [STATUS.CANCELADO]: 0,
+  }
+  lotes.value.forEach(lote => {
+    if (contagem[lote.status] !== undefined) contagem[lote.status]++
+  })
+  return contagem
+})
+
+const lotesPorStatus = (status) => lotes.value.filter(lote => lote.status === status)
+
+const corStatus = (status) =>
+  COLUNAS_STATUS.find(coluna => coluna.status === status)?.cor || COR_PADRAO
+
+const rotuloStatus = (status) =>
+  COLUNAS_STATUS.find(coluna => coluna.status === status)?.label || status
+
+const estiloChipStatus = (status) => {
+  const cor = corStatus(status)
+  return { backgroundColor: `${cor}1A`, color: cor, borderColor: `${cor}30` }
+}
+
+const formatarData = (data) =>
+  data ? new Date(data).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '—'
+
+const formatarIdentificador = (id) => String(id).padStart(TAMANHO_ID, '0')
+const formatarIndice = (indice) => String(indice + 1).padStart(TAMANHO_INDICE, '0')
+
+const loteParaCsv = (lote) => ({
   id: lote.id,
   descricao: lote.descricao || '',
   tipoResiduo: lote.tipoResiduo || '',
   quantidade: lote.quantidade || '',
   unidade: lote.unidade || '',
-  status: statusLabel(lote.status),
+  status: rotuloStatus(lote.status),
   criadoEm: formatarData(lote.criadoEm),
   empresaGeradoraId: lote.empresaGeradora?.id || lote.empresaGeradoraId || '',
 })
 
-const exportarLotes = () => {
-  exportCsv('ecotrack-lotes.csv', lotes.value.map(loteRow))
+const exportarTodos = () => {
+  exportCsv('ecotrack-lotes.csv', lotes.value.map(loteParaCsv))
 }
 
-const abrirDetalheLote = (lote) => {
-  loteSelecionado.value = lote
-}
-
-const fecharDetalheLote = () => {
-  loteSelecionado.value = null
-}
-
-const exportarLoteSelecionado = () => {
+const exportarSelecionado = () => {
   if (!loteSelecionado.value) return
-  exportCsv(`ecotrack-lote-${loteSelecionado.value.id}.csv`, [loteRow(loteSelecionado.value)])
+  exportCsv(
+    `ecotrack-lote-${loteSelecionado.value.id}.csv`,
+    [loteParaCsv(loteSelecionado.value)],
+  )
 }
 
-const carregar = async () => {
-  carregando.value = true
+const carregarLotes = async () => {
   try {
-    const r = await api.get('/lotes')
-    lotes.value = r.data
-  } catch (e) {
-    console.error('Erro ao carregar lotes:', e)
-  } finally {
-    carregando.value = false
+    const resposta = await api.get('/lotes')
+    lotes.value = resposta.data
+  } catch (erro) {
+    console.error('Erro ao carregar lotes:', erro)
   }
 }
 
-const abrirModal = () => {
-  modalAberto.value = true
-  erro.value = ''
-  form.value = { descricao: '', tipoResiduo: '', quantidade: '', unidade: 'KG', empresaGeradoraId: '' }
+const abrirDetalhes = (lote) => { loteSelecionado.value = lote }
+const fecharDetalhes = () => { loteSelecionado.value = null }
+
+const abrirModalCadastro = () => {
+  modalCadastroAberto.value = true
+  mensagemErro.value = ''
+  formulario.value = formularioVazio()
 }
 
-const fecharModal = () => { modalAberto.value = false }
+const fecharModalCadastro = () => { modalCadastroAberto.value = false }
 
 const salvarLote = async () => {
   if (salvando.value) return
   salvando.value = true
-  erro.value = ''
+  mensagemErro.value = ''
   try {
     await api.post('/lotes', {
-      descricao:    form.value.descricao,
-      tipoResiduo:  form.value.tipoResiduo,
-      quantidade:   form.value.quantidade,
-      unidade:      form.value.unidade,
-      empresaGeradora: { id: form.value.empresaGeradoraId },
+      descricao:       formulario.value.descricao,
+      tipoResiduo:     formulario.value.tipoResiduo,
+      quantidade:      formulario.value.quantidade,
+      unidade:         formulario.value.unidade,
+      empresaGeradora: { id: formulario.value.empresaGeradoraId },
     })
-    fecharModal()
-    await carregar()
-  } catch (e) {
-    erro.value = e.mensagemAmigavel || 'Erro ao salvar lote. Verifique os dados.'
+    fecharModalCadastro()
+    await carregarLotes()
+  } catch (erro) {
+    mensagemErro.value = erro.mensagemAmigavel || 'Erro ao salvar lote. Verifique os dados.'
   } finally {
     salvando.value = false
   }
 }
 
-onMounted(carregar)
-
-
+onMounted(carregarLotes)
 </script>
+
+<style scoped>
+.unidade-italic {
+  font-weight: 500;
+  font-style: italic;
+  letter-spacing: 0.04em;
+}
+</style>

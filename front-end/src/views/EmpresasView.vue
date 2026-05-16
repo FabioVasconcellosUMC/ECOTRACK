@@ -1,210 +1,211 @@
 <template>
   <div class="flex flex-col gap-6 pb-6 max-w-[1600px] mx-auto fade-up">
 
-    <header class="flex items-end justify-between flex-wrap gap-4">
-      <div>
-        <p class="eyebrow-italic text-cyan mb-2">Cadastro de empresas</p>
-        <h1 class="display-title text-[48px] leading-[0.98]">
-          Empresas
-        </h1>
-        <p class="text-ink-3 text-[13px] mt-2 mono-tag">
-          {{ empresas.length }} empresas · {{ countByType.GERADORA }} geradoras ·
-          {{ countByType.TRANSPORTADORA }} transportadoras · {{ countByType.RECEPTORA }} receptoras
-        </p>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <button
-          @click="exportarEmpresas"
-          class="flex items-center gap-2 h-10 px-4 rounded-md bg-bg-elevated border border-bg-line text-ink-2
-                 text-[12.5px] font-bold tracking-[0.08em] hover:border-cyan/40 hover:text-cyan transition-colors"
-        >
-          <Download :size="15" /> EXPORTAR
-        </button>
-
-        <button
-          @click="abrirModal"
-          class="flex items-center gap-2 h-10 px-4 rounded-md bg-cyan text-bg-base
-                 text-[12.5px] font-bold tracking-[0.08em] hover:bg-cyan/90 transition-colors"
-        >
-          <Plus :size="16" /> NOVA EMPRESA
-        </button>
-      </div>
-    </header>
-
-    <section class="grid grid-cols-12 gap-5 min-h-[640px]">
-
+    <section class="relative rounded-2xl overflow-hidden helmet-stripe border border-bg-line-strong">
       <div
-        class="col-span-12 lg:col-span-5 rounded-2xl bg-bg-panel border border-bg-line-strong
-               flex flex-col helmet-stripe overflow-hidden"
-      >
-        <div class="px-5 pt-5 pb-4 border-b border-bg-line">
-          <div class="flex items-center gap-2 px-3 h-10 rounded-md bg-bg-base border border-bg-line
-                      focus-within:border-cyan/40 transition-colors">
-            <Search :size="14" class="text-ink-3" />
-            <input
-              v-model="busca"
-              type="text"
-              placeholder="Buscar por razão social, CNPJ ou e-mail..."
-              class="flex-1 bg-transparent outline-none text-[13px] text-ink placeholder:text-ink-4"
-            />
-          </div>
+        class="absolute inset-0 bg-cover pointer-events-none"
+        style="background-image: url('/photos/empresas-bg.jpg'); background-position: center 35%;"
+      />
+      <div
+        class="absolute inset-0 pointer-events-none"
+        style="background: linear-gradient(105deg,
+          rgba(7, 24, 30, 0.96) 0%,
+          rgba(7, 24, 30, 0.86) 35%,
+          rgba(7, 24, 30, 0.78) 65%,
+          rgba(7, 24, 30, 0.88) 100%);"
+      />
+      <div
+        class="absolute inset-0 pointer-events-none"
+        style="background: radial-gradient(700px 500px at 12% 50%, rgba(0, 76, 84, 0.32), transparent 60%);"
+      />
+      <div class="absolute inset-0 wing-pattern opacity-25 pointer-events-none" />
 
-          <div class="flex flex-wrap gap-1.5 mt-3">
-            <button
-              v-for="f in filtros"
-              :key="f.value"
-              @click="filtroTipo = f.value"
-              class="px-3 py-1 rounded-full text-[11px] font-semibold border tracking-wide transition-colors"
-              :class="filtroTipo === f.value
-                ? 'bg-cyan/10 border-cyan/40 text-cyan'
-                : 'bg-bg-elevated border-bg-line text-ink-2 hover:border-bg-line-strong'"
-            >
-              {{ f.label }} ·
-              <span class="mono-tag text-[10px]">
-                {{ f.value === 'TODOS' ? empresas.length : countByType[f.value] || 0 }}
-              </span>
-            </button>
-          </div>
+      <div class="relative flex items-end justify-between flex-wrap gap-4 p-7">
+        <div>
+          <p class="eyebrow-italic text-cyan mb-2">Cadastro de empresas</p>
+          <h1 class="display-title text-[48px] leading-[0.98]">Empresas</h1>
+          <p class="text-ink-3 text-[13px] mt-2 mono-tag">
+            {{ empresas.length }} empresas · {{ contagensPorTipo.GERADORA }} geradoras ·
+            {{ contagensPorTipo.TRANSPORTADORA }} transportadoras ·
+            {{ contagensPorTipo.RECEPTORA }} receptoras
+          </p>
         </div>
 
-        <div class="flex-1 overflow-y-auto">
-          <div v-if="empresasFiltradas.length === 0" class="px-6 py-16 text-center">
-            <Building2 :size="32" class="mx-auto text-ink-4 mb-3" />
-            <p class="eyebrow">Nenhuma empresa</p>
-            <p class="text-ink-3 text-[12px] mt-2">Ajuste os filtros ou cadastre uma nova.</p>
-          </div>
-
+        <div class="flex items-center gap-2">
           <button
-            v-for="(e, i) in empresasFiltradas"
-            :key="e.id"
-            @click="selecionada = e"
-            class="group w-full flex items-center gap-3 px-5 py-3 border-b border-bg-line
-                   text-left transition-colors relative"
-            :class="selecionada?.id === e.id
-              ? 'bg-bg-elevated'
-              : 'hover:bg-bg-elevated/60'"
+            @click="exportarTodas"
+            class="flex items-center gap-2 h-10 px-4 rounded-md bg-bg-elevated border border-bg-line text-ink-2 text-[12.5px] font-bold tracking-[0.08em] hover:border-cyan/40 hover:text-cyan transition-colors"
           >
-            <span
-              v-if="selecionada?.id === e.id"
-              class="absolute left-0 top-2 bottom-2 w-[2px] bg-cyan rounded-r"
-            />
+            <Download :size="15" /> EXPORTAR
+          </button>
+          <button
+            @click="abrirModalCadastro"
+            class="flex items-center gap-2 h-10 px-4 rounded-md bg-cyan text-bg-base text-[12.5px] font-bold tracking-[0.08em] hover:bg-cyan/90 transition-colors"
+          >
+            <Plus :size="16" /> NOVA EMPRESA
+          </button>
+        </div>
+      </div>
+    </section>
 
-            <span class="mono-tag text-ink-4 text-[11px] w-6 shrink-0">
-              {{ String(i + 1).padStart(2, '0') }}
-            </span>
+    <section class="rounded-2xl bg-bg-panel border border-bg-line-strong flex flex-col helmet-stripe overflow-hidden">
+      <div class="px-5 pt-5 pb-4 border-b border-bg-line flex flex-wrap items-center gap-4 justify-between">
+        <div class="flex items-center gap-2 px-3 h-10 rounded-md bg-bg-base border border-bg-line focus-within:border-cyan/40 transition-colors flex-1 min-w-[260px] max-w-[420px]">
+          <Search :size="14" class="text-ink-3" />
+          <input
+            v-model="termoBusca"
+            type="text"
+            placeholder="Buscar por razão social, CNPJ ou e-mail..."
+            class="flex-1 bg-transparent outline-none text-[13px] text-ink placeholder:text-ink-4"
+          />
+        </div>
 
-            <div
-              class="w-9 h-9 rounded-md flex items-center justify-center text-[11.5px] font-bold shrink-0"
-              :style="avatarStyle(e.tipo)"
-            >
-              {{ inicials(e.razaoSocial) }}
-            </div>
-
-            <div class="flex-1 min-w-0">
-              <p class="text-[13px] font-semibold text-ink truncate">{{ e.razaoSocial }}</p>
-              <p class="mono-tag text-ink-3 text-[10.5px] truncate">{{ e.cnpj }}</p>
-            </div>
-
-            <span
-              class="px-1.5 py-0.5 rounded text-[9.5px] font-bold tracking-wider shrink-0"
-              :style="chipStyle(e.tipo)"
-            >
-              {{ tipoCurto(e.tipo) }}
-            </span>
+        <div class="flex flex-wrap gap-1.5">
+          <button
+            v-for="filtro in FILTROS"
+            :key="filtro.valor"
+            @click="filtroAtivo = filtro.valor"
+            class="px-3 py-1 rounded-full text-[11px] font-semibold border tracking-wide transition-colors"
+            :class="filtroAtivo === filtro.valor
+              ? 'bg-cyan/10 border-cyan/40 text-cyan'
+              : 'bg-bg-elevated border-bg-line text-ink-2 hover:border-bg-line-strong'"
+          >
+            {{ filtro.rotulo }} ·
+            <span class="mono-tag text-[10px]">{{ contadorParaFiltro(filtro.valor) }}</span>
           </button>
         </div>
       </div>
 
-      <div class="col-span-12 lg:col-span-7">
-        <div
-          v-if="selecionada"
-          :key="selecionada.id"
-          class="relative rounded-2xl bg-bg-panel border border-bg-line-strong p-7
-                 helmet-stripe fade-up overflow-hidden"
+      <div class="flex-1">
+        <div v-if="empresasFiltradas.length === 0" class="px-6 py-16 text-center">
+          <Building2 :size="32" class="mx-auto text-ink-4 mb-3" />
+          <p class="eyebrow">Nenhuma empresa</p>
+          <p class="text-ink-3 text-[12px] mt-2">Ajuste os filtros ou cadastre uma nova.</p>
+        </div>
+
+        <button
+          v-for="(empresa, indice) in empresasFiltradas"
+          :key="empresa.id"
+          @click="abrirDetalhes(empresa)"
+          class="group w-full flex items-center gap-3 px-5 py-4 border-b border-bg-line text-left transition-colors relative cursor-pointer hover:bg-bg-elevated/60"
         >
-          <svg
-            class="absolute -right-20 -top-20 w-[360px] h-[360px] opacity-[0.045] pointer-events-none"
-            viewBox="0 0 600 600" fill="none"
+          <span class="mono-tag text-ink-4 text-[11px] w-6 shrink-0">
+            {{ formatarIndice(indice) }}
+          </span>
+
+          <div
+            class="w-10 h-10 rounded-md flex items-center justify-center text-[12px] font-bold shrink-0"
+            :style="estiloAvatar(empresa.tipo)"
           >
-            <path d="M0 600 L300 0 L600 600 L500 600 L300 200 L100 600 Z" fill="#2DD4BF" />
-          </svg>
-
-          <div class="flex items-start gap-5 relative">
-            <div
-              class="w-16 h-16 rounded-xl flex items-center justify-center text-[20px] font-bold shrink-0"
-              :style="avatarStyle(selecionada.tipo)"
-            >
-              {{ inicials(selecionada.razaoSocial) }}
-            </div>
-
-            <div class="flex-1 min-w-0">
-              <span class="eyebrow" :style="{ color: tipoColor(selecionada.tipo) }">
-                {{ selecionada.tipo }}
-              </span>
-              <h2 class="section-title text-[30px] mt-2">
-                {{ selecionada.razaoSocial }}
-              </h2>
-              <p class="mono-tag text-ink-3 text-[11px] mt-2">
-                CNPJ {{ selecionada.cnpj }}
-              </p>
-            </div>
-
-            <span
-              class="px-2.5 py-1 rounded-full text-[10.5px] font-bold tracking-wider flex items-center gap-1.5"
-              :class="selecionada.ativa
-                ? 'bg-success-soft border border-success/30 text-success'
-                : 'bg-danger-soft  border border-danger/30  text-danger'"
-            >
-              <span class="w-1.5 h-1.5 rounded-full" :class="selecionada.ativa ? 'bg-success' : 'bg-danger'" />
-              {{ selecionada.ativa ? 'ATIVA' : 'INATIVA' }}
-            </span>
+            {{ iniciais(empresa.razaoSocial) }}
           </div>
 
-          <dl class="mt-7 grid grid-cols-2 gap-x-6 gap-y-5">
-            <Field icon="Mail"     label="E-mail"         :value="selecionada.email" />
-            <Field icon="Phone"    label="Telefone"       :value="selecionada.telefone" />
-            <Field icon="MapPin"   label="Endereço"       :value="selecionada.endereco" cols="2" />
-            <Field icon="Calendar" label="Cadastrado em"  :value="formatarData(selecionada.criadoEm)" />
-            <Field icon="Tag"      label="Identificador"  :value="`#${String(selecionada.id).padStart(4, '0')}`" mono />
-          </dl>
-
-          <div class="mt-7 pt-5 border-t border-bg-line flex items-start justify-between gap-4">
-            <p class="editorial text-[13px] max-w-xl">
-              Este cadastro centraliza as empresas que participam da cadeia de resíduos e alimenta os registros de lotes do sistema.
-            </p>
-
-            <button
-              @click="exportarEmpresaSelecionada"
-              class="shrink-0 flex items-center gap-2 h-9 px-3 rounded-md bg-bg-elevated border border-bg-line text-ink-2
-                     text-[11px] font-bold tracking-wider hover:border-cyan/40 hover:text-cyan transition-colors"
-            >
-              <Download :size="14" /> EXPORTAR DADOS
-            </button>
+          <div class="flex-1 min-w-0">
+            <p class="text-[13.5px] font-semibold text-ink truncate">{{ empresa.razaoSocial }}</p>
+            <p class="mono-tag text-ink-3 text-[10.5px] truncate mt-0.5">{{ empresa.cnpj }}</p>
           </div>
-        </div>
 
-        <div
-          v-else
-          class="rounded-2xl bg-bg-panel border border-bg-line-strong p-12 text-center
-                 min-h-[400px] flex flex-col items-center justify-center"
-        >
-          <div class="w-16 h-16 rounded-2xl bg-bg-elevated border border-bg-line flex items-center justify-center mb-4">
-            <MousePointerClick :size="22" class="text-ink-3" />
+          <div class="hidden md:flex flex-col items-end min-w-0 max-w-[260px]">
+            <p class="text-[12px] text-ink-2 truncate w-full text-right">{{ empresa.email || '—' }}</p>
+            <p class="mono-tag text-ink-3 text-[10.5px] truncate w-full text-right mt-0.5">{{ empresa.telefone || '—' }}</p>
           </div>
-          <p class="eyebrow">Selecione uma empresa</p>
-          <p class="text-ink-3 text-[13px] mt-2 max-w-xs">
-            Escolha uma empresa da lista ao lado para visualizar os detalhes completos do cadastro.
-          </p>
-        </div>
+
+          <span
+            class="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider shrink-0"
+            :style="estiloChip(empresa.tipo)"
+          >
+            {{ rotuloTipoCurto(empresa.tipo) }}
+          </span>
+
+          <ChevronRight :size="16" class="text-ink-4 group-hover:text-cyan transition-colors shrink-0" />
+        </button>
       </div>
     </section>
 
     <Transition name="page">
       <div
-        v-if="modalAberto"
+        v-if="empresaSelecionada"
         class="fixed inset-0 z-50 bg-bg-base/80 backdrop-blur-sm flex items-center justify-center p-6"
-        @click.self="fecharModal"
+        @click.self="fecharDetalhes"
+      >
+        <div class="w-full max-w-2xl rounded-2xl bg-bg-panel border border-bg-line-strong p-7 helmet-stripe fade-up">
+          <div class="flex items-start gap-5">
+            <div
+              class="w-16 h-16 rounded-xl flex items-center justify-center text-[20px] font-bold shrink-0"
+              :style="estiloAvatar(empresaSelecionada.tipo)"
+            >
+              {{ iniciais(empresaSelecionada.razaoSocial) }}
+            </div>
+
+            <div class="flex-1 min-w-0">
+              <p class="eyebrow" :style="{ color: corDoTipo(empresaSelecionada.tipo) }">
+                {{ empresaSelecionada.tipo }}
+              </p>
+              <h2 class="section-title text-[28px] mt-1.5">{{ empresaSelecionada.razaoSocial }}</h2>
+              <p class="mono-tag text-ink-3 text-[11px] mt-2">CNPJ {{ empresaSelecionada.cnpj }}</p>
+            </div>
+
+            <button
+              @click="fecharDetalhes"
+              class="shrink-0 w-9 h-9 rounded-md flex items-center justify-center text-ink-3 hover:text-ink hover:bg-bg-elevated transition-colors"
+            >
+              <X :size="18" />
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 mt-7">
+            <div class="rounded-xl bg-bg-elevated border border-bg-line p-4">
+              <p class="eyebrow">E-mail</p>
+              <p class="text-[13px] text-ink mt-2 break-words">{{ empresaSelecionada.email || '—' }}</p>
+            </div>
+            <div class="rounded-xl bg-bg-elevated border border-bg-line p-4">
+              <p class="eyebrow">Telefone</p>
+              <p class="text-[13px] text-ink mt-2">{{ empresaSelecionada.telefone || '—' }}</p>
+            </div>
+            <div class="rounded-xl bg-bg-elevated border border-bg-line p-4 col-span-2">
+              <p class="eyebrow">Endereço</p>
+              <p class="text-[13px] text-ink mt-2 break-words">{{ empresaSelecionada.endereco || '—' }}</p>
+            </div>
+            <div class="rounded-xl bg-bg-elevated border border-bg-line p-4">
+              <p class="eyebrow">Cadastrado em</p>
+              <p class="mono-tag text-[13px] text-ink mt-2">{{ formatarData(empresaSelecionada.criadoEm) }}</p>
+            </div>
+            <div class="rounded-xl bg-bg-elevated border border-bg-line p-4">
+              <p class="eyebrow">Identificador</p>
+              <p class="mono-tag text-cyan text-[13px] mt-2">#{{ formatarIdentificador(empresaSelecionada.id) }}</p>
+            </div>
+          </div>
+
+          <div class="mt-7 pt-5 border-t border-bg-line flex items-center justify-between gap-4">
+            <span
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-bold tracking-wider"
+              :class="empresaSelecionada.ativa
+                ? 'bg-success-soft border border-success/30 text-success'
+                : 'bg-danger-soft border border-danger/30 text-danger'"
+            >
+              <span
+                class="w-1.5 h-1.5 rounded-full"
+                :class="empresaSelecionada.ativa ? 'bg-success' : 'bg-danger'"
+              />
+              {{ empresaSelecionada.ativa ? 'ATIVA' : 'INATIVA' }}
+            </span>
+
+            <button
+              @click="exportarSelecionada"
+              class="shrink-0 flex items-center gap-2 h-9 px-3 rounded-md bg-bg-elevated border border-bg-line text-ink-2 text-[11px] font-bold tracking-wider hover:border-cyan/40 hover:text-cyan transition-colors"
+            >
+              <Download :size="14" /> EXPORTAR EMPRESA
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <Transition name="page">
+      <div
+        v-if="modalCadastroAberto"
+        class="fixed inset-0 z-50 bg-bg-base/80 backdrop-blur-sm flex items-center justify-center p-6"
+        @click.self="fecharModalCadastro"
       >
         <div class="w-full max-w-xl rounded-2xl bg-bg-panel border border-bg-line-strong p-7 helmet-stripe fade-up">
           <div class="flex items-center justify-between mb-6">
@@ -213,9 +214,8 @@
               <h2 class="section-title text-[28px] mt-2">Cadastrar empresa</h2>
             </div>
             <button
-              @click="fecharModal"
-              class="w-9 h-9 rounded-md flex items-center justify-center text-ink-3
-                     hover:text-ink hover:bg-bg-elevated transition-colors"
+              @click="fecharModalCadastro"
+              class="w-9 h-9 rounded-md flex items-center justify-center text-ink-3 hover:text-ink hover:bg-bg-elevated transition-colors"
             >
               <X :size="18" />
             </button>
@@ -225,20 +225,18 @@
             <div>
               <label class="eyebrow block mb-1.5">CNPJ</label>
               <div class="flex gap-2">
-                <div class="flex items-center gap-2 px-3 h-10 rounded-md bg-bg-base border border-bg-line flex-1
-                            focus-within:border-cyan/40 transition-colors">
+                <div class="flex items-center gap-2 px-3 h-10 rounded-md bg-bg-base border border-bg-line flex-1 focus-within:border-cyan/40 transition-colors">
                   <Hash :size="14" class="text-ink-3" />
                   <input
-                    v-model="form.cnpj"
+                    v-model="formulario.cnpj"
                     placeholder="00.000.000/0000-00"
                     class="flex-1 bg-transparent outline-none text-[13px] text-ink mono-tag placeholder:text-ink-4"
                   />
                 </div>
                 <button
-                  @click="consultarCnpj"
+                  @click="buscarDadosPorCnpj"
                   :disabled="buscandoCnpj"
-                  class="flex items-center gap-1.5 px-3.5 h-10 rounded-md bg-cyan/10 border border-cyan/30
-                         text-cyan text-[11.5px] font-bold tracking-wider hover:bg-cyan/20 transition-colors disabled:opacity-50"
+                  class="flex items-center gap-1.5 px-3.5 h-10 rounded-md bg-cyan/10 border border-cyan/30 text-cyan text-[11.5px] font-bold tracking-wider hover:bg-cyan/20 transition-colors disabled:opacity-50"
                 >
                   <Loader2 v-if="buscandoCnpj" :size="13" class="animate-spin" />
                   <Search v-else :size="13" />
@@ -247,51 +245,48 @@
               </div>
             </div>
 
-            <FormField v-model="form.razaoSocial" label="Razão social" placeholder="Razão social da empresa" />
+            <FormField v-model="formulario.razaoSocial" label="Razão social" placeholder="Razão social da empresa" />
 
             <div>
               <label class="eyebrow block mb-1.5">Tipo</label>
               <div class="grid grid-cols-3 gap-1.5">
                 <button
-                  v-for="t in tiposCad"
-                  :key="t.value"
-                  @click="form.tipo = t.value"
+                  v-for="opcao in TIPOS_CADASTRO"
+                  :key="opcao.valor"
+                  @click="formulario.tipo = opcao.valor"
                   class="px-3 py-2.5 rounded-md text-[11.5px] font-bold tracking-wider border transition-colors"
-                  :class="form.tipo === t.value
+                  :class="formulario.tipo === opcao.valor
                     ? 'border-cyan/40 text-cyan bg-cyan/10'
                     : 'bg-bg-elevated border-bg-line text-ink-2 hover:border-bg-line-strong'"
                 >
-                  {{ t.label }}
+                  {{ opcao.rotulo }}
                 </button>
               </div>
             </div>
 
-            <FormField v-model="form.email"    label="E-mail"   placeholder="contato@empresa.com" type="email" />
-            <FormField v-model="form.telefone" label="Telefone" placeholder="(00) 00000-0000" />
-            <FormField v-model="form.endereco" label="Endereço" placeholder="Rua, número, cidade — UF" />
+            <FormField v-model="formulario.email"    label="E-mail"   placeholder="contato@empresa.com" type="email" />
+            <FormField v-model="formulario.telefone" label="Telefone" placeholder="(00) 00000-0000" />
+            <FormField v-model="formulario.endereco" label="Endereço" placeholder="Rua, número, cidade — UF" />
           </div>
 
           <p
-            v-if="erro"
-            class="flex items-center gap-2 text-[12px] text-danger
-                   bg-danger-soft border border-danger/30 rounded-md px-3 py-2 mt-4"
+            v-if="mensagemErro"
+            class="flex items-center gap-2 text-[12px] text-danger bg-danger-soft border border-danger/30 rounded-md px-3 py-2 mt-4"
           >
-            <AlertCircle :size="14" /> {{ erro }}
+            <AlertCircle :size="14" /> {{ mensagemErro }}
           </p>
 
           <div class="flex justify-end gap-2 mt-6 pt-5 border-t border-bg-line">
             <button
-              @click="fecharModal"
-              class="px-4 h-10 rounded-md text-[11.5px] font-bold tracking-wider
-                     bg-bg-elevated border border-bg-line text-ink-2 hover:border-bg-line-strong"
+              @click="fecharModalCadastro"
+              class="px-4 h-10 rounded-md text-[11.5px] font-bold tracking-wider bg-bg-elevated border border-bg-line text-ink-2 hover:border-bg-line-strong"
             >
               CANCELAR
             </button>
             <button
               @click="salvarEmpresa"
               :disabled="salvando"
-              class="flex items-center gap-2 px-5 h-10 rounded-md text-[11.5px] font-bold tracking-wider
-                     bg-cyan text-bg-base hover:bg-cyan/90 transition-colors disabled:opacity-50"
+              class="flex items-center gap-2 px-5 h-10 rounded-md text-[11.5px] font-bold tracking-wider bg-cyan text-bg-base hover:bg-cyan/90 transition-colors disabled:opacity-50"
             >
               <Loader2 v-if="salvando" :size="13" class="animate-spin" />
               <Check v-else :size="13" />
@@ -305,88 +300,129 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, h } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
-  Search, Plus, Building2, Mail, Phone, MapPin, Calendar, Tag, Hash, X, Check,
-  AlertCircle, Loader2, MousePointerClick, Download,
+  Search, Plus, Building2, Hash, X, Check,
+  AlertCircle, Loader2, Download, ChevronRight,
 } from 'lucide-vue-next'
 import api from '../services/api'
 import FormField from '../components/ui/FormField.vue'
 import { exportCsv } from '../utils/exportCsv'
 
-const empresas     = ref([])
-const selecionada  = ref(null)
-const modalAberto  = ref(false)
-const buscandoCnpj = ref(false)
-const salvando     = ref(false)
-const erro         = ref('')
-const busca        = ref('')
-const filtroTipo   = ref('TODOS')
+const TIPOS = {
+  GERADORA:       'GERADORA',
+  TRANSPORTADORA: 'TRANSPORTADORA',
+  RECEPTORA:      'RECEPTORA',
+}
 
-const filtros = [
-  { value: 'TODOS',          label: 'Todas' },
-  { value: 'GERADORA',       label: 'Geradoras' },
-  { value: 'TRANSPORTADORA', label: 'Transportadoras' },
-  { value: 'RECEPTORA',      label: 'Receptoras' },
+const FILTROS = [
+  { valor: 'TODOS',               rotulo: 'Todas' },
+  { valor: TIPOS.GERADORA,        rotulo: 'Geradoras' },
+  { valor: TIPOS.TRANSPORTADORA,  rotulo: 'Transportadoras' },
+  { valor: TIPOS.RECEPTORA,       rotulo: 'Receptoras' },
 ]
 
-const tiposCad = [
-  { value: 'GERADORA',       label: 'GERADORA' },
-  { value: 'TRANSPORTADORA', label: 'TRANSPORT.' },
-  { value: 'RECEPTORA',      label: 'RECEPTORA' },
+const TIPOS_CADASTRO = [
+  { valor: TIPOS.GERADORA,       rotulo: 'GERADORA' },
+  { valor: TIPOS.TRANSPORTADORA, rotulo: 'TRANSPORT.' },
+  { valor: TIPOS.RECEPTORA,      rotulo: 'RECEPTORA' },
 ]
 
-const form = ref({
-  cnpj: '', razaoSocial: '', tipo: 'GERADORA', email: '', telefone: '', endereco: '',
+const CORES_POR_TIPO = {
+  [TIPOS.GERADORA]:       '#38BDF8',
+  [TIPOS.TRANSPORTADORA]: '#F59E0B',
+  [TIPOS.RECEPTORA]:      '#10B981',
+}
+
+const ROTULOS_CURTOS = {
+  [TIPOS.GERADORA]:       'GER',
+  [TIPOS.TRANSPORTADORA]: 'TRANS',
+  [TIPOS.RECEPTORA]:      'RECEP',
+}
+
+const COR_PADRAO = '#A5ACAF'
+const TAMANHO_ID = 4
+const TAMANHO_INDICE = 2
+const CNPJ_DIGITOS = 14
+
+const formularioVazio = () => ({
+  cnpj: '',
+  razaoSocial: '',
+  tipo: TIPOS.GERADORA,
+  email: '',
+  telefone: '',
+  endereco: '',
 })
 
-const countByType = computed(() => {
-  const c = { GERADORA: 0, TRANSPORTADORA: 0, RECEPTORA: 0 }
-  empresas.value.forEach(e => { if (c[e.tipo] !== undefined) c[e.tipo]++ })
-  return c
+const empresas = ref([])
+const empresaSelecionada = ref(null)
+const modalCadastroAberto = ref(false)
+const buscandoCnpj = ref(false)
+const salvando = ref(false)
+const mensagemErro = ref('')
+const termoBusca = ref('')
+const filtroAtivo = ref('TODOS')
+const formulario = ref(formularioVazio())
+
+const contagensPorTipo = computed(() => {
+  const contagem = { [TIPOS.GERADORA]: 0, [TIPOS.TRANSPORTADORA]: 0, [TIPOS.RECEPTORA]: 0 }
+  empresas.value.forEach(empresa => {
+    if (contagem[empresa.tipo] !== undefined) contagem[empresa.tipo]++
+  })
+  return contagem
 })
 
 const empresasFiltradas = computed(() => {
-  let l = empresas.value
-  if (filtroTipo.value !== 'TODOS') l = l.filter(e => e.tipo === filtroTipo.value)
-  if (busca.value.trim()) {
-    const q = busca.value.toLowerCase()
-    l = l.filter(e =>
-      (e.razaoSocial || '').toLowerCase().includes(q) ||
-      (e.cnpj        || '').toLowerCase().includes(q) ||
-      (e.email       || '').toLowerCase().includes(q)
+  let lista = empresas.value
+  if (filtroAtivo.value !== 'TODOS') {
+    lista = lista.filter(empresa => empresa.tipo === filtroAtivo.value)
+  }
+  const termo = termoBusca.value.trim().toLowerCase()
+  if (termo) {
+    lista = lista.filter(empresa =>
+      (empresa.razaoSocial || '').toLowerCase().includes(termo) ||
+      (empresa.cnpj        || '').toLowerCase().includes(termo) ||
+      (empresa.email       || '').toLowerCase().includes(termo),
     )
   }
-  return l
+  return lista
 })
 
-const tipoColor = (t) => ({
-  GERADORA:       '#38BDF8',
-  TRANSPORTADORA: '#F59E0B',
-  RECEPTORA:      '#10B981',
-}[t] || '#A5ACAF')
+const contadorParaFiltro = (valor) =>
+  valor === 'TODOS' ? empresas.value.length : (contagensPorTipo.value[valor] || 0)
 
-const avatarStyle = (t) => {
-  const c = tipoColor(t)
-  return { backgroundColor: `${c}1A`, border: `1px solid ${c}40`, color: c }
+const corDoTipo = (tipo) => CORES_POR_TIPO[tipo] || COR_PADRAO
+
+const estiloAvatar = (tipo) => {
+  const cor = corDoTipo(tipo)
+  return { backgroundColor: `${cor}1A`, border: `1px solid ${cor}40`, color: cor }
 }
 
-const chipStyle = (t) => {
-  const c = tipoColor(t)
-  return { backgroundColor: `${c}1A`, color: c, border: `1px solid ${c}30` }
+const estiloChip = (tipo) => {
+  const cor = corDoTipo(tipo)
+  return { backgroundColor: `${cor}1A`, color: cor, border: `1px solid ${cor}30` }
 }
 
-const tipoCurto = (t) => ({
-  GERADORA: 'GER', TRANSPORTADORA: 'TRANS', RECEPTORA: 'RECEP',
-}[t] || t)
+const rotuloTipoCurto = (tipo) => ROTULOS_CURTOS[tipo] || tipo
 
-const inicials = (str) =>
-  (str || 'EM').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()
+const iniciais = (texto) =>
+  (texto || 'EM')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(palavra => palavra[0])
+    .join('')
+    .toUpperCase()
 
-const formatarData = (d) =>
-  d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+const formatarData = (data) =>
+  data
+    ? new Date(data).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+    : '—'
 
-const empresaRow = (empresa) => ({
+const formatarIdentificador = (id) => String(id).padStart(TAMANHO_ID, '0')
+const formatarIndice = (indice) => String(indice + 1).padStart(TAMANHO_INDICE, '0')
+
+const empresaParaCsv = (empresa) => ({
   id: empresa.id,
   razaoSocial: empresa.razaoSocial || '',
   cnpj: empresa.cnpj || '',
@@ -397,90 +433,77 @@ const empresaRow = (empresa) => ({
   status: empresa.ativa ? 'ATIVA' : 'INATIVA',
 })
 
-const exportarEmpresas = () => {
+const exportarTodas = () => {
   const base = empresasFiltradas.value.length ? empresasFiltradas.value : empresas.value
-  exportCsv('ecotrack-empresas.csv', base.map(empresaRow))
+  exportCsv('ecotrack-empresas.csv', base.map(empresaParaCsv))
 }
 
-const exportarEmpresaSelecionada = () => {
-  if (!selecionada.value) return
-  exportCsv(`ecotrack-empresa-${selecionada.value.id}.csv`, [empresaRow(selecionada.value)])
+const exportarSelecionada = () => {
+  if (!empresaSelecionada.value) return
+  exportCsv(
+    `ecotrack-empresa-${empresaSelecionada.value.id}.csv`,
+    [empresaParaCsv(empresaSelecionada.value)],
+  )
 }
 
-const carregar = async () => {
+const carregarEmpresas = async () => {
   try {
-    const r = await api.get('/empresas')
-    empresas.value = r.data
-    if (!selecionada.value && empresas.value.length) selecionada.value = empresas.value[0]
-  } catch (e) {
-    console.error('Erro ao carregar empresas:', e)
+    const resposta = await api.get('/empresas')
+    empresas.value = resposta.data
+  } catch (erro) {
+    console.error('Erro ao carregar empresas:', erro)
   }
 }
 
-const consultarCnpj = async () => {
+const abrirDetalhes = (empresa) => { empresaSelecionada.value = empresa }
+const fecharDetalhes = () => { empresaSelecionada.value = null }
+
+const buscarDadosPorCnpj = async () => {
   if (buscandoCnpj.value) return
   buscandoCnpj.value = true
-  erro.value = ''
+  mensagemErro.value = ''
   try {
-    const cnpj = form.value.cnpj.replace(/\D/g, '')
-    if (cnpj.length !== 14) {
-      erro.value = 'CNPJ deve ter 14 dígitos.'
+    const cnpjLimpo = formulario.value.cnpj.replace(/\D/g, '')
+    if (cnpjLimpo.length !== CNPJ_DIGITOS) {
+      mensagemErro.value = 'CNPJ deve ter 14 dígitos.'
       return
     }
-    // Usa a BrasilAPI (pública, sem autenticação) para buscar dados do CNPJ
-    const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`)
-    if (!res.ok) throw new Error('CNPJ não encontrado')
-    const data = await res.json()
-    form.value.razaoSocial = data.razao_social || ''
-    const partes = [data.logradouro, data.numero, data.municipio, data.uf].filter(Boolean)
-    form.value.endereco = partes.join(', ')
+    const resposta = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`)
+    if (!resposta.ok) throw new Error('CNPJ não encontrado')
+    const dados = await resposta.json()
+    formulario.value.razaoSocial = dados.razao_social || ''
+    formulario.value.endereco = [dados.logradouro, dados.numero, dados.municipio, dados.uf]
+      .filter(Boolean)
+      .join(', ')
   } catch {
-    erro.value = 'CNPJ não encontrado na Receita Federal.'
+    mensagemErro.value = 'CNPJ não encontrado na Receita Federal.'
   } finally {
     buscandoCnpj.value = false
   }
 }
 
-const abrirModal = () => {
-  modalAberto.value = true
-  erro.value = ''
-  form.value = { cnpj: '', razaoSocial: '', tipo: 'GERADORA', email: '', telefone: '', endereco: '' }
+const abrirModalCadastro = () => {
+  modalCadastroAberto.value = true
+  mensagemErro.value = ''
+  formulario.value = formularioVazio()
 }
 
-const fecharModal = () => { modalAberto.value = false }
+const fecharModalCadastro = () => { modalCadastroAberto.value = false }
 
 const salvarEmpresa = async () => {
   if (salvando.value) return
   salvando.value = true
-  erro.value = ''
+  mensagemErro.value = ''
   try {
-    await api.post('/empresas', form.value)
-    fecharModal()
-    await carregar()
-  } catch (e) {
-    erro.value = e.mensagemAmigavel || 'Erro ao salvar empresa. Verifique os dados.'
+    await api.post('/empresas', formulario.value)
+    fecharModalCadastro()
+    await carregarEmpresas()
+  } catch (erro) {
+    mensagemErro.value = erro.mensagemAmigavel || 'Erro ao salvar empresa. Verifique os dados.'
   } finally {
     salvando.value = false
   }
 }
 
-onMounted(carregar)
-
-const iconMap = { Mail, Phone, MapPin, Calendar, Tag }
-
-const Field = (props) => {
-  const Icon = iconMap[props.icon] || Tag
-  return h('div', { class: props.cols === '2' ? 'col-span-2' : '' }, [
-    h('p', { class: 'eyebrow flex items-center gap-1.5' }, [
-      h(Icon, { size: 11 }), props.label,
-    ]),
-    h('p', {
-      class: ['mt-1.5 text-[13px] break-words',
-              props.mono ? 'mono-tag text-cyan text-[13px]' : 'text-ink'],
-    }, props.value || '—'),
-  ])
-}
-Field.props = ['icon', 'label', 'value', 'cols', 'mono']
-
-
+onMounted(carregarEmpresas)
 </script>
