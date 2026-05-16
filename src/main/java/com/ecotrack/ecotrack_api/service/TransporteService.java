@@ -4,12 +4,14 @@ import com.ecotrack.ecotrack_api.entity.*;
 import com.ecotrack.ecotrack_api.repository.TransporteRepository;
 import com.ecotrack.ecotrack_api.repository.LoteRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -17,6 +19,7 @@ public class TransporteService {
 
     private final TransporteRepository transporteRepository;
     private final LoteRepository loteRepository;
+    private final EmailService emailService;
 
     public List<Transporte> listar() {
         return transporteRepository.findAll();
@@ -37,7 +40,24 @@ public class TransporteService {
 
         transporte.setStatus(StatusTransporte.PENDENTE);
         transporte.setCriadoEm(LocalDateTime.now());
-        return transporteRepository.save(transporte);
+        Transporte salvo = transporteRepository.save(transporte);
+
+        // Envia e-mail para a transportadora
+        try {
+            Empresa transportadora = salvo.getTransportadora();
+            if (transportadora != null && transportadora.getEmail() != null) {
+                emailService.enviarNotificacaoTransporte(
+                        transportadora.getEmail(),
+                        transportadora.getRazaoSocial(),
+                        lote.getId(),
+                        lote.getDescricao()
+                );
+            }
+        } catch (Exception e) {
+            log.warn("Erro ao enviar e-mail de notificação: {}", e.getMessage());
+        }
+
+        return salvo;
     }
 
     public Transporte alterarStatus(Long id, StatusTransporte novoStatus, String observacao) {
@@ -53,7 +73,6 @@ public class TransporteService {
 
         if (novoStatus == StatusTransporte.EM_TRANSITO) {
             transporte.setDataColeta(LocalDateTime.now());
-            // Atualiza status do lote
             Lote lote = transporte.getLote();
             lote.setStatus(StatusLote.EM_TRANSITO);
             loteRepository.save(lote);
@@ -61,7 +80,6 @@ public class TransporteService {
 
         if (novoStatus == StatusTransporte.CONCLUIDO) {
             transporte.setDataEntrega(LocalDateTime.now());
-            // Atualiza status do lote
             Lote lote = transporte.getLote();
             lote.setStatus(StatusLote.DESCARTADO);
             loteRepository.save(lote);
