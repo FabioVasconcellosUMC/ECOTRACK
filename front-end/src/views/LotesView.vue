@@ -236,11 +236,33 @@
           </div>
 
           <div class="space-y-4">
-            <FormField v-model="formulario.descricao"   label="Descrição"     placeholder="Descrição resumida do lote" />
-            <FormField v-model="formulario.tipoResiduo" label="Tipo resíduo"  placeholder="Ex: Eletrônico, Plástico, Orgânico" />
+            <FormField
+              v-model="formulario.descricao"
+              label="Descrição *"
+              placeholder="Descrição resumida do lote"
+              :erro="erros.descricao"
+              @update:modelValue="limparErro('descricao')"
+              @blur="validarCampo('descricao')"
+            />
+            <FormField
+              v-model="formulario.tipoResiduo"
+              label="Tipo resíduo *"
+              placeholder="Ex: Eletrônico, Plástico, Orgânico"
+              :erro="erros.tipoResiduo"
+              @update:modelValue="limparErro('tipoResiduo')"
+              @blur="validarCampo('tipoResiduo')"
+            />
 
             <div class="grid grid-cols-2 gap-3">
-              <FormField v-model="formulario.quantidade" label="Quantidade" placeholder="0" type="number" />
+              <FormField
+                v-model="formulario.quantidade"
+                label="Quantidade *"
+                placeholder="0"
+                type="number"
+                :erro="erros.quantidade"
+                @update:modelValue="limparErro('quantidade')"
+                @blur="validarCampo('quantidade')"
+              />
 
               <div>
                 <label class="eyebrow block mb-1.5">Unidade</label>
@@ -261,16 +283,29 @@
             </div>
 
             <div>
-              <label class="eyebrow block mb-1.5">Empresa geradora</label>
-              <div class="flex items-center gap-2 px-3 h-10 rounded-md bg-bg-base border border-bg-line focus-within:border-cyan/40 transition-colors">
+              <label class="eyebrow block mb-1.5">Empresa geradora *</label>
+              <div
+                class="flex items-center gap-2 px-3 h-10 rounded-md bg-bg-base border border-bg-line focus-within:border-cyan/40 transition-colors"
+                :class="{ 'border-danger/60': erros.empresaGeradoraId }"
+              >
                 <Building2 :size="14" class="text-ink-3" />
-                <input
+                <select
                   v-model="formulario.empresaGeradoraId"
-                  type="number"
-                  placeholder="ID da empresa geradora"
-                  class="flex-1 bg-transparent outline-none text-[13px] text-ink mono-tag placeholder:text-ink-4"
-                />
+                  @change="limparErro('empresaGeradoraId')"
+                  class="flex-1 bg-transparent outline-none text-[13px] text-ink"
+                >
+                  <option value="">Selecione uma empresa geradora</option>
+                  <option v-for="empresa in empresasGeradoras" :key="empresa.id" :value="empresa.id">
+                    {{ empresa.razaoSocial }}
+                  </option>
+                </select>
               </div>
+              <p v-if="erros.empresaGeradoraId" class="flex items-center gap-1.5 text-[11px] text-danger mt-1">
+                <AlertCircle :size="11" /> {{ erros.empresaGeradoraId }}
+              </p>
+              <p v-else-if="empresasGeradoras.length === 0" class="text-[11px] text-ink-3 mt-1">
+                Cadastre uma empresa do tipo GERADORA antes de criar lotes.
+              </p>
             </div>
           </div>
 
@@ -313,6 +348,7 @@ import {
 import api from '../services/api'
 import FormField from '../components/ui/FormField.vue'
 import { exportCsv } from '../utils/exportCsv'
+import { validarTamanhoMinimo } from '../composables/useValidacao'
 
 const STATUS = {
   AGUARDANDO_COLETA: 'AGUARDANDO_COLETA',
@@ -337,6 +373,7 @@ const UNIDADES = ['KG', 'TON', 'L']
 const COR_PADRAO = '#A5ACAF'
 const TAMANHO_ID = 4
 const TAMANHO_INDICE = 2
+const TIPO_EMPRESA_GERADORA = 'GERADORA'
 
 const formularioVazio = () => ({
   descricao: '',
@@ -346,13 +383,26 @@ const formularioVazio = () => ({
   empresaGeradoraId: '',
 })
 
+const errosVazio = () => ({
+  descricao: '',
+  tipoResiduo: '',
+  quantidade: '',
+  empresaGeradoraId: '',
+})
+
 const lotes = ref([])
+const empresas = ref([])
 const loteSelecionado = ref(null)
 const modalCadastroAberto = ref(false)
 const salvando = ref(false)
 const mensagemErro = ref('')
 const vistaAtiva = ref('kanban')
 const formulario = ref(formularioVazio())
+const erros = ref(errosVazio())
+
+const empresasGeradoras = computed(() =>
+  empresas.value.filter(empresa => empresa.tipo === TIPO_EMPRESA_GERADORA),
+)
 
 const contagens = computed(() => {
   const contagem = {
@@ -386,6 +436,37 @@ const formatarData = (data) =>
 const formatarIdentificador = (id) => String(id).padStart(TAMANHO_ID, '0')
 const formatarIndice = (indice) => String(indice + 1).padStart(TAMANHO_INDICE, '0')
 
+const limparErro = (campo) => { erros.value[campo] = '' }
+
+const validarCampo = (campo) => {
+  const valor = formulario.value[campo]
+
+  if (campo === 'descricao') {
+    erros.value.descricao = validarTamanhoMinimo(valor, 3, 'Descrição')
+  }
+
+  if (campo === 'tipoResiduo') {
+    erros.value.tipoResiduo = validarTamanhoMinimo(valor, 3, 'Tipo de resíduo')
+  }
+
+  if (campo === 'quantidade') {
+    const quantidade = Number(valor)
+    erros.value.quantidade = quantidade > 0 ? '' : 'Quantidade deve ser maior que zero.'
+  }
+
+  if (campo === 'empresaGeradoraId') {
+    erros.value.empresaGeradoraId = valor ? '' : 'Selecione uma empresa geradora.'
+  }
+}
+
+const validarFormularioCompleto = () => {
+  validarCampo('descricao')
+  validarCampo('tipoResiduo')
+  validarCampo('quantidade')
+  validarCampo('empresaGeradoraId')
+  return Object.values(erros.value).every(mensagem => mensagem === '')
+}
+
 const loteParaCsv = (lote) => ({
   id: lote.id,
   descricao: lote.descricao || '',
@@ -409,12 +490,16 @@ const exportarSelecionado = () => {
   )
 }
 
-const carregarLotes = async () => {
+const carregarDados = async () => {
   try {
-    const resposta = await api.get('/lotes')
-    lotes.value = resposta.data
+    const [respostaLotes, respostaEmpresas] = await Promise.all([
+      api.get('/lotes'),
+      api.get('/empresas'),
+    ])
+    lotes.value = respostaLotes.data
+    empresas.value = respostaEmpresas.data
   } catch (erro) {
-    console.error('Erro ao carregar lotes:', erro)
+    console.error('Erro ao carregar dados de lotes:', erro)
   }
 }
 
@@ -425,24 +510,31 @@ const abrirModalCadastro = () => {
   modalCadastroAberto.value = true
   mensagemErro.value = ''
   formulario.value = formularioVazio()
+  erros.value = errosVazio()
 }
 
 const fecharModalCadastro = () => { modalCadastroAberto.value = false }
 
 const salvarLote = async () => {
   if (salvando.value) return
-  salvando.value = true
   mensagemErro.value = ''
+
+  if (!validarFormularioCompleto()) {
+    mensagemErro.value = 'Corrija os campos destacados antes de salvar.'
+    return
+  }
+
+  salvando.value = true
   try {
     await api.post('/lotes', {
-      descricao:       formulario.value.descricao,
-      tipoResiduo:     formulario.value.tipoResiduo,
-      quantidade:      formulario.value.quantidade,
+      descricao:       formulario.value.descricao.trim(),
+      tipoResiduo:     formulario.value.tipoResiduo.trim(),
+      quantidade:      Number(formulario.value.quantidade),
       unidade:         formulario.value.unidade,
-      empresaGeradora: { id: formulario.value.empresaGeradoraId },
+      empresaGeradora: { id: Number(formulario.value.empresaGeradoraId) },
     })
     fecharModalCadastro()
-    await carregarLotes()
+    await carregarDados()
   } catch (erro) {
     mensagemErro.value = erro.mensagemAmigavel || 'Erro ao salvar lote. Verifique os dados.'
   } finally {
@@ -450,7 +542,7 @@ const salvarLote = async () => {
   }
 }
 
-onMounted(carregarLotes)
+onMounted(carregarDados)
 </script>
 
 <style scoped>
