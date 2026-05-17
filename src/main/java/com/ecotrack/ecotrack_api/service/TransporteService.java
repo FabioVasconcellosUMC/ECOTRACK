@@ -46,6 +46,7 @@ public class TransporteService {
         transporte.setCriadoEm(LocalDateTime.now());
 
         Transporte salvo = transporteRepository.save(transporte);
+        log.info("Transporte {} criado para a transportadora {}", salvo.getId(), transportadora.getRazaoSocial());
         enviarEmailParaTransportadora(salvo, lote);
 
         return salvo;
@@ -116,6 +117,7 @@ public class TransporteService {
         }
 
         try {
+            log.info("Preparando notificação do transporte {} para {}", transporte.getId(), transportadora.getEmail());
             emailService.enviarNotificacaoTransporte(
                     transportadora.getEmail(),
                     transportadora.getRazaoSocial(),
