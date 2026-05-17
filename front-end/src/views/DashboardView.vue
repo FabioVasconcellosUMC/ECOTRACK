@@ -8,97 +8,48 @@
           Dashboard operacional
         </h1>
         <p class="text-ink-3 text-[13px] mt-2 mono-tag">
-          {{ dateLong }} · acompanhamento dos principais indicadores
+          {{ dataLonga }} · acompanhamento dos principais indicadores
         </p>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <div class="flex p-1 rounded-md bg-bg-elevated border border-bg-line">
-          <button
-            v-for="p in periodos"
-            :key="p"
-            @click="periodo = p"
-            class="px-3 py-1.5 rounded-[5px] text-[11.5px] font-bold tracking-wider transition-colors"
-            :class="periodo === p
-              ? 'bg-bg-panel text-cyan'
-              : 'text-ink-3 hover:text-ink'"
-          >
-            {{ p.toUpperCase() }}
-          </button>
-        </div>
       </div>
     </header>
 
     <section
-      class="relative grid grid-cols-12 rounded-2xl overflow-hidden helmet-stripe fade-up-1
-             border border-bg-line-strong"
+      class="relative rounded-2xl overflow-hidden helmet-stripe fade-up-1 border border-bg-line-strong"
     >
       <div
         class="absolute inset-0 bg-cover pointer-events-none"
-        style="background-image: url('/photos/dashboard-bg.jpg'); background-position: center 30%;"
+        style="background-image: url('/photos/dashboard-bg.jpg'); background-position: center 35%;"
       />
       <div
         class="absolute inset-0 pointer-events-none"
-        style="background: linear-gradient(105deg,
-          rgba(7, 24, 30, 0.96) 0%,
-          rgba(7, 24, 30, 0.86) 35%,
-          rgba(7, 24, 30, 0.78) 65%,
-          rgba(7, 24, 30, 0.88) 100%);"
+        style="background: linear-gradient(120deg,
+          rgba(7, 24, 30, 0.88) 0%,
+          rgba(7, 24, 30, 0.72) 50%,
+          rgba(7, 24, 30, 0.85) 100%);"
       />
       <div
         class="absolute inset-0 pointer-events-none"
-        style="background: radial-gradient(700px 500px at 12% 50%, rgba(0, 76, 84, 0.32), transparent 60%);"
-      />
-      <div class="absolute inset-0 wing-pattern opacity-25 pointer-events-none" />
-      <div
-        class="absolute inset-0 pointer-events-none"
-        style="background: radial-gradient(400px 300px at 88% 110%, rgba(45, 212, 191, 0.10), transparent 70%);"
+        style="background: radial-gradient(900px 500px at 50% 50%, rgba(0, 76, 84, 0.25), transparent 65%);"
       />
 
-      <div class="relative col-span-12 lg:col-span-5 p-7 border-r border-bg-line/60">
-        <p class="eyebrow text-cyan">Resíduos rastreados</p>
-        <div class="flex items-baseline gap-3 mt-3">
-          <span
-            class="scoreboard text-[112px] text-ink leading-[0.85]"
-            style="text-shadow: 0 2px 24px rgba(0, 0, 0, 0.5);"
-          >{{ animated.total }}</span>
-          <span class="font-display text-cyan text-[24px]"
-                style="font-weight: 500; font-style: italic; letter-spacing: 0.04em;">TON</span>
-        </div>
-        <div class="flex items-center gap-3 mt-3.5">
-          <span
-            class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full
-                   bg-success-soft border border-success/30 text-success
-                   text-[11px] font-semibold backdrop-blur-md"
-          >
-            <TrendingUp :size="11" /> +5,2% vs período anterior
-          </span>
-          <span class="mono-tag text-ink-2 text-[11px]">dados consolidados no painel</span>
-        </div>
-
-        <svg viewBox="0 0 200 50" class="mt-6 w-full h-12" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="sparkfill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%"   stop-color="#2DD4BF" stop-opacity="0.5" />
-              <stop offset="100%" stop-color="#2DD4BF" stop-opacity="0"   />
-            </linearGradient>
-          </defs>
-          <path d="M0 38 L25 32 L50 35 L75 22 L100 26 L125 18 L150 22 L175 12 L200 8 L200 50 L0 50 Z" fill="url(#sparkfill)" />
-          <path d="M0 38 L25 32 L50 35 L75 22 L100 26 L125 18 L150 22 L175 12 L200 8" stroke="#2DD4BF" stroke-width="1.5" fill="none" />
-        </svg>
-      </div>
-
-      <div class="relative col-span-12 lg:col-span-7 grid grid-cols-3 divide-x divide-bg-line/60">
-        <DashboardStat
-          v-for="(s, i) in supportingKpis"
-          :key="s.label"
-          :label="s.label"
-          :value="animatedSupport[i]"
-          :unit="s.unit"
-          :delta="s.delta"
-          :icon="s.icon"
-          :trend="s.trend"
-        />
+      <div class="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-7">
+        <article
+          v-for="kpi in kpisDashboard"
+          :key="kpi.chave"
+          class="card-vidro flex flex-col gap-4 p-5 rounded-xl"
+        >
+          <div class="flex items-center justify-between">
+            <p class="eyebrow text-ink-2">{{ kpi.rotulo }}</p>
+            <span class="flex items-center justify-center w-8 h-8 rounded-md bg-cyan/15 border border-cyan/30 text-cyan">
+              <component :is="kpi.icone" :size="14" />
+            </span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="scoreboard text-[56px] text-ink leading-none tabular-nums kpi-numero">{{ kpi.valor }}</span>
+            <span v-if="kpi.unidade" class="font-display text-cyan text-[15px] kpi-unidade">{{ kpi.unidade }}</span>
+          </div>
+          <p class="mono-tag text-ink-3 text-[11px]">{{ kpi.descricao }}</p>
+        </article>
       </div>
     </section>
 
@@ -124,7 +75,7 @@
           </div>
         </div>
         <div class="h-[280px]">
-          <Bar :data="chartData" :options="chartOptions" />
+          <Bar :data="dadosGrafico" :options="opcoesGrafico" />
         </div>
       </div>
 
@@ -147,17 +98,17 @@
         <ol class="relative pl-5 space-y-4 max-h-[260px] overflow-y-auto pr-1">
           <span class="absolute left-[5px] top-1 bottom-1 w-px bg-bg-line-strong" />
           <li
-            v-for="(a, i) in atividades"
-            :key="i"
+            v-for="(atividade, indice) in ATIVIDADES"
+            :key="indice"
             class="relative flex flex-col gap-0.5 fade-up"
-            :style="{ animationDelay: `${i * 60}ms` }"
+            :style="{ animationDelay: `${indice * 60}ms` }"
           >
             <span
               class="absolute -left-5 top-1.5 w-2.5 h-2.5 rounded-full border-2 border-bg-panel"
-              :style="{ backgroundColor: a.cor }"
+              :style="{ backgroundColor: atividade.cor }"
             />
-            <p class="text-[13px] text-ink leading-snug">{{ a.texto }}</p>
-            <p class="mono-tag text-ink-3 text-[10.5px]">{{ a.tempo }}</p>
+            <p class="text-[13px] text-ink leading-snug">{{ atividade.texto }}</p>
+            <p class="mono-tag text-ink-3 text-[10.5px]">{{ atividade.tempo }}</p>
           </li>
         </ol>
       </div>
@@ -165,7 +116,7 @@
 
     <section class="grid grid-cols-12 gap-5 fade-up-4">
       <RoadmapCard
-        v-for="item in roadmap"
+        v-for="item in ROADMAP"
         :key="item.title"
         :title="item.title"
         :description="item.description"
@@ -183,23 +134,14 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, LineElement, PointElement,
 } from 'chart.js'
 import {
-  Building2, Boxes, Truck, TrendingUp, FileText, ShieldCheck,
+  Building2, Boxes, Truck, FileText, ShieldCheck, ScrollText,
 } from 'lucide-vue-next'
-import DashboardStat from '../components/ui/DashboardStat.vue'
 import RoadmapCard from '../components/ui/RoadmapCard.vue'
+import api from '../services/api'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, LineElement, PointElement)
 
-const periodo  = ref('30d')
-const periodos = ['7d', '30d', '90d', '12m']
-
-const supportingKpis = [
-  { label: 'Empresas', value: 84,  unit: '',          delta: '+12', trend: 'up', icon: Building2 },
-  { label: 'Lotes',    value: 217, unit: 'ativos',    delta: '+8',  trend: 'up', icon: Boxes },
-  { label: 'Em trânsito', value: 43,  unit: 'lotes',     delta: '+15', trend: 'up', icon: Truck },
-]
-
-const roadmap = [
+const ROADMAP = [
   {
     title: 'Transportes',
     description: 'Próxima evolução para registrar manifestos, rotas e responsáveis pelo deslocamento dos resíduos.',
@@ -220,7 +162,7 @@ const roadmap = [
   },
 ]
 
-const atividades = [
+const ATIVIDADES = [
   { texto: 'Lote LT-2026-0318 iniciou transporte para tratamento térmico', tempo: '2 min atrás',   cor: '#38BDF8' },
   { texto: 'Lote LT-2026-0315 confirmado em destino final',                tempo: '15 min atrás',  cor: '#10B981' },
   { texto: 'Novo lote LT-2026-0319 criado · 480 KG · resíduo químico',     tempo: '1 hora atrás',  cor: '#F59E0B' },
@@ -229,44 +171,113 @@ const atividades = [
   { texto: 'Empresa TerraVerde Ambiental cadastrada',                      tempo: '5 horas atrás', cor: '#2DD4BF' },
 ]
 
-const dateLong = new Date().toLocaleDateString('pt-BR', {
+const DURACAO_ANIMACAO_BASE = 1100
+const DURACAO_ANIMACAO_HERO = 1400
+
+const totalEmpresas    = ref(0)
+const totalLotes       = ref(0)
+const totalEmTransito  = ref(0)
+const totalToneladas   = ref(0)
+
+const animados = ref({ toneladas: 0, empresas: 0, lotes: 0, emTransito: 0 })
+
+const dataLonga = new Date().toLocaleDateString('pt-BR', {
   weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
 }).toUpperCase()
 
-const animated        = ref({ total: 0 })
-const animatedSupport = ref([0, 0, 0])
+const kpisDashboard = computed(() => [
+  {
+    chave:     'toneladas',
+    rotulo:    'Resíduos rastreados',
+    valor:     animados.value.toneladas,
+    unidade:   'TON',
+    descricao: 'consolidado dos lotes',
+    icone:     ScrollText,
+  },
+  {
+    chave:     'empresas',
+    rotulo:    'Empresas',
+    valor:     animados.value.empresas,
+    unidade:   '',
+    descricao: 'cadastradas no ecossistema',
+    icone:     Building2,
+  },
+  {
+    chave:     'lotes',
+    rotulo:    'Lotes',
+    valor:     animados.value.lotes,
+    unidade:   '',
+    descricao: 'registrados no sistema',
+    icone:     Boxes,
+  },
+  {
+    chave:     'emTransito',
+    rotulo:    'Em trânsito',
+    valor:     animados.value.emTransito,
+    unidade:   '',
+    descricao: 'transportes em curso',
+    icone:     Truck,
+  },
+])
 
-const animate = (target, key, dur = 1200) => {
-  const start = performance.now()
-  const ease  = (t) => 1 - Math.pow(1 - t, 3)
-  const tick  = (now) => {
-    const t = Math.min(1, (now - start) / dur)
-    const v = Math.round(target * ease(t))
-    if (typeof key === 'number') animatedSupport.value[key] = v
-    else                          animated.value[key]      = v
+const animar = (valorAlvo, chave, duracao = DURACAO_ANIMACAO_BASE) => {
+  const inicio = performance.now()
+  const easing = (t) => 1 - Math.pow(1 - t, 3)
+  const tick = (agora) => {
+    const t = Math.min(1, (agora - inicio) / duracao)
+    const valor = Math.round(valorAlvo * easing(t))
+    animados.value[chave] = valor
     if (t < 1) requestAnimationFrame(tick)
   }
   requestAnimationFrame(tick)
 }
 
-onMounted(() => {
-  animate(1840, 'total', 1400)
-  supportingKpis.forEach((s, i) => animate(s.value, i, 1100 + i * 120))
-})
+const carregarIndicadores = async () => {
+  try {
+    const [respostaEmpresas, respostaLotes, respostaTransportes] = await Promise.all([
+      api.get('/empresas'),
+      api.get('/lotes'),
+      api.get('/transportes'),
+    ])
 
-const chartData = computed(() => ({
+    totalEmpresas.value = respostaEmpresas.data.length
+    totalLotes.value    = respostaLotes.data.length
+    totalEmTransito.value = respostaTransportes.data.filter(
+      transporte => transporte.status === 'EM_TRANSITO',
+    ).length
+
+    totalToneladas.value = respostaLotes.data.reduce((soma, lote) => {
+      const quantidade = Number(lote.quantidade) || 0
+      const unidade = (lote.unidade || '').toUpperCase()
+      if (unidade === 'TON') return soma + quantidade
+      if (unidade === 'KG')  return soma + quantidade / 1000
+      return soma
+    }, 0)
+
+    animar(Math.round(totalToneladas.value), 'toneladas',  DURACAO_ANIMACAO_HERO)
+    animar(totalEmpresas.value,                'empresas',  DURACAO_ANIMACAO_BASE)
+    animar(totalLotes.value,                   'lotes',     DURACAO_ANIMACAO_BASE + 120)
+    animar(totalEmTransito.value,              'emTransito', DURACAO_ANIMACAO_BASE + 240)
+  } catch (erro) {
+    console.error('Erro ao carregar indicadores do dashboard:', erro)
+  }
+}
+
+onMounted(carregarIndicadores)
+
+const dadosGrafico = computed(() => ({
   labels: ['OUT', 'NOV', 'DEZ', 'JAN', 'FEV', 'MAR'],
   datasets: [
     {
       label: 'Volume',
       data: [44, 50, 46, 62, 55, 68],
       backgroundColor: (ctx) => {
-        const { ctx: c, chartArea } = ctx.chart
+        const { ctx: contexto, chartArea } = ctx.chart
         if (!chartArea) return '#2DD4BF'
-        const g = c.createLinearGradient(0, chartArea.bottom, 0, chartArea.top)
-        g.addColorStop(0, 'rgba(0, 109, 120, 0.6)')
-        g.addColorStop(1, 'rgba(45, 212, 191, 0.95)')
-        return g
+        const gradiente = contexto.createLinearGradient(0, chartArea.bottom, 0, chartArea.top)
+        gradiente.addColorStop(0, 'rgba(0, 109, 120, 0.6)')
+        gradiente.addColorStop(1, 'rgba(45, 212, 191, 0.95)')
+        return gradiente
       },
       hoverBackgroundColor: '#2DD4BF',
       borderRadius:  { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 },
@@ -286,7 +297,7 @@ const chartData = computed(() => ({
   ],
 }))
 
-const chartOptions = {
+const opcoesGrafico = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
@@ -315,6 +326,30 @@ const chartOptions = {
     },
   },
 }
-
-
 </script>
+
+<style scoped>
+.card-vidro {
+  background: rgba(7, 24, 30, 0.55);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.6),
+              0 1px 0 0 rgba(255, 255, 255, 0.04) inset;
+  transition: border-color 200ms;
+}
+
+.card-vidro:hover {
+  border-color: rgba(45, 212, 191, 0.25);
+}
+
+.kpi-numero {
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.45);
+}
+
+.kpi-unidade {
+  font-weight: 500;
+  font-style: italic;
+  letter-spacing: 0.04em;
+}
+</style>
