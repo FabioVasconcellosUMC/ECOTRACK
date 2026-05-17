@@ -1,6 +1,7 @@
 package com.ecotrack.ecotrack_api.service;
 
 import com.ecotrack.ecotrack_api.entity.*;
+import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
 import com.ecotrack.ecotrack_api.repository.TransporteRepository;
 import com.ecotrack.ecotrack_api.repository.LoteRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ public class TransporteService {
 
     private final TransporteRepository transporteRepository;
     private final LoteRepository loteRepository;
+    private final EmpresaRepository empresaRepository;
     private final EmailService emailService;
 
     public List<Transporte> listar() {
@@ -31,31 +33,20 @@ public class TransporteService {
     }
 
     public Transporte criar(Transporte transporte) {
-        Lote lote = loteRepository.findById(transporte.getLote().getId())
-                .orElseThrow(() -> new RuntimeException("Lote não encontrado"));
+        Lote lote = buscarLote(transporte);
+        validarLoteDisponivel(lote);
 
-        if (lote.getStatus() != StatusLote.AGUARDANDO_COLETA) {
-            throw new RuntimeException("Lote não está disponível para transporte");
-        }
+        Empresa transportadora = buscarEmpresa(transporte.getTransportadora(), "Transportadora não encontrada");
+        Empresa receptora = buscarEmpresa(transporte.getReceptora(), "Receptora não encontrada");
 
+        transporte.setLote(lote);
+        transporte.setTransportadora(transportadora);
+        transporte.setReceptora(receptora);
         transporte.setStatus(StatusTransporte.PENDENTE);
         transporte.setCriadoEm(LocalDateTime.now());
-        Transporte salvo = transporteRepository.save(transporte);
 
-        // Envia e-mail para a transportadora
-        try {
-            Empresa transportadora = salvo.getTransportadora();
-            if (transportadora != null && transportadora.getEmail() != null) {
-                emailService.enviarNotificacaoTransporte(
-                        transportadora.getEmail(),
-                        transportadora.getRazaoSocial(),
-                        lote.getId(),
-                        lote.getDescricao()
-                );
-            }
-        } catch (Exception e) {
-            log.warn("Erro ao enviar e-mail de notificação: {}", e.getMessage());
-        }
+        Transporte salvo = transporteRepository.save(transporte);
+        enviarEmailParaTransportadora(salvo, lote);
 
         return salvo;
     }
@@ -90,5 +81,49 @@ public class TransporteService {
 
     public List<Transporte> buscarPorLote(Long loteId) {
         return transporteRepository.findByLoteId(loteId);
+    }
+
+    private Lote buscarLote(Transporte transporte) {
+        if (transporte.getLote() == null || transporte.getLote().getId() == null) {
+            throw new RuntimeException("Lote é obrigatório para criar transporte");
+        }
+
+        return loteRepository.findById(transporte.getLote().getId())
+                .orElseThrow(() -> new RuntimeException("Lote não encontrado"));
+    }
+
+    private Empresa buscarEmpresa(Empresa empresa, String mensagemErro) {
+        if (empresa == null || empresa.getId() == null) {
+            throw new RuntimeException(mensagemErro);
+        }
+
+        return empresaRepository.findById(empresa.getId())
+                .orElseThrow(() -> new RuntimeException(mensagemErro));
+    }
+
+    private void validarLoteDisponivel(Lote lote) {
+        if (lote.getStatus() != StatusLote.AGUARDANDO_COLETA) {
+            throw new RuntimeException("Lote não está disponível para transporte");
+        }
+    }
+
+    private void enviarEmailParaTransportadora(Transporte transporte, Lote lote) {
+        Empresa transportadora = transporte.getTransportadora();
+
+        if (transportadora == null || transportadora.getEmail() == null || transportadora.getEmail().isBlank()) {
+            log.warn("E-mail da transportadora não cadastrado para o transporte {}", transporte.getId());
+            return;
+        }
+
+        try {
+            emailService.enviarNotificacaoTransporte(
+                    transportadora.getEmail(),
+                    transportadora.getRazaoSocial(),
+                    lote.getId(),
+                    lote.getDescricao()
+            );
+        } catch (Exception e) {
+            log.warn("Erro ao enviar e-mail de notificação: {}", e.getMessage());
+        }
     }
 }
