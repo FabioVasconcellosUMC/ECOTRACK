@@ -222,17 +222,19 @@
           </div>
 
           <div class="space-y-4">
-            <div>
-              <label class="eyebrow block mb-1.5">CNPJ</label>
-              <div class="flex gap-2">
-                <div class="flex items-center gap-2 px-3 h-10 rounded-md bg-bg-base border border-bg-line flex-1 focus-within:border-cyan/40 transition-colors">
-                  <Hash :size="14" class="text-ink-3" />
-                  <input
-                    v-model="formulario.cnpj"
-                    placeholder="00.000.000/0000-00"
-                    class="flex-1 bg-transparent outline-none text-[13px] text-ink mono-tag placeholder:text-ink-4"
-                  />
-                </div>
+            <FormField
+              v-model="formulario.cnpj"
+              label="CNPJ"
+              placeholder="00.000.000/0000-00"
+              mask="cnpj"
+              :erro="erros.cnpj"
+              @update:modelValue="limparErro('cnpj')"
+              @blur="validarCampo('cnpj')"
+            >
+              <template #prefix>
+                <Hash :size="14" class="text-ink-3" />
+              </template>
+              <template #suffix>
                 <button
                   @click="buscarDadosPorCnpj"
                   :disabled="buscandoCnpj"
@@ -242,10 +244,17 @@
                   <Search v-else :size="13" />
                   BUSCAR
                 </button>
-              </div>
-            </div>
+              </template>
+            </FormField>
 
-            <FormField v-model="formulario.razaoSocial" label="Razão social" placeholder="Razão social da empresa" />
+            <FormField
+              v-model="formulario.razaoSocial"
+              label="Razão social"
+              placeholder="Razão social da empresa"
+              :erro="erros.razaoSocial"
+              @update:modelValue="limparErro('razaoSocial')"
+              @blur="validarCampo('razaoSocial')"
+            />
 
             <div>
               <label class="eyebrow block mb-1.5">Tipo</label>
@@ -264,9 +273,34 @@
               </div>
             </div>
 
-            <FormField v-model="formulario.email"    label="E-mail"   placeholder="contato@empresa.com" type="email" />
-            <FormField v-model="formulario.telefone" label="Telefone" placeholder="(00) 00000-0000" />
-            <FormField v-model="formulario.endereco" label="Endereço" placeholder="Rua, número, cidade — UF" />
+            <FormField
+              v-model="formulario.email"
+              label="E-mail"
+              placeholder="contato@empresa.com"
+              type="email"
+              :erro="erros.email"
+              @update:modelValue="limparErro('email')"
+              @blur="validarCampo('email')"
+            />
+
+            <FormField
+              v-model="formulario.telefone"
+              label="Telefone"
+              placeholder="(00) 00000-0000"
+              mask="telefone"
+              :erro="erros.telefone"
+              @update:modelValue="limparErro('telefone')"
+              @blur="validarCampo('telefone')"
+            />
+
+            <FormField
+              v-model="formulario.endereco"
+              label="Endereço"
+              placeholder="Rua, número, cidade — UF"
+              :erro="erros.endereco"
+              @update:modelValue="limparErro('endereco')"
+              @blur="validarCampo('endereco')"
+            />
           </div>
 
           <p
@@ -308,6 +342,10 @@ import {
 import api from '../services/api'
 import FormField from '../components/ui/FormField.vue'
 import { exportCsv } from '../utils/exportCsv'
+import { removerMascara } from '../composables/useMascara'
+import {
+  validarObrigatorio, validarTamanhoMinimo, validarEmail, validarTelefone, validarCnpj,
+} from '../composables/useValidacao'
 
 const TIPOS = {
   GERADORA:       'GERADORA',
@@ -354,6 +392,14 @@ const formularioVazio = () => ({
   endereco: '',
 })
 
+const errosVazio = () => ({
+  cnpj: '',
+  razaoSocial: '',
+  email: '',
+  telefone: '',
+  endereco: '',
+})
+
 const empresas = ref([])
 const empresaSelecionada = ref(null)
 const modalCadastroAberto = ref(false)
@@ -363,6 +409,27 @@ const mensagemErro = ref('')
 const termoBusca = ref('')
 const filtroAtivo = ref('TODOS')
 const formulario = ref(formularioVazio())
+const erros = ref(errosVazio())
+
+const validarCampo = (campo) => {
+  const valor = formulario.value[campo]
+  if (campo === 'cnpj')        erros.value.cnpj        = validarCnpj(valor)
+  if (campo === 'razaoSocial') erros.value.razaoSocial = validarTamanhoMinimo(valor, 3, 'Razão social')
+  if (campo === 'email')       erros.value.email       = validarEmail(valor)
+  if (campo === 'telefone')    erros.value.telefone    = validarTelefone(valor)
+  if (campo === 'endereco')    erros.value.endereco    = validarObrigatorio(valor, 'Endereço')
+}
+
+const limparErro = (campo) => { erros.value[campo] = '' }
+
+const validarFormularioCompleto = () => {
+  validarCampo('cnpj')
+  validarCampo('razaoSocial')
+  validarCampo('email')
+  validarCampo('telefone')
+  validarCampo('endereco')
+  return Object.values(erros.value).every(mensagem => mensagem === '')
+}
 
 const contagensPorTipo = computed(() => {
   const contagem = { [TIPOS.GERADORA]: 0, [TIPOS.TRANSPORTADORA]: 0, [TIPOS.RECEPTORA]: 0 }
@@ -379,11 +446,16 @@ const empresasFiltradas = computed(() => {
   }
   const termo = termoBusca.value.trim().toLowerCase()
   if (termo) {
-    lista = lista.filter(empresa =>
-      (empresa.razaoSocial || '').toLowerCase().includes(termo) ||
-      (empresa.cnpj        || '').toLowerCase().includes(termo) ||
-      (empresa.email       || '').toLowerCase().includes(termo),
-    )
+    const termoDigitos = removerMascara(termo)
+    lista = lista.filter(empresa => {
+      const razaoSocial = (empresa.razaoSocial || '').toLowerCase()
+      const email       = (empresa.email       || '').toLowerCase()
+      const cnpjDigitos = removerMascara(empresa.cnpj || '')
+
+      if (razaoSocial.includes(termo) || email.includes(termo)) return true
+      if (termoDigitos && cnpjDigitos.includes(termoDigitos))   return true
+      return false
+    })
   }
   return lista
 })
@@ -463,7 +535,7 @@ const buscarDadosPorCnpj = async () => {
   buscandoCnpj.value = true
   mensagemErro.value = ''
   try {
-    const cnpjLimpo = formulario.value.cnpj.replace(/\D/g, '')
+    const cnpjLimpo = removerMascara(formulario.value.cnpj)
     if (cnpjLimpo.length !== CNPJ_DIGITOS) {
       mensagemErro.value = 'CNPJ deve ter 14 dígitos.'
       return
@@ -486,12 +558,17 @@ const abrirModalCadastro = () => {
   modalCadastroAberto.value = true
   mensagemErro.value = ''
   formulario.value = formularioVazio()
+  erros.value = errosVazio()
 }
 
 const fecharModalCadastro = () => { modalCadastroAberto.value = false }
 
 const salvarEmpresa = async () => {
   if (salvando.value) return
+  if (!validarFormularioCompleto()) {
+    mensagemErro.value = 'Corrija os campos destacados antes de salvar.'
+    return
+  }
   salvando.value = true
   mensagemErro.value = ''
   try {
