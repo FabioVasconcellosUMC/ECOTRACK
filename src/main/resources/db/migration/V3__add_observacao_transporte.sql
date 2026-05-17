@@ -1,0 +1,2 @@
+ALTER TABLE transporte
+ADD COLUMN IF NOT EXISTS observacao TEXT;
