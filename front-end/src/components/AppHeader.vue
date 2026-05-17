@@ -19,44 +19,40 @@
 
       <div class="flex-1" />
 
-      <div class="flex items-center gap-3">
-        <span class="hidden lg:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success-soft border border-success/30 text-success text-[11px] font-semibold">
-          <ShieldCheck :size="13" />
-          PNRS · Lei 12.305/2010
-        </span>
-
-        <div class="relative self-center">
-          <button
-            ref="bellButton"
-            @click="alternarNotificacoes"
-            class="relative flex items-center justify-center w-9 h-9 rounded-md bg-bg-elevated border border-bg-line text-ink-2 hover:border-cyan/40 hover:text-cyan transition-colors"
-            title="Notificações"
+      <div class="flex items-stretch h-10 self-center rounded-md bg-bg-elevated border border-bg-line overflow-hidden">
+        <button
+          ref="bellButton"
+          @click="alternarNotificacoes"
+          class="relative flex items-center justify-center w-10 text-ink-2 hover:text-cyan hover:bg-bg-base/40 transition-colors"
+          :class="{ 'text-cyan': notificacoesAbertas }"
+          title="Notificações"
+        >
+          <Bell :size="15" />
+          <span
+            v-if="totalNaoLidas > 0"
+            class="absolute top-1.5 right-1.5 min-w-[16px] h-[16px] px-1 rounded-full bg-danger text-white text-[9px] font-bold flex items-center justify-center border-2 border-bg-elevated"
           >
-            <Bell :size="15" />
-            <span
-              v-if="totalNaoLidas > 0"
-              class="absolute -right-1 -top-1 min-w-4 h-4 px-1 rounded-full bg-danger text-white text-[9px] font-bold flex items-center justify-center"
-            >
-              {{ totalNaoLidas }}
-            </span>
-          </button>
+            {{ totalNaoLidas }}
+          </span>
+        </button>
+
+        <span class="w-px self-stretch bg-bg-line my-2" />
+
+        <div class="flex items-center px-3.5 leading-tight">
+          <div class="flex flex-col items-end">
+            <span class="text-[12px] font-semibold text-ink">{{ nomeUsuario }}</span>
+            <span class="text-[10px] text-ink-3 capitalize">{{ perfilUsuario }}</span>
+          </div>
         </div>
 
-        <span class="header-divider self-center hidden lg:inline-block opacity-60" />
-
-        <div class="text-right leading-tight hidden sm:block">
-          <p class="text-xs font-semibold text-ink">{{ nomeUsuario }}</p>
-          <p class="text-[10px] text-ink-3 capitalize">{{ perfilUsuario }}</p>
-        </div>
+        <span class="w-px self-stretch bg-bg-line my-2" />
 
         <button
           @click="sair"
-          class="flex items-center gap-2 h-9 px-3.5 rounded-md bg-bg-elevated border border-bg-line text-ink-2
-                 text-[11.5px] font-bold tracking-wider hover:border-cyan/40 hover:text-cyan transition-colors"
+          class="flex items-center justify-center w-10 text-ink-2 hover:text-cyan hover:bg-bg-base/40 transition-colors"
           :title="`Sair (${nomeUsuario})`"
         >
           <LogOut :size="14" />
-          SAIR
         </button>
       </div>
     </div>
@@ -110,7 +106,7 @@
 import { computed, ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import {
-  LayoutGrid, Building2, Boxes, LogOut, ShieldCheck, Truck, FileText, Bell,
+  LayoutGrid, Building2, Boxes, LogOut, Truck, FileText, Bell,
 } from 'lucide-vue-next'
 import LogoMark from './LogoMark.vue'
 import HeaderNav from './HeaderNav.vue'
@@ -163,13 +159,25 @@ const totalNaoLidas = computed(() =>
   notificacoes.value.filter(item => !item.lida).length,
 )
 
+const estiloOculto = () => ({
+  position: 'fixed',
+  top: '-9999px',
+  left: '-9999px',
+  width: `${LARGURA_DROPDOWN}px`,
+  zIndex: '9999',
+  visibility: 'hidden',
+  display: 'flex',
+  flexDirection: 'column',
+})
+
 const notificacoesAbertas = ref(false)
 const bellButton = ref(null)
 const dropdown = ref(null)
-const estiloDropdown = ref({})
+const estiloDropdown = ref(estiloOculto())
 
 const calcularPosicaoDropdown = () => {
   if (!bellButton.value) return
+
   const rect = bellButton.value.getBoundingClientRect()
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
@@ -190,6 +198,7 @@ const calcularPosicaoDropdown = () => {
     width: `${LARGURA_DROPDOWN}px`,
     maxHeight: `${maxHeight}px`,
     zIndex: '9999',
+    visibility: 'visible',
     display: 'flex',
     flexDirection: 'column',
   }
@@ -198,6 +207,7 @@ const calcularPosicaoDropdown = () => {
 const alternarNotificacoes = async () => {
   notificacoesAbertas.value = !notificacoesAbertas.value
   if (notificacoesAbertas.value) {
+    estiloDropdown.value = estiloOculto()
     await nextTick()
     calcularPosicaoDropdown()
   }
@@ -221,10 +231,10 @@ const sair = () => {
   router.push('/')
 }
 
-const cliqueForaDoDropdown = (event) => {
+const cliqueForaDoDropdown = (evento) => {
   if (!notificacoesAbertas.value) return
-  const clicouNoBotao = bellButton.value?.contains(event.target)
-  const clicouNoDropdown = dropdown.value?.contains(event.target)
+  const clicouNoBotao = bellButton.value?.contains(evento.target)
+  const clicouNoDropdown = dropdown.value?.contains(evento.target)
   if (!clicouNoBotao && !clicouNoDropdown) fecharNotificacoes()
 }
 
