@@ -2,8 +2,9 @@ package com.ecotrack.ecotrack_api.service;
 
 import com.ecotrack.ecotrack_api.entity.*;
 import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
-import com.ecotrack.ecotrack_api.repository.TransporteRepository;
+import com.ecotrack.ecotrack_api.repository.HistoricoLoteRepository;
 import com.ecotrack.ecotrack_api.repository.LoteRepository;
+import com.ecotrack.ecotrack_api.repository.TransporteRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ public class TransporteService {
     private final TransporteRepository transporteRepository;
     private final LoteRepository loteRepository;
     private final EmpresaRepository empresaRepository;
+    private final HistoricoLoteRepository historicoLoteRepository;
     private final EmailService emailService;
 
     public List<Transporte> listar() {
@@ -54,34 +56,76 @@ public class TransporteService {
 
     public Transporte alterarStatus(Long id, StatusTransporte novoStatus, String observacao) {
         Transporte transporte = buscarPorId(id);
+        StatusTransporte statusAnterior = transporte.getStatus();
 
-        if (transporte.getStatus() == StatusTransporte.CONCLUIDO ||
-                transporte.getStatus() == StatusTransporte.CANCELADO) {
+        if (statusAnterior == StatusTransporte.CONCLUIDO || statusAnterior == StatusTransporte.CANCELADO) {
             throw new RuntimeException("Transporte já está em status final");
+        }
+
+        if (statusAnterior == novoStatus) {
+            throw new RuntimeException("Transporte já está no status informado");
         }
 
         transporte.setStatus(novoStatus);
         transporte.setObservacao(observacao);
 
-        if (novoStatus == StatusTransporte.EM_TRANSITO) {
-            transporte.setDataColeta(LocalDateTime.now());
-            Lote lote = transporte.getLote();
-            lote.setStatus(StatusLote.EM_TRANSITO);
-            loteRepository.save(lote);
-        }
-
-        if (novoStatus == StatusTransporte.CONCLUIDO) {
-            transporte.setDataEntrega(LocalDateTime.now());
-            Lote lote = transporte.getLote();
-            lote.setStatus(StatusLote.DESCARTADO);
-            loteRepository.save(lote);
-        }
+        aplicarImpactoNoLote(transporte, statusAnterior, novoStatus, observacao);
 
         return transporteRepository.save(transporte);
     }
 
     public List<Transporte> buscarPorLote(Long loteId) {
         return transporteRepository.findByLoteId(loteId);
+    }
+
+    private void aplicarImpactoNoLote(Transporte transporte, StatusTransporte statusAnterior,
+                                      StatusTransporte novoStatus, String observacao) {
+        if (novoStatus == StatusTransporte.EM_TRANSITO) {
+            transporte.setDataColeta(LocalDateTime.now());
+            atualizarStatusLote(transporte, StatusLote.EM_TRANSITO, observacao);
+        }
+
+        if (novoStatus == StatusTransporte.CONCLUIDO) {
+            transporte.setDataEntrega(LocalDateTime.now());
+            atualizarStatusLote(transporte, StatusLote.DESCARTADO, observacao);
+        }
+
+        if (novoStatus == StatusTransporte.CANCELADO && statusAnterior == StatusTransporte.EM_TRANSITO) {
+            atualizarStatusLote(transporte, StatusLote.AGUARDANDO_COLETA, observacao);
+        }
+    }
+
+    private void atualizarStatusLote(Transporte transporte, StatusLote novoStatus, String observacao) {
+        Lote lote = transporte.getLote();
+        StatusLote statusAnterior = lote.getStatus();
+
+        if (statusAnterior == novoStatus) {
+            return;
+        }
+
+        lote.setStatus(novoStatus);
+        loteRepository.save(lote);
+        registrarHistoricoLote(transporte, lote, statusAnterior, novoStatus, observacao);
+    }
+
+    private void registrarHistoricoLote(Transporte transporte, Lote lote, StatusLote statusAnterior,
+                                        StatusLote statusNovo, String observacao) {
+        HistoricoLote historico = new HistoricoLote();
+        historico.setLote(lote);
+        historico.setStatusAnterior(statusAnterior);
+        historico.setStatusNovo(statusNovo);
+        historico.setUsuario(lote.getCriadoPor());
+        historico.setObservacao(montarObservacaoHistorico(transporte, observacao));
+        historico.setDataHora(LocalDateTime.now());
+        historicoLoteRepository.save(historico);
+    }
+
+    private String montarObservacaoHistorico(Transporte transporte, String observacao) {
+        if (observacao != null && !observacao.isBlank()) {
+            return observacao;
+        }
+
+        return "Status do lote atualizado automaticamente pelo transporte #" + transporte.getId();
     }
 
     private Lote buscarLote(Transporte transporte) {
