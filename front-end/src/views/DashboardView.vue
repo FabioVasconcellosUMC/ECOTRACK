@@ -53,10 +53,9 @@
       </div>
     </section>
 
-    <section class="grid grid-cols-12 gap-5">
+    <section class="fade-up-2">
       <div
-        class="col-span-12 lg:col-span-8 rounded-2xl bg-bg-panel border border-bg-line-strong
-               p-7 helmet-stripe fade-up-2"
+        class="rounded-2xl bg-bg-panel border border-bg-line-strong p-7 helmet-stripe"
       >
         <div class="flex items-end justify-between mb-6">
           <div>
@@ -74,55 +73,10 @@
             </span>
           </div>
         </div>
-        <div class="h-[280px]">
+        <div class="h-[420px]">
           <Bar :data="dadosGrafico" :options="opcoesGrafico" />
         </div>
       </div>
-
-      <div
-        class="col-span-12 lg:col-span-4 rounded-2xl bg-bg-panel border border-bg-line-strong
-               p-7 helmet-stripe fade-up-3"
-      >
-        <div class="flex items-center justify-between mb-6">
-          <div>
-            <p class="eyebrow">Atividades recentes</p>
-            <h3 class="section-title text-[26px] mt-2">
-              Últimas movimentações
-            </h3>
-          </div>
-          <span class="px-2 py-0.5 rounded-full bg-bg-elevated border border-bg-line text-ink-3 text-[10px] font-semibold tracking-wider">
-            HISTÓRICO
-          </span>
-        </div>
-
-        <ol class="relative pl-5 space-y-4 max-h-[260px] overflow-y-auto pr-1">
-          <span class="absolute left-[5px] top-1 bottom-1 w-px bg-bg-line-strong" />
-          <li
-            v-for="(atividade, indice) in ATIVIDADES"
-            :key="indice"
-            class="relative flex flex-col gap-0.5 fade-up"
-            :style="{ animationDelay: `${indice * 60}ms` }"
-          >
-            <span
-              class="absolute -left-5 top-1.5 w-2.5 h-2.5 rounded-full border-2 border-bg-panel"
-              :style="{ backgroundColor: atividade.cor }"
-            />
-            <p class="text-[13px] text-ink leading-snug">{{ atividade.texto }}</p>
-            <p class="mono-tag text-ink-3 text-[10.5px]">{{ atividade.tempo }}</p>
-          </li>
-        </ol>
-      </div>
-    </section>
-
-    <section class="grid grid-cols-12 gap-5 fade-up-4">
-      <RoadmapCard
-        v-for="item in ROADMAP"
-        :key="item.title"
-        :title="item.title"
-        :description="item.description"
-        :icon="item.icon"
-        :status="item.status"
-      />
     </section>
   </div>
 </template>
@@ -134,42 +88,11 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, LineElement, PointElement,
 } from 'chart.js'
 import {
-  Building2, Boxes, Truck, FileText, ShieldCheck, ScrollText,
+  Building2, Boxes, Truck, ScrollText,
 } from 'lucide-vue-next'
-import RoadmapCard from '../components/ui/RoadmapCard.vue'
 import api from '../services/api'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, LineElement, PointElement)
-
-const ROADMAP = [
-  {
-    title: 'Transportes',
-    description: 'Próxima evolução para registrar manifestos, rotas e responsáveis pelo deslocamento dos resíduos.',
-    status: 'PRÓXIMA ETAPA',
-    icon: Truck,
-  },
-  {
-    title: 'Relatórios',
-    description: 'Camada futura para consolidar indicadores, exportações e documentos de apoio à auditoria ambiental.',
-    status: 'ROADMAP',
-    icon: FileText,
-  },
-  {
-    title: 'Auditoria',
-    description: 'Histórico de ações e rastreabilidade completa para dar mais segurança às operações cadastradas.',
-    status: 'ROADMAP',
-    icon: ShieldCheck,
-  },
-]
-
-const ATIVIDADES = [
-  { texto: 'Lote LT-2026-0318 iniciou transporte para tratamento térmico', tempo: '2 min atrás',   cor: '#38BDF8' },
-  { texto: 'Lote LT-2026-0315 confirmado em destino final',                tempo: '15 min atrás',  cor: '#10B981' },
-  { texto: 'Novo lote LT-2026-0319 criado · 480 KG · resíduo químico',     tempo: '1 hora atrás',  cor: '#F59E0B' },
-  { texto: 'Transporte TR-2026-0142 cancelado por motorista',              tempo: '2 horas atrás', cor: '#DC2626' },
-  { texto: 'Lote LT-2026-0312 processado com sucesso',                     tempo: '3 horas atrás', cor: '#10B981' },
-  { texto: 'Empresa TerraVerde Ambiental cadastrada',                      tempo: '5 horas atrás', cor: '#2DD4BF' },
-]
 
 const DURACAO_ANIMACAO_BASE = 1100
 const DURACAO_ANIMACAO_HERO = 1400
