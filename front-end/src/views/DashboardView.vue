@@ -85,14 +85,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { Bar } from 'vue-chartjs'
 import {
-  Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, LineElement, PointElement,
+  Chart as ChartJS, CategoryScale, LinearScale, BarController, BarElement, Tooltip, LineController, LineElement, PointElement,
 } from 'chart.js'
 import {
   Building2, Boxes, Truck, ScrollText,
 } from 'lucide-vue-next'
 import api from '../services/api'
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, LineElement, PointElement)
+ChartJS.register(CategoryScale, LinearScale, BarController, BarElement, Tooltip, LineController, LineElement, PointElement)
 
 const DURACAO_ANIMACAO_BASE = 1100
 const DURACAO_ANIMACAO_HERO = 1400
