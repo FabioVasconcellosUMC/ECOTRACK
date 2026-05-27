@@ -32,11 +32,11 @@
         style="background: radial-gradient(900px 500px at 50% 50%, rgba(0, 76, 84, 0.25), transparent 65%);"
       />
 
-      <div class="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-7">
+      <div class="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 p-9">
         <article
           v-for="kpi in kpisDashboard"
           :key="kpi.chave"
-          class="card-vidro flex flex-col gap-4 p-5 rounded-xl"
+          class="card-vidro flex flex-col gap-5 p-6 rounded-xl"
         >
           <div class="flex items-center justify-between">
             <p class="eyebrow text-ink-2">{{ kpi.rotulo }}</p>
@@ -102,6 +102,10 @@ const totalLotes       = ref(0)
 const totalEmTransito  = ref(0)
 const totalToneladas   = ref(0)
 
+// Dados reais do gráfico, calculados a partir dos lotes (/lotes)
+const graficoLabels = ref([])
+const graficoValores = ref([])
+
 const animados = ref({ toneladas: 0, empresas: 0, lotes: 0, emTransito: 0 })
 
 const dataLonga = new Date().toLocaleDateString('pt-BR', {
@@ -155,6 +159,38 @@ const animar = (valorAlvo, chave, duracao = DURACAO_ANIMACAO_BASE) => {
   requestAnimationFrame(tick)
 }
 
+const NOMES_MESES = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ']
+
+// Conta quantos lotes foram criados em cada um dos últimos 6 meses
+const calcularLotesPorMes = (lotes) => {
+  const hoje = new Date()
+  const baldes = []
+
+  // Monta os 6 meses, do mais antigo (5 meses atrás) até o atual
+  for (let i = 5; i >= 0; i--) {
+    const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1)
+    baldes.push({
+      ano: data.getFullYear(),
+      mes: data.getMonth(),       // 0 = janeiro
+      rotulo: NOMES_MESES[data.getMonth()],
+      total: 0,
+    })
+  }
+
+  // Pra cada lote, descobre em qual mês ele foi criado e incrementa
+  lotes.forEach((lote) => {
+    if (!lote.criadoEm) return
+    const dataLote = new Date(lote.criadoEm)
+    const balde = baldes.find(
+      (b) => b.ano === dataLote.getFullYear() && b.mes === dataLote.getMonth(),
+    )
+    if (balde) balde.total++
+  })
+
+  graficoLabels.value  = baldes.map((b) => b.rotulo)
+  graficoValores.value = baldes.map((b) => b.total)
+}
+
 const carregarIndicadores = async () => {
   try {
     const [respostaEmpresas, respostaLotes, respostaTransportes] = await Promise.all([
@@ -177,6 +213,9 @@ const carregarIndicadores = async () => {
       return soma
     }, 0)
 
+    // Calcula a distribuição de lotes nos últimos 6 meses
+    calcularLotesPorMes(respostaLotes.data)
+
     animar(Math.round(totalToneladas.value), 'toneladas',  DURACAO_ANIMACAO_HERO)
     animar(totalEmpresas.value,                'empresas',  DURACAO_ANIMACAO_BASE)
     animar(totalLotes.value,                   'lotes',     DURACAO_ANIMACAO_BASE + 120)
@@ -188,37 +227,45 @@ const carregarIndicadores = async () => {
 
 onMounted(carregarIndicadores)
 
-const dadosGrafico = computed(() => ({
-  labels: ['OUT', 'NOV', 'DEZ', 'JAN', 'FEV', 'MAR'],
-  datasets: [
-    {
-      label: 'Volume',
-      data: [44, 50, 46, 62, 55, 68],
-      backgroundColor: (ctx) => {
-        const { ctx: contexto, chartArea } = ctx.chart
-        if (!chartArea) return '#2DD4BF'
-        const gradiente = contexto.createLinearGradient(0, chartArea.bottom, 0, chartArea.top)
-        gradiente.addColorStop(0, 'rgba(0, 109, 120, 0.6)')
-        gradiente.addColorStop(1, 'rgba(45, 212, 191, 0.95)')
-        return gradiente
+const dadosGrafico = computed(() => {
+  // Linha de meta = média dos volumes dos 6 meses (arredondada)
+  const valores = graficoValores.value
+  const media = valores.length
+    ? Math.round(valores.reduce((soma, v) => soma + v, 0) / valores.length)
+    : 0
+
+  return {
+    labels: graficoLabels.value,
+    datasets: [
+      {
+        label: 'Volume',
+        data: graficoValores.value,
+        backgroundColor: (ctx) => {
+          const { ctx: contexto, chartArea } = ctx.chart
+          if (!chartArea) return '#2DD4BF'
+          const gradiente = contexto.createLinearGradient(0, chartArea.bottom, 0, chartArea.top)
+          gradiente.addColorStop(0, 'rgba(0, 109, 120, 0.6)')
+          gradiente.addColorStop(1, 'rgba(45, 212, 191, 0.95)')
+          return gradiente
+        },
+        hoverBackgroundColor: '#2DD4BF',
+        borderRadius:  { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 },
+        borderSkipped: false,
+        barThickness:  64,
       },
-      hoverBackgroundColor: '#2DD4BF',
-      borderRadius:  { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 },
-      borderSkipped: false,
-      barThickness:  28,
-    },
-    {
-      label: 'Meta',
-      data: [55, 55, 55, 55, 55, 55],
-      type: 'line',
-      borderColor: 'rgba(0, 76, 84, 0.7)',
-      borderDash:  [4, 4],
-      borderWidth: 1.5,
-      pointRadius: 0,
-      tension:     0,
-    },
-  ],
-}))
+      {
+        label: 'Meta',
+        data: graficoValores.value.map(() => media),
+        type: 'line',
+        borderColor: 'rgba(0, 76, 84, 0.7)',
+        borderDash:  [4, 4],
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension:     0,
+      },
+    ],
+  }
+})
 
 const opcoesGrafico = {
   responsive: true,
