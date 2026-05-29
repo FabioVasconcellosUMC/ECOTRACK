@@ -4,6 +4,8 @@ import com.ecotrack.ecotrack_api.entity.HistoricoLote;
 import com.ecotrack.ecotrack_api.entity.Lote;
 import com.ecotrack.ecotrack_api.entity.StatusLote;
 import com.ecotrack.ecotrack_api.entity.Usuario;
+import com.ecotrack.ecotrack_api.exception.RecursoNaoEncontradoException;
+import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
 import com.ecotrack.ecotrack_api.repository.HistoricoLoteRepository;
 import com.ecotrack.ecotrack_api.repository.LoteRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,16 +20,16 @@ import java.util.List;
 @Transactional
 public class LoteService {
 
+    private static final String OBSERVACAO_CRIACAO = "Lote criado";
+
     private final LoteRepository loteRepository;
     private final HistoricoLoteRepository historicoLoteRepository;
 
     public Lote criar(Lote lote, Usuario usuario) {
-        lote.setCriadoPor(usuario);
-        lote.setStatus(StatusLote.AGUARDANDO_COLETA);
-        lote.setCriadoEm(LocalDateTime.now());
+        prepararNovoLote(lote, usuario);
         Lote salvo = loteRepository.save(lote);
 
-        registrarHistorico(salvo, null, StatusLote.AGUARDANDO_COLETA, usuario, "Lote criado");
+        registrarHistorico(salvo, null, StatusLote.AGUARDANDO_COLETA, usuario, OBSERVACAO_CRIACAO);
         return salvo;
     }
 
@@ -37,7 +39,7 @@ public class LoteService {
 
     public Lote buscarPorId(Long id) {
         return loteRepository.findByIdWithEmpresa(id)
-                .orElseThrow(() -> new RuntimeException("Lote não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Lote não encontrado"));
     }
 
     public Lote alterarStatus(Long id, StatusLote novoStatus, String observacao, Usuario usuario) {
@@ -56,9 +58,19 @@ public class LoteService {
         return historicoLoteRepository.findByLoteIdOrderByDataHoraDesc(loteId);
     }
 
+    private void prepararNovoLote(Lote lote, Usuario usuario) {
+        lote.setCriadoPor(usuario);
+        lote.setStatus(StatusLote.AGUARDANDO_COLETA);
+        lote.setCriadoEm(LocalDateTime.now());
+    }
+
     private void validarTransicao(StatusLote atual, StatusLote novo) {
+        if (atual == novo) {
+            throw new RegraNegocioException("Lote já está com o status informado");
+        }
+
         if (atual == StatusLote.DESCARTADO || atual == StatusLote.CANCELADO) {
-            throw new RuntimeException("Lote já está em status final e não pode ser alterado");
+            throw new RegraNegocioException("Lote já está em status final e não pode ser alterado");
         }
     }
 
