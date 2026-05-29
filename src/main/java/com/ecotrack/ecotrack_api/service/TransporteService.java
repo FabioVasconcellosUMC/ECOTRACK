@@ -1,6 +1,13 @@
 package com.ecotrack.ecotrack_api.service;
 
-import com.ecotrack.ecotrack_api.entity.*;
+import com.ecotrack.ecotrack_api.entity.Empresa;
+import com.ecotrack.ecotrack_api.entity.HistoricoLote;
+import com.ecotrack.ecotrack_api.entity.Lote;
+import com.ecotrack.ecotrack_api.entity.StatusLote;
+import com.ecotrack.ecotrack_api.entity.StatusTransporte;
+import com.ecotrack.ecotrack_api.entity.Transporte;
+import com.ecotrack.ecotrack_api.exception.RecursoNaoEncontradoException;
+import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
 import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
 import com.ecotrack.ecotrack_api.repository.HistoricoLoteRepository;
 import com.ecotrack.ecotrack_api.repository.LoteRepository;
@@ -31,7 +38,7 @@ public class TransporteService {
 
     public Transporte buscarPorId(Long id) {
         return transporteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Transporte não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Transporte não encontrado"));
     }
 
     public Transporte criar(Transporte transporte) {
@@ -58,13 +65,7 @@ public class TransporteService {
         Transporte transporte = buscarPorId(id);
         StatusTransporte statusAnterior = transporte.getStatus();
 
-        if (statusAnterior == StatusTransporte.CONCLUIDO || statusAnterior == StatusTransporte.CANCELADO) {
-            throw new RuntimeException("Transporte já está em status final");
-        }
-
-        if (statusAnterior == novoStatus) {
-            throw new RuntimeException("Transporte já está no status informado");
-        }
+        validarAlteracaoStatus(statusAnterior, novoStatus);
 
         transporte.setStatus(novoStatus);
         transporte.setObservacao(observacao);
@@ -76,6 +77,16 @@ public class TransporteService {
 
     public List<Transporte> buscarPorLote(Long loteId) {
         return transporteRepository.findByLoteId(loteId);
+    }
+
+    private void validarAlteracaoStatus(StatusTransporte statusAnterior, StatusTransporte novoStatus) {
+        if (statusAnterior == StatusTransporte.CONCLUIDO || statusAnterior == StatusTransporte.CANCELADO) {
+            throw new RegraNegocioException("Transporte já está em status final");
+        }
+
+        if (statusAnterior == novoStatus) {
+            throw new RegraNegocioException("Transporte já está no status informado");
+        }
     }
 
     private void aplicarImpactoNoLote(Transporte transporte, StatusTransporte statusAnterior,
@@ -130,25 +141,25 @@ public class TransporteService {
 
     private Lote buscarLote(Transporte transporte) {
         if (transporte.getLote() == null || transporte.getLote().getId() == null) {
-            throw new RuntimeException("Lote é obrigatório para criar transporte");
+            throw new RegraNegocioException("Lote é obrigatório para criar transporte");
         }
 
         return loteRepository.findById(transporte.getLote().getId())
-                .orElseThrow(() -> new RuntimeException("Lote não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Lote não encontrado"));
     }
 
     private Empresa buscarEmpresa(Empresa empresa, String mensagemErro) {
         if (empresa == null || empresa.getId() == null) {
-            throw new RuntimeException(mensagemErro);
+            throw new RegraNegocioException(mensagemErro);
         }
 
         return empresaRepository.findById(empresa.getId())
-                .orElseThrow(() -> new RuntimeException(mensagemErro));
+                .orElseThrow(() -> new RecursoNaoEncontradoException(mensagemErro));
     }
 
     private void validarLoteDisponivel(Lote lote) {
         if (lote.getStatus() != StatusLote.AGUARDANDO_COLETA) {
-            throw new RuntimeException("Lote não está disponível para transporte");
+            throw new RegraNegocioException("Lote não está disponível para transporte");
         }
     }
 

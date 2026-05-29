@@ -1,6 +1,7 @@
 package com.ecotrack.ecotrack_api.service;
 
 import com.ecotrack.ecotrack_api.entity.Empresa;
+import com.ecotrack.ecotrack_api.exception.RecursoNaoEncontradoException;
 import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,7 +20,7 @@ public class EmpresaService {
 
     public Empresa buscarPorId(Long id) {
         return empresaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Empresa não encontrada"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Empresa não encontrada"));
     }
 
     public Empresa salvar(Empresa empresa) {
@@ -27,6 +28,10 @@ public class EmpresaService {
     }
 
     public void deletar(Long id) {
+        if (!empresaRepository.existsById(id)) {
+            throw new RecursoNaoEncontradoException("Empresa não encontrada");
+        }
+
         empresaRepository.deleteById(id);
     }
 }
