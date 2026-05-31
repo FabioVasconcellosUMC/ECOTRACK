@@ -200,7 +200,19 @@
             <p class="text-ink-2 text-[13px] leading-relaxed">{{ transporteSelecionado.observacao }}</p>
           </div>
 
-          <footer v-if="acoesDoStatus(transporteSelecionado.status).length > 0" class="flex items-center justify-end gap-2 px-7 py-4 bg-bg-elevated/30">
+          <footer class="flex items-center justify-end gap-2 px-7 py-4 bg-bg-elevated/30">
+            <button
+              @click="baixarManifesto(transporteSelecionado)"
+              :disabled="baixandoManifesto === transporteSelecionado.id"
+              class="flex items-center gap-2 h-10 px-4 rounded-md text-[11.5px] font-bold tracking-wider
+                     border border-bg-line text-ink-2 hover:border-cyan/40 hover:text-cyan transition-colors
+                     disabled:opacity-50"
+            >
+              <Loader2 v-if="baixandoManifesto === transporteSelecionado.id" :size="13" class="animate-spin" />
+              <Download v-else :size="13" />
+              MANIFESTO PDF
+            </button>
+
             <button
               v-for="acao in acoesDoStatus(transporteSelecionado.status)"
               :key="acao.novoStatus"
@@ -512,6 +524,7 @@ const erros = ref(errosVazio())
 const mensagemErro = ref('')
 const salvando = ref(false)
 const mudandoStatus = ref(false)
+const baixandoManifesto = ref(null)
 
 const termoBusca = ref('')
 const filtroAtivo = ref('TODOS')
@@ -802,6 +815,36 @@ const transporteParaCsv = (transporte) => ({
 
 const exportarLista = () => {
   exportCsv('ecotrack-transportes.csv', transportesFiltrados.value.map(transporteParaCsv))
+}
+
+const baixarManifesto = async (transporte) => {
+  if (!transporte?.id || baixandoManifesto.value) return
+
+  baixandoManifesto.value = transporte.id
+  try {
+    const resposta = await api.get(`/transportes/${transporte.id}/manifesto`, {
+      responseType: 'blob',
+    })
+
+    const url = URL.createObjectURL(new Blob([resposta.data], { type: 'application/pdf' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `manifesto-${formatarId(transporte).toLowerCase()}.pdf`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+    exibirToast('Manifesto PDF gerado com sucesso.')
+  } catch (erro) {
+    console.error('Erro ao gerar manifesto:', erro)
+    exibirToast(
+      erro.mensagemAmigavel || 'Erro ao gerar manifesto PDF.',
+      CORES_STATUS.CANCELADO,
+      AlertCircle,
+    )
+  } finally {
+    baixandoManifesto.value = null
+  }
 }
 
 onMounted(carregarDados)

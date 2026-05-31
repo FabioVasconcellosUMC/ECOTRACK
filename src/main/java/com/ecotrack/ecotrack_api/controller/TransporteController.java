@@ -2,8 +2,12 @@ package com.ecotrack.ecotrack_api.controller;
 
 import com.ecotrack.ecotrack_api.entity.Transporte;
 import com.ecotrack.ecotrack_api.entity.StatusTransporte;
+import com.ecotrack.ecotrack_api.service.ManifestoPdfService;
 import com.ecotrack.ecotrack_api.service.TransporteService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,6 +19,7 @@ import java.util.List;
 public class TransporteController {
 
     private final TransporteService transporteService;
+    private final ManifestoPdfService manifestoPdfService;
 
     @GetMapping
     public ResponseEntity<List<Transporte>> listar() {
@@ -42,5 +47,21 @@ public class TransporteController {
     @GetMapping("/lote/{loteId}")
     public ResponseEntity<List<Transporte>> buscarPorLote(@PathVariable Long loteId) {
         return ResponseEntity.ok(transporteService.buscarPorLote(loteId));
+    }
+
+    @GetMapping("/{id}/manifesto")
+    public ResponseEntity<byte[]> gerarManifesto(@PathVariable Long id) {
+        byte[] pdf = manifestoPdfService.gerarManifesto(id);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(manifestoPdfService.nomeArquivo(id))
+                                .build()
+                                .toString()
+                )
+                .body(pdf);
     }
 }
