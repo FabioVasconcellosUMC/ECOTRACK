@@ -48,6 +48,16 @@
         <span class="w-px self-stretch bg-bg-line my-2" />
 
         <button
+          @click="abrirConfirmacaoExclusao"
+          class="flex items-center justify-center w-10 text-ink-2 hover:text-danger hover:bg-danger-soft transition-colors"
+          :title="`Excluir conta (${nomeUsuario})`"
+        >
+          <Trash2 :size="14" />
+        </button>
+
+        <span class="w-px self-stretch bg-bg-line my-2" />
+
+        <button
           @click="sair"
           class="flex items-center justify-center w-10 text-ink-2 hover:text-cyan hover:bg-bg-base/40 transition-colors"
           :title="`Sair (${nomeUsuario})`"
@@ -100,6 +110,67 @@
       </div>
     </Transition>
   </Teleport>
+
+  <Teleport to="body">
+    <Transition name="modal">
+      <div
+        v-if="confirmacaoExclusaoAberta"
+        class="fixed inset-0 z-[10000] flex items-center justify-center px-4 bg-black/65 backdrop-blur-sm"
+        @click.self="fecharConfirmacaoExclusao"
+      >
+        <section class="w-full max-w-md rounded-2xl bg-bg-panel border border-bg-line-strong shadow-2xl helmet-stripe overflow-hidden">
+          <header class="flex items-start justify-between gap-4 px-6 py-5 border-b border-bg-line">
+            <div class="flex items-start gap-3">
+              <span class="flex items-center justify-center w-10 h-10 rounded-md bg-danger-soft border border-danger/30 text-danger shrink-0">
+                <AlertTriangle :size="18" />
+              </span>
+              <div>
+                <p class="section-title text-[20px]">Excluir conta</p>
+                <p class="text-[12px] text-ink-3 mt-1 leading-relaxed">
+                  Seu acesso será desativado e seus dados pessoais serão criptografados.
+                </p>
+              </div>
+            </div>
+            <button
+              @click="fecharConfirmacaoExclusao"
+              class="w-8 h-8 rounded-md text-ink-3 hover:text-ink hover:bg-bg-elevated transition-colors shrink-0"
+              title="Fechar"
+            >
+              <X :size="16" class="mx-auto" />
+            </button>
+          </header>
+
+          <div class="px-6 py-5 space-y-4">
+            <p
+              v-if="erroExclusao"
+              class="flex items-center gap-2 text-[12px] text-danger bg-danger-soft border border-danger/30 rounded-md px-3 py-2"
+            >
+              <AlertTriangle :size="14" /> {{ erroExclusao }}
+            </p>
+
+            <div class="flex justify-end gap-2">
+              <button
+                @click="fecharConfirmacaoExclusao"
+                :disabled="excluindoConta"
+                class="px-4 h-10 rounded-md border border-bg-line text-[12px] font-bold tracking-wider text-ink-2 hover:text-ink hover:bg-bg-elevated transition-colors disabled:opacity-50"
+              >
+                CANCELAR
+              </button>
+              <button
+                @click="excluirMinhaConta"
+                :disabled="excluindoConta"
+                class="px-4 h-10 rounded-md bg-danger text-white text-[12px] font-bold tracking-wider hover:bg-danger/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                <Loader2 v-if="excluindoConta" :size="14" class="animate-spin" />
+                <Trash2 v-else :size="14" />
+                {{ excluindoConta ? 'EXCLUINDO...' : 'EXCLUIR CONTA' }}
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup>
@@ -107,9 +178,11 @@ import { computed, ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import {
   LayoutGrid, Building2, Boxes, LogOut, Truck, FileText, Bell,
+  Trash2, AlertTriangle, X, Loader2,
 } from 'lucide-vue-next'
 import LogoMark from './LogoMark.vue'
 import HeaderNav from './HeaderNav.vue'
+import api from '../services/api'
 
 const NAV_ITEMS = [
   { to: '/dashboard',   label: 'Dashboard',   icon: LayoutGrid },
@@ -174,6 +247,9 @@ const notificacoesAbertas = ref(false)
 const bellButton = ref(null)
 const dropdown = ref(null)
 const estiloDropdown = ref(estiloOculto())
+const confirmacaoExclusaoAberta = ref(false)
+const excluindoConta = ref(false)
+const erroExclusao = ref('')
 
 const calcularPosicaoDropdown = () => {
   if (!bellButton.value) return
@@ -229,6 +305,32 @@ const marcarTodasComoLidas = () => {
 const sair = () => {
   localStorage.clear()
   router.push('/')
+}
+
+const abrirConfirmacaoExclusao = () => {
+  erroExclusao.value = ''
+  confirmacaoExclusaoAberta.value = true
+}
+
+const fecharConfirmacaoExclusao = () => {
+  if (excluindoConta.value) return
+  confirmacaoExclusaoAberta.value = false
+  erroExclusao.value = ''
+}
+
+const excluirMinhaConta = async () => {
+  if (excluindoConta.value) return
+  excluindoConta.value = true
+  erroExclusao.value = ''
+  try {
+    await api.delete('/usuarios/me')
+    localStorage.clear()
+    router.push('/')
+  } catch (e) {
+    erroExclusao.value = e.response?.data?.erro || 'Não foi possível excluir sua conta.'
+  } finally {
+    excluindoConta.value = false
+  }
 }
 
 const cliqueForaDoDropdown = (evento) => {
@@ -292,5 +394,15 @@ onBeforeUnmount(() => {
 .notif-leave-to {
   opacity: 0;
   transform: translateY(-6px);
+}
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 180ms ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
 }
 </style>
