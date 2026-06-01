@@ -1,5 +1,6 @@
 package com.ecotrack.ecotrack_api.security;
 
+import com.ecotrack.ecotrack_api.entity.Usuario;
 import com.ecotrack.ecotrack_api.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,6 +17,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         return usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + email));
+                .filter(Usuario::isAtivo)
+                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado ou inativo: " + email));
     }
 }

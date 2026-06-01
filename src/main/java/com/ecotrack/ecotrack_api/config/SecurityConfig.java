@@ -47,6 +47,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/transportes/**").hasAnyRole("ADMIN", "GERADORA", "TRANSPORTADORA", "RECEPTORA")
                         .requestMatchers(HttpMethod.POST, "/transportes/**").hasAnyRole("ADMIN", "GERADORA")
                         .requestMatchers(HttpMethod.PATCH, "/transportes/**").hasAnyRole("ADMIN", "TRANSPORTADORA")
+                        .requestMatchers(HttpMethod.DELETE, "/usuarios/me").authenticated()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

@@ -23,9 +23,10 @@ public class Usuario implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(length = 500)
     private String nome;
 
-    @Column(unique = true)
+    @Column(unique = true, length = 500)
     private String email;
 
     @JsonIgnore
@@ -37,6 +38,8 @@ public class Usuario implements UserDetails {
     private boolean ativo = true;
 
     private LocalDateTime criadoEm = LocalDateTime.now();
+
+    private LocalDateTime excluidoEm;
 
     @JsonIgnore
     @Override
