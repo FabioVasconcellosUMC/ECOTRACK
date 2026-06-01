@@ -50,7 +50,7 @@ class AuthControllerTest {
 
     @Test
     void cadastroCriaUsuarioComSenhaCriptografada() {
-        CadastroRequest request = new CadastroRequest("Fabio", "fabio@email.com", "123456", "ADMIN");
+        CadastroRequest request = new CadastroRequest("Fabio", "fabio@email.com", "123456", "GERADORA");
         when(usuarioRepository.findByEmail("fabio@email.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("123456")).thenReturn("senha-hash");
 
@@ -66,12 +66,12 @@ class AuthControllerTest {
         assertThat(usuarioSalvo.getNome()).isEqualTo("Fabio");
         assertThat(usuarioSalvo.getEmail()).isEqualTo("fabio@email.com");
         assertThat(usuarioSalvo.getSenha()).isEqualTo("senha-hash");
-        assertThat(usuarioSalvo.getPerfil()).isEqualTo(Perfil.ADMIN);
+        assertThat(usuarioSalvo.getPerfil()).isEqualTo(Perfil.GERADORA);
     }
 
     @Test
     void cadastroRejeitaEmailJaCadastrado() {
-        CadastroRequest request = new CadastroRequest("Fabio", "fabio@email.com", "123456", "ADMIN");
+        CadastroRequest request = new CadastroRequest("Fabio", "fabio@email.com", "123456", "GERADORA");
         when(usuarioRepository.findByEmail("fabio@email.com")).thenReturn(Optional.of(new Usuario()));
 
         assertThatThrownBy(() -> authController.cadastro(request))
@@ -89,5 +89,17 @@ class AuthControllerTest {
         assertThatThrownBy(() -> authController.cadastro(request))
                 .isInstanceOf(RegraNegocioException.class)
                 .hasMessage("Perfil inválido");
+    }
+
+    @Test
+    void cadastroRejeitaPerfilAdminNoCadastroPublico() {
+        CadastroRequest request = new CadastroRequest("Fabio", "fabio@email.com", "123456", "ADMIN");
+        when(usuarioRepository.findByEmail("fabio@email.com")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authController.cadastro(request))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessage("Cadastro de administrador não é permitido");
+
+        verify(usuarioRepository, never()).save(org.mockito.ArgumentMatchers.any());
     }
 }
