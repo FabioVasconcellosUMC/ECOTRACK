@@ -48,12 +48,14 @@ public class AuthController {
     @PostMapping("/cadastro")
     public ResponseEntity<Map<String, String>> cadastro(@Valid @RequestBody CadastroRequest request) {
         validarEmailDisponivel(request.email());
+        Perfil perfil = converterPerfil(request.perfil());
+        validarPerfilCadastroPublico(perfil);
 
         Usuario usuario = new Usuario();
         usuario.setNome(request.nome());
         usuario.setEmail(request.email());
         usuario.setSenha(passwordEncoder.encode(request.senha()));
-        usuario.setPerfil(converterPerfil(request.perfil()));
+        usuario.setPerfil(perfil);
         usuarioRepository.save(usuario);
 
         return ResponseEntity.status(201).body(Map.of("mensagem", "Usuário cadastrado com sucesso"));
@@ -70,6 +72,12 @@ public class AuthController {
             return Perfil.valueOf(perfil.toUpperCase());
         } catch (IllegalArgumentException e) {
             throw new RegraNegocioException("Perfil inválido");
+        }
+    }
+
+    private void validarPerfilCadastroPublico(Perfil perfil) {
+        if (perfil == Perfil.ADMIN) {
+            throw new RegraNegocioException("Cadastro de administrador não é permitido");
         }
     }
 }
