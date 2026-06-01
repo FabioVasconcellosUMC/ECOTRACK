@@ -226,7 +226,6 @@ const perfis = [
   { value: 'GERADORA',       label: 'Geradora' },
   { value: 'TRANSPORTADORA', label: 'Transportadora' },
   { value: 'RECEPTORA',      label: 'Receptora' },
-  { value: 'ADMIN',          label: 'Administrador' },
 ]
 
 const badges = [
