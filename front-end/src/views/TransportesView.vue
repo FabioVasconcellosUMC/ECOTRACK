@@ -23,6 +23,7 @@
         </button>
 
         <button
+          v-if="podeCriarTransporte"
           @click="abrirModalCadastro"
           class="flex items-center gap-2 h-10 px-4 rounded-md bg-cyan text-bg-base
                  text-[11.5px] font-bold tracking-wider hover:bg-cyan-strong transition-colors"
@@ -463,6 +464,7 @@ const ACOES_POR_STATUS = {
       cor: CORES_STATUS.EM_TRANSITO,
       tituloConfirmacao: 'Iniciar trânsito?',
       descricaoCascata: 'O lote vinculado será atualizado automaticamente para EM_TRANSITO.',
+      perfis: ['ADMIN', 'TRANSPORTADORA'],
     },
     {
       novoStatus: STATUS.CANCELADO,
@@ -471,16 +473,19 @@ const ACOES_POR_STATUS = {
       cor: CORES_STATUS.CANCELADO,
       tituloConfirmacao: 'Cancelar transporte?',
       descricaoCascata: '',
+      perfis: ['ADMIN', 'TRANSPORTADORA'],
     },
   ],
   [STATUS.EM_TRANSITO]: [
     {
       novoStatus: STATUS.CONCLUIDO,
-      rotulo: 'CONCLUIR',
+      rotulo: 'CONFIRMAR RECEBIMENTO',
       icone: CheckCircle,
       cor: CORES_STATUS.CONCLUIDO,
-      tituloConfirmacao: 'Concluir transporte?',
-      descricaoCascata: 'O lote vinculado será atualizado automaticamente para DESCARTADO.',
+      tituloConfirmacao: 'Confirmar recebimento final?',
+      descricaoCascata: 'A receptora confirma que o resíduo chegou ao destino final. O lote será atualizado automaticamente para DESCARTADO.',
+      endpoint: 'recebimento-final',
+      perfis: ['ADMIN', 'RECEPTORA'],
     },
     {
       novoStatus: STATUS.CANCELADO,
@@ -489,6 +494,7 @@ const ACOES_POR_STATUS = {
       cor: CORES_STATUS.CANCELADO,
       tituloConfirmacao: 'Cancelar transporte?',
       descricaoCascata: 'O lote vinculado voltará para AGUARDANDO_COLETA.',
+      perfis: ['ADMIN', 'TRANSPORTADORA'],
     },
   ],
   [STATUS.CONCLUIDO]: [],
@@ -531,7 +537,15 @@ const filtroAtivo = ref('TODOS')
 
 const toast = ref(null)
 
+const perfilUsuario = computed(() =>
+  (localStorage.getItem('perfil') || '').toUpperCase(),
+)
+
 const totalTransportes = computed(() => transportes.value.length)
+
+const podeCriarTransporte = computed(() =>
+  ['ADMIN', 'GERADORA'].includes(perfilUsuario.value),
+)
 
 const transportadoras = computed(() =>
   empresas.value.filter(e => e.tipo === 'TRANSPORTADORA'),
@@ -622,7 +636,10 @@ const estiloAcao = (acao) => ({
   color: acao.cor,
 })
 
-const acoesDoStatus = (status) => ACOES_POR_STATUS[status] || []
+const acoesDoStatus = (status) =>
+  (ACOES_POR_STATUS[status] || []).filter(acao =>
+    !acao.perfis || acao.perfis.includes(perfilUsuario.value),
+  )
 
 const formatarData = (iso) => {
   if (!iso) return '—'
@@ -769,16 +786,24 @@ const confirmarMudancaStatus = async () => {
   if (mudandoStatus.value || !confirmacaoStatus.value || !transporteSelecionado.value) return
   mudandoStatus.value = true
   try {
-    await api.patch(
-      `/transportes/${transporteSelecionado.value.id}/status`,
-      null,
-      {
-        params: {
-          novoStatus: confirmacaoStatus.value.novoStatus,
-          observacao: observacaoMudanca.value.trim(),
+    if (confirmacaoStatus.value.endpoint === 'recebimento-final') {
+      await api.patch(
+        `/transportes/${transporteSelecionado.value.id}/recebimento-final`,
+        null,
+        { params: { observacao: observacaoMudanca.value.trim() } },
+      )
+    } else {
+      await api.patch(
+        `/transportes/${transporteSelecionado.value.id}/status`,
+        null,
+        {
+          params: {
+            novoStatus: confirmacaoStatus.value.novoStatus,
+            observacao: observacaoMudanca.value.trim(),
+          },
         },
-      },
-    )
+      )
+    }
     const novoStatus = confirmacaoStatus.value.novoStatus
     fecharConfirmacaoStatus()
     fecharDetalhes()

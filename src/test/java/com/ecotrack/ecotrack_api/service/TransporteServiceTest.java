@@ -133,6 +133,59 @@ class TransporteServiceTest {
     }
 
     @Test
+    void alterarStatusRejeitaConclusaoSemConfirmacaoDaReceptora() {
+        Transporte transporte = new Transporte();
+        transporte.setId(10L);
+        transporte.setStatus(StatusTransporte.EM_TRANSITO);
+        when(transporteRepository.findById(10L)).thenReturn(Optional.of(transporte));
+
+        assertThatThrownBy(() -> transporteService.alterarStatus(10L, StatusTransporte.CONCLUIDO, null))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessage("Recebimento final deve ser confirmado pela empresa receptora");
+
+        verify(transporteRepository, never()).save(any(Transporte.class));
+    }
+
+    @Test
+    void confirmarRecebimentoFinalConcluiTransporteEDescartaLote() {
+        Lote lote = lote(1L, StatusLote.EM_TRANSITO);
+        Transporte transporte = new Transporte();
+        transporte.setId(10L);
+        transporte.setLote(lote);
+        transporte.setStatus(StatusTransporte.EM_TRANSITO);
+        when(transporteRepository.findById(10L)).thenReturn(Optional.of(transporte));
+        when(transporteRepository.save(transporte)).thenReturn(transporte);
+
+        Transporte resultado = transporteService.confirmarRecebimentoFinal(10L, "residuo recebido no destino");
+
+        assertThat(resultado.getStatus()).isEqualTo(StatusTransporte.CONCLUIDO);
+        assertThat(resultado.getDataEntrega()).isNotNull();
+        assertThat(lote.getStatus()).isEqualTo(StatusLote.DESCARTADO);
+        verify(loteRepository).save(lote);
+
+        ArgumentCaptor<HistoricoLote> historicoCaptor = ArgumentCaptor.forClass(HistoricoLote.class);
+        verify(historicoLoteRepository).save(historicoCaptor.capture());
+        assertThat(historicoCaptor.getValue().getStatusAnterior()).isEqualTo(StatusLote.EM_TRANSITO);
+        assertThat(historicoCaptor.getValue().getStatusNovo()).isEqualTo(StatusLote.DESCARTADO);
+        assertThat(historicoCaptor.getValue().getObservacao())
+                .isEqualTo("Recebimento final confirmado pela receptora. residuo recebido no destino");
+    }
+
+    @Test
+    void confirmarRecebimentoFinalExigeTransporteEmTransito() {
+        Transporte transporte = new Transporte();
+        transporte.setId(10L);
+        transporte.setStatus(StatusTransporte.PENDENTE);
+        when(transporteRepository.findById(10L)).thenReturn(Optional.of(transporte));
+
+        assertThatThrownBy(() -> transporteService.confirmarRecebimentoFinal(10L, null))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessage("Recebimento final so pode ser confirmado com transporte em transito");
+
+        verify(transporteRepository, never()).save(any(Transporte.class));
+    }
+
+    @Test
     void alterarStatusRejeitaTransporteFinalizado() {
         Transporte transporte = new Transporte();
         transporte.setId(10L);

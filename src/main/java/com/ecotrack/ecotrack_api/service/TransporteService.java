@@ -75,11 +75,30 @@ public class TransporteService {
         return transporteRepository.save(transporte);
     }
 
+    public Transporte confirmarRecebimentoFinal(Long id, String observacao) {
+        Transporte transporte = buscarPorId(id);
+        validarRecebimentoFinal(transporte);
+
+        StatusTransporte statusAnterior = transporte.getStatus();
+        transporte.setStatus(StatusTransporte.CONCLUIDO);
+        transporte.setDataEntrega(LocalDateTime.now());
+        transporte.setObservacao(observacao);
+
+        aplicarImpactoNoLote(transporte, statusAnterior, StatusTransporte.CONCLUIDO,
+                montarObservacaoRecebimentoFinal(observacao));
+
+        return transporteRepository.save(transporte);
+    }
+
     public List<Transporte> buscarPorLote(Long loteId) {
         return transporteRepository.findByLoteId(loteId);
     }
 
     private void validarAlteracaoStatus(StatusTransporte statusAnterior, StatusTransporte novoStatus) {
+        if (novoStatus == StatusTransporte.CONCLUIDO) {
+            throw new RegraNegocioException("Recebimento final deve ser confirmado pela empresa receptora");
+        }
+
         if (statusAnterior == StatusTransporte.CONCLUIDO || statusAnterior == StatusTransporte.CANCELADO) {
             throw new RegraNegocioException("Transporte já está em status final");
         }
@@ -87,6 +106,24 @@ public class TransporteService {
         if (statusAnterior == novoStatus) {
             throw new RegraNegocioException("Transporte já está no status informado");
         }
+    }
+
+    private void validarRecebimentoFinal(Transporte transporte) {
+        if (transporte.getStatus() == StatusTransporte.CONCLUIDO || transporte.getStatus() == StatusTransporte.CANCELADO) {
+            throw new RegraNegocioException("Transporte ja esta em status final");
+        }
+
+        if (transporte.getStatus() != StatusTransporte.EM_TRANSITO) {
+            throw new RegraNegocioException("Recebimento final so pode ser confirmado com transporte em transito");
+        }
+    }
+
+    private String montarObservacaoRecebimentoFinal(String observacao) {
+        if (observacao != null && !observacao.isBlank()) {
+            return "Recebimento final confirmado pela receptora. " + observacao;
+        }
+
+        return "Recebimento final confirmado pela receptora";
     }
 
     private void aplicarImpactoNoLote(Transporte transporte, StatusTransporte statusAnterior,

@@ -44,6 +44,13 @@ public class TransporteController {
         return ResponseEntity.ok(transporteService.alterarStatus(id, novoStatus, observacao));
     }
 
+    @PatchMapping("/{id}/recebimento-final")
+    public ResponseEntity<Transporte> confirmarRecebimentoFinal(
+            @PathVariable Long id,
+            @RequestParam(required = false) String observacao) {
+        return ResponseEntity.ok(transporteService.confirmarRecebimentoFinal(id, observacao));
+    }
+
     @GetMapping("/lote/{loteId}")
     public ResponseEntity<List<Transporte>> buscarPorLote(@PathVariable Long loteId) {
         return ResponseEntity.ok(transporteService.buscarPorLote(loteId));
