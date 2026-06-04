@@ -75,6 +75,12 @@ mvnw.cmd spring-boot:run
 
 ## Como executar o frontend
 
+Opcionalmente, configure a URL da API:
+
+```text
+VITE_API_BASE_URL=https://ecotrack-d5i0.onrender.com
+```
+
 ```bash
 cd front-end
 npm install

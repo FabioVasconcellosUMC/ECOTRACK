@@ -48,7 +48,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntime(RuntimeException e) {
-        return ResponseEntity.badRequest().body(erro(e.getMessage()));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(erro("Erro interno ao processar a requisicao"));
     }
 
     @ExceptionHandler(BadCredentialsException.class)

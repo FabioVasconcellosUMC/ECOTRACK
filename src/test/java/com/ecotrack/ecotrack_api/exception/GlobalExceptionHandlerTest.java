@@ -53,4 +53,13 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(response.getBody()).containsEntry("erro", "E-mail ou senha inválidos");
     }
+    @Test
+    void handleRuntimeRetornaMensagemGenerica() {
+        ResponseEntity<Map<String, String>> response = handler.handleRuntime(
+                new RuntimeException("detalhe interno sensivel")
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getBody()).containsEntry("erro", "Erro interno ao processar a requisicao");
+    }
 }
