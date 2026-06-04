@@ -1,61 +1,112 @@
-# EcoTrack 🌿 — Gestão e Rastreabilidade de Resíduos
+# EcoTrack
 
-Sistema web responsivo para gestão e rastreabilidade de resíduos sólidos, desenvolvido em conformidade com a **Política Nacional de Resíduos Sólidos (PNRS — Lei nº 12.305/2010)**.
+Sistema web para gestao e rastreabilidade de residuos solidos, desenvolvido como Projeto Final de Curso em Bacharelado em Sistemas de Informacao.
 
-## 🚀 Links de Acesso (Ambiente de Produção)
+O EcoTrack apoia o cadastro de empresas geradoras, transportadoras e receptoras, o controle de lotes de residuos, o registro de transportes, a confirmacao de recebimento final pela receptora, a emissao de manifesto em PDF e a consulta de indicadores gerenciais.
 
-- **Frontend (Vercel):** [https://ecotrack-khaki.vercel.app](https://ecotrack-khaki.vercel.app)
-- **Backend API (Render):** [https://ecotrack-d5i0.onrender.com](https://ecotrack-d5i0.onrender.com)
-    - *Nota: A raiz da API possui um Health Check para validação de status.*
+## Acessos
 
-## 👤 Credenciais de Acesso
+- Frontend: https://ecotrack-khaki.vercel.app
+- Backend API: https://ecotrack-d5i0.onrender.com
 
-| Perfil | Email | Senha |
-| :--- | :--- | :--- |
-| **Administrador** | `admin@ecotrack.com` | `admin123` |
+As credenciais de acesso nao sao versionadas neste repositorio. Usuarios e senhas devem ser gerenciados no ambiente de producao ou informados apenas pelos responsaveis do projeto.
 
-## 🛠️ Tecnologias & Padrões
+## Tecnologias
 
-- **Backend:** Java 17, Spring Boot 3, Spring Security, JWT (Autenticação Stateless).
-- **Frontend:** Vue.js 3, Tailwind CSS, Axios.
-- **Banco de Dados:** PostgreSQL (Instância Supabase).
-- **Infra:** Render (Backend CI/CD) + Vercel (Frontend CI/CD).
+- Backend: Java 17, Spring Boot, Spring Security, JWT, Spring Data JPA e Flyway.
+- Frontend: Vue.js, Tailwind CSS, Axios, Chart.js e Vite.
+- Banco de dados: PostgreSQL em nuvem.
+- Hospedagem: Render para a API e Vercel para o frontend.
+- Integracoes: BrasilAPI para consulta de CNPJ e Resend para envio de e-mails operacionais.
 
-## 📋 Funcionalidades Validadas (Entrega 06/04)
+## Funcionalidades
 
-- ✅ **Autenticação JWT:** Login seguro com geração de token e proteção de rotas.
-- ✅ **Dashboard Gerencial:** Visualização de indicadores integrada à API.
-- ✅ **Gestão de Lotes:** CRUD completo e transição de status de resíduos.
-- ✅ **Rastreabilidade Auditada:** Registro imutável de movimentações e histórico.
-- ✅ Histórico imutável de alterações de status
+- Autenticacao por e-mail e senha com token JWT.
+- Cadastro publico de usuarios operacionais, sem liberacao de perfil administrador.
+- Controle de acesso por perfis: Administrador, Geradora, Transportadora e Receptora.
+- Cadastro e consulta de empresas.
+- Consulta de CNPJ via BrasilAPI no frontend.
+- Cadastro de lotes de residuos com historico de status.
+- Cadastro de transportes vinculando lote, transportadora e receptora.
+- Confirmacao de recebimento final pela empresa receptora.
+- Atualizacao automatica do lote para descartado ao concluir o recebimento.
+- Manifesto de transporte em PDF.
+- Dashboard e relatorios operacionais.
+- Exclusao logica de usuario com inativacao e criptografia de dados pessoais.
 
-## 🕹️ Documentação da API (Endpoints para Teste)
+## Estrutura do projeto
 
-Para validar o Back-end via **Postman/Insomnia**, siga o fluxo abaixo:
+```text
+.
+|-- src/                       # Backend Spring Boot
+|-- front-end/                 # Frontend Vue.js ativo
+|   |-- src/                   # Codigo-fonte do frontend
+|   |-- public/                # Imagens e arquivos publicos
+|   `-- package.json
+|-- scripts/                   # Scripts auxiliares
+|-- pom.xml                    # Configuracao Maven do backend
+`-- README.md
+```
 
-### 1. Autenticação (Pública)
-- **POST** `https://ecotrack-d5i0.onrender.com/auth/login`
-    - **Body (JSON):** `{"email": "admin@ecotrack.com", "senha": "admin123"}`
+## Como executar o backend
 
-### 2. Gestão de Lotes (Requer Header `Authorization: Bearer <TOKEN>`)
-- **Criar Lote:** `POST` `https://ecotrack-d5i0.onrender.com/lotes`
-- **Buscar por ID:** `GET` `https://ecotrack-d5i0.onrender.com/lotes/1`
-- **Alterar Status:** `PATCH` `https://ecotrack-d5i0.onrender.com/lotes/1/status?novoStatus=EM_TRANSITO&observacao=Lote coletado pela transportadora`
-- **Histórico do Lote:** `GET` `https://ecotrack-d5i0.onrender.com/lotes/1/historico`
+Configure as variaveis de ambiente necessarias:
 
-## 🗃️ Banco de Dados
+```text
+SPRING_DATASOURCE_URL
+JWT_SECRET
+JWT_EXPIRATION
+RESEND_API_KEY
+RESEND_FROM_EMAIL
+SPRING_PROFILES_ACTIVE
+```
 
-O banco de dados PostgreSQL está integrado e ativo no **Supabase**.
-- **Script de População:** Para verificar a modelagem ou subir um ambiente local, utilize o arquivo em `scripts/dados_exemplo.sql`.
+Depois execute:
 
-## 👥 Equipe & Responsabilidades
+```bash
+./mvnw spring-boot:run
+```
 
-- **Fabio Vasconcellos** — Back-end (API, Segurança JWT, Módulo de Lotes e Infra).
-- **Micael Humberto** — Front-end (Vue.js, Dashboard, Interfaces e Integração).
+No Windows:
 
-## 📁 Estrutura de Branches
+```bash
+mvnw.cmd spring-boot:run
+```
 
-- `Codigo-Inicial` — **Branch principal da entrega.**
-- `frontend-deploy` — Configurações de ambiente Vercel.
+## Como executar o frontend
 
----
+```bash
+cd front-end
+npm install
+npm run dev
+```
+
+Para gerar build de producao:
+
+```bash
+cd front-end
+npm run build
+```
+
+## Testes e validacao
+
+Backend:
+
+```bash
+./mvnw test
+```
+
+Frontend:
+
+```bash
+cd front-end
+npm run build
+npm audit --audit-level=moderate
+```
+
+## Branches de entrega
+
+- `main`: codigo principal do projeto.
+- `frontend-deploy`: branch sincronizada para publicacao do frontend na Vercel.
+
+Para a entrega final, o repositorio deve ser congelado apos a validacao e o ZIP deve ser gerado a partir da versao final.
