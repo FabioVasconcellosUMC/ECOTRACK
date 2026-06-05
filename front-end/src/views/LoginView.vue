@@ -41,7 +41,7 @@
                 >
                   EcoTrack
                 </p>
-                <p class="eyebrow text-[11.5px] mt-2">PNRS · Lei 12.305/2010</p>
+                <p class="eyebrow text-[11.5px] mt-2">Gestão de resíduos</p>
               </div>
             </div>
 
@@ -229,7 +229,7 @@ const perfis = [
 ]
 
 const badges = [
-  { label: 'PNRS',            icon: FileCheck2 },
+  { label: 'Controle interno', icon: FileCheck2 },
   { label: 'Rastreabilidade', icon: ShieldCheck },
   { label: 'Acesso seguro',   icon: Fingerprint },
 ]

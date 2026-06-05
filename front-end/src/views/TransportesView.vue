@@ -8,7 +8,7 @@
           Transportes
         </h1>
         <p class="text-ink-3 text-[13px] mt-2 mono-tag">
-          {{ totalTransportes }} transporte{{ totalTransportes === 1 ? '' : 's' }} cadastrado{{ totalTransportes === 1 ? '' : 's' }} · ciclo PNRS rastreado
+          {{ totalTransportes }} transporte{{ totalTransportes === 1 ? '' : 's' }} cadastrado{{ totalTransportes === 1 ? '' : 's' }} · ciclo operacional rastreado
         </p>
       </div>
 
