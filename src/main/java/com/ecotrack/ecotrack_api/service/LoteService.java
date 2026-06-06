@@ -6,6 +6,7 @@ import com.ecotrack.ecotrack_api.entity.Lote;
 import com.ecotrack.ecotrack_api.entity.Perfil;
 import com.ecotrack.ecotrack_api.entity.StatusLote;
 import com.ecotrack.ecotrack_api.entity.Usuario;
+import com.ecotrack.ecotrack_api.dto.PaginaResponse;
 import com.ecotrack.ecotrack_api.exception.RecursoNaoEncontradoException;
 import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
 import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
@@ -79,6 +80,34 @@ public class LoteService {
         return loteRepository.findRecentes(pageRequest).stream()
                 .map(this::descriptografarEmpresaGeradora)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PaginaResponse<Lote> listarPagina(String termoBusca, Integer pagina, Integer limite) {
+        int limiteConsulta = limitePaginado(limite);
+        int paginaConsulta = paginaNormalizada(pagina);
+        PageRequest pageRequest = PageRequest.of(paginaConsulta, limiteConsulta + 1);
+
+        Usuario usuario = escopoUsuarioService.usuarioAutenticado();
+        List<Lote> lotes;
+        if (!escopoUsuarioService.isAdmin(usuario)) {
+            Empresa empresa = escopoUsuarioService.empresaVinculada(usuario);
+            if (empresa == null) {
+                return new PaginaResponse<>(List.of(), paginaConsulta, limiteConsulta, false);
+            }
+
+            lotes = listarPorEscopo(usuario.getPerfil(), empresa.getId(), termoBusca, pageRequest);
+        } else if (termoBusca != null && !termoBusca.isBlank()) {
+            lotes = loteRepository.buscarPorTexto(termoBusca.trim(), pageRequest).stream()
+                    .map(this::descriptografarEmpresaGeradora)
+                    .toList();
+        } else {
+            lotes = loteRepository.findRecentes(pageRequest).stream()
+                    .map(this::descriptografarEmpresaGeradora)
+                    .toList();
+        }
+
+        return montarPagina(lotes, paginaConsulta, limiteConsulta);
     }
 
     @Transactional(readOnly = true)
@@ -166,7 +195,10 @@ public class LoteService {
 
     private List<Lote> listarPorEscopo(Perfil perfil, Long empresaId, String termoBusca, Integer limite) {
         PageRequest pageRequest = PageRequest.of(0, limiteNormalizado(limite) == null ? 100 : limiteNormalizado(limite));
+        return listarPorEscopo(perfil, empresaId, termoBusca, pageRequest);
+    }
 
+    private List<Lote> listarPorEscopo(Perfil perfil, Long empresaId, String termoBusca, PageRequest pageRequest) {
         if (termoBusca != null && !termoBusca.isBlank()) {
             String busca = termoBusca.trim();
             List<Lote> lotes = switch (perfil) {
@@ -185,6 +217,25 @@ public class LoteService {
             default -> List.of();
         };
         return lotes.stream().map(this::descriptografarEmpresaGeradora).toList();
+    }
+
+    private PaginaResponse<Lote> montarPagina(List<Lote> lotes, int pagina, int limite) {
+        boolean temProxima = lotes.size() > limite;
+        List<Lote> itens = temProxima ? lotes.subList(0, limite) : lotes;
+        return new PaginaResponse<>(itens, pagina, limite, temProxima);
+    }
+
+    private int paginaNormalizada(Integer pagina) {
+        if (pagina == null || pagina < 0) {
+            return 0;
+        }
+
+        return pagina;
+    }
+
+    private int limitePaginado(Integer limite) {
+        Integer normalizado = limiteNormalizado(limite);
+        return normalizado == null ? 20 : normalizado;
     }
 
     private void validarLoteDentroDoEscopo(Lote lote, Usuario usuario) {

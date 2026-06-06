@@ -160,6 +160,21 @@
       </table>
     </section>
 
+    <div
+      v-if="temMaisLotes || carregandoMais"
+      class="flex items-center justify-center"
+    >
+      <button
+        @click="carregarMaisLotes"
+        :disabled="carregandoMais"
+        class="flex items-center gap-2 h-10 px-4 rounded-md bg-bg-elevated border border-bg-line text-ink-2 text-[11.5px] font-bold tracking-wider hover:border-cyan/40 hover:text-cyan transition-colors disabled:opacity-50"
+      >
+        <Loader2 v-if="carregandoMais" :size="14" class="animate-spin" />
+        <Plus v-else :size="14" />
+        {{ carregandoMais ? 'CARREGANDO...' : 'CARREGAR MAIS LOTES' }}
+      </button>
+    </div>
+
     <Transition name="page">
       <div
         v-if="loteSelecionado"
@@ -408,6 +423,9 @@ const errosVazio = () => ({
 
 const lotes = ref([])
 const empresas = ref([])
+const paginaAtual = ref(0)
+const temMaisLotes = ref(false)
+const carregandoMais = ref(false)
 const loteSelecionado = ref(null)
 const modalCadastroAberto = ref(false)
 const salvando = ref(false)
@@ -513,21 +531,46 @@ const exportarSelecionado = () => {
   )
 }
 
-const carregarDados = async () => {
+const normalizarPagina = (resposta) => {
+  if (Array.isArray(resposta)) {
+    return { itens: resposta, hasNext: false, page: 0 }
+  }
+
+  return {
+    itens: resposta?.itens || [],
+    hasNext: Boolean(resposta?.hasNext),
+    page: Number(resposta?.page) || 0,
+  }
+}
+
+const carregarDados = async ({ acrescentar = false } = {}) => {
+  const pagina = acrescentar ? paginaAtual.value + 1 : 0
+  if (acrescentar) carregandoMais.value = true
+
   try {
     const [respostaLotes, respostaEmpresas] = await Promise.all([
       buscarComCache('/lotes', {
         limit: LIMITE_LISTAGEM,
+        page: pagina,
         q: termoBusca.value.trim() || undefined,
       }),
       buscarComCache('/empresas'),
     ])
-    lotes.value = respostaLotes
+    const paginaLotes = normalizarPagina(respostaLotes)
+    lotes.value = acrescentar
+      ? [...lotes.value, ...paginaLotes.itens]
+      : paginaLotes.itens
+    paginaAtual.value = paginaLotes.page
+    temMaisLotes.value = paginaLotes.hasNext
     empresas.value = respostaEmpresas
   } catch (erro) {
     console.error('Erro ao carregar dados de lotes:', erro)
+  } finally {
+    carregandoMais.value = false
   }
 }
+
+const carregarMaisLotes = () => carregarDados({ acrescentar: true })
 
 const abrirDetalhes = (lote) => { loteSelecionado.value = lote }
 const fecharDetalhes = () => { loteSelecionado.value = null }
@@ -571,6 +614,8 @@ const salvarLote = async () => {
 
 watch(termoBusca, () => {
   clearTimeout(timeoutBusca)
+  paginaAtual.value = 0
+  temMaisLotes.value = false
   timeoutBusca = setTimeout(carregarDados, ATRASO_BUSCA_MS)
 })
 

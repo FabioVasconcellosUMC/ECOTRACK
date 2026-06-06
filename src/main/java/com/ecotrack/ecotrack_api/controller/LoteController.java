@@ -32,8 +32,13 @@ public class LoteController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Lote>> listar(@RequestParam(required = false, name = "q") String termoBusca,
-                                             @RequestParam(required = false) Integer limit) {
+    public ResponseEntity<?> listar(@RequestParam(required = false, name = "q") String termoBusca,
+                                    @RequestParam(required = false) Integer limit,
+                                    @RequestParam(required = false) Integer page) {
+        if (page != null) {
+            return ResponseEntity.ok(loteService.listarPagina(termoBusca, page, limit));
+        }
+
         return ResponseEntity.ok(loteService.listarTodos(termoBusca, limit));
     }
 

@@ -1,5 +1,6 @@
 package com.ecotrack.ecotrack_api.service;
 
+import com.ecotrack.ecotrack_api.dto.PaginaResponse;
 import com.ecotrack.ecotrack_api.entity.Empresa;
 import com.ecotrack.ecotrack_api.entity.HistoricoLote;
 import com.ecotrack.ecotrack_api.entity.Lote;
@@ -72,6 +73,34 @@ public class TransporteService {
         return transporteRepository.findAllByOrderByCriadoEmDesc(pageRequest).stream()
                 .map(this::descriptografarEmpresas)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PaginaResponse<Transporte> listarPagina(String termoBusca, Integer pagina, Integer limite) {
+        int limiteConsulta = limitePaginado(limite);
+        int paginaConsulta = paginaNormalizada(pagina);
+        PageRequest pageRequest = PageRequest.of(paginaConsulta, limiteConsulta + 1);
+
+        Usuario usuario = escopoUsuarioService.usuarioAutenticado();
+        List<Transporte> transportes;
+        if (!escopoUsuarioService.isAdmin(usuario)) {
+            Empresa empresa = escopoUsuarioService.empresaVinculada(usuario);
+            if (empresa == null) {
+                return new PaginaResponse<>(List.of(), paginaConsulta, limiteConsulta, false);
+            }
+
+            transportes = listarPorEscopo(usuario.getPerfil(), empresa.getId(), termoBusca, pageRequest);
+        } else if (termoBusca != null && !termoBusca.isBlank()) {
+            transportes = transporteRepository.buscarPorTexto(termoBusca.trim(), pageRequest).stream()
+                    .map(this::descriptografarEmpresas)
+                    .toList();
+        } else {
+            transportes = transporteRepository.findAllByOrderByCriadoEmDesc(pageRequest).stream()
+                    .map(this::descriptografarEmpresas)
+                    .toList();
+        }
+
+        return montarPagina(transportes, paginaConsulta, limiteConsulta);
     }
 
     @Transactional(readOnly = true)
@@ -250,7 +279,10 @@ public class TransporteService {
 
     private List<Transporte> listarPorEscopo(Perfil perfil, Long empresaId, String termoBusca, Integer limite) {
         PageRequest pageRequest = PageRequest.of(0, limiteNormalizado(limite) == null ? 100 : limiteNormalizado(limite));
+        return listarPorEscopo(perfil, empresaId, termoBusca, pageRequest);
+    }
 
+    private List<Transporte> listarPorEscopo(Perfil perfil, Long empresaId, String termoBusca, PageRequest pageRequest) {
         if (termoBusca != null && !termoBusca.isBlank()) {
             String busca = termoBusca.trim();
             List<Transporte> transportes = switch (perfil) {
@@ -269,6 +301,25 @@ public class TransporteService {
             default -> List.of();
         };
         return transportes.stream().map(this::descriptografarEmpresas).toList();
+    }
+
+    private PaginaResponse<Transporte> montarPagina(List<Transporte> transportes, int pagina, int limite) {
+        boolean temProxima = transportes.size() > limite;
+        List<Transporte> itens = temProxima ? transportes.subList(0, limite) : transportes;
+        return new PaginaResponse<>(itens, pagina, limite, temProxima);
+    }
+
+    private int paginaNormalizada(Integer pagina) {
+        if (pagina == null || pagina < 0) {
+            return 0;
+        }
+
+        return pagina;
+    }
+
+    private int limitePaginado(Integer limite) {
+        Integer normalizado = limiteNormalizado(limite);
+        return normalizado == null ? 20 : normalizado;
     }
 
     private void validarCriacaoDentroDoEscopo(Lote lote) {

@@ -126,6 +126,21 @@
       </div>
     </section>
 
+    <div
+      v-if="temMaisTransportes || carregandoMais"
+      class="flex items-center justify-center"
+    >
+      <button
+        @click="carregarMaisTransportes"
+        :disabled="carregandoMais"
+        class="flex items-center gap-2 h-10 px-4 rounded-md bg-bg-elevated border border-bg-line text-ink-2 text-[11.5px] font-bold tracking-wider hover:border-cyan/40 hover:text-cyan transition-colors disabled:opacity-50"
+      >
+        <Loader2 v-if="carregandoMais" :size="14" class="animate-spin" />
+        <Plus v-else :size="14" />
+        {{ carregandoMais ? 'CARREGANDO...' : 'CARREGAR MAIS TRANSPORTES' }}
+      </button>
+    </div>
+
     <Transition name="modal">
       <div
         v-if="transporteSelecionado"
@@ -524,6 +539,9 @@ const transportes = ref([])
 const lotes = ref([])
 const empresas = ref([])
 const carregando = ref(false)
+const carregandoMais = ref(false)
+const paginaAtual = ref(0)
+const temMaisTransportes = ref(false)
 
 const transporteSelecionado = ref(null)
 const modalCadastroAberto = ref(false)
@@ -751,18 +769,39 @@ const exibirToast = (mensagem, cor = CORES_STATUS.CONCLUIDO, icone = CheckCircle
   setTimeout(() => { toast.value = null }, 4000)
 }
 
-const carregarDados = async () => {
-  carregando.value = true
+const normalizarPagina = (resposta) => {
+  if (Array.isArray(resposta)) {
+    return { itens: resposta, hasNext: false, page: 0 }
+  }
+
+  return {
+    itens: resposta?.itens || [],
+    hasNext: Boolean(resposta?.hasNext),
+    page: Number(resposta?.page) || 0,
+  }
+}
+
+const carregarDados = async ({ acrescentar = false } = {}) => {
+  const pagina = acrescentar ? paginaAtual.value + 1 : 0
+  if (acrescentar) carregandoMais.value = true
+  else carregando.value = true
+
   try {
     const [respTransportes, respLotes, respEmpresas] = await Promise.all([
       buscarComCache('/transportes', {
         limit: LIMITE_LISTAGEM,
+        page: pagina,
         q: termoBusca.value.trim() || undefined,
       }),
       buscarComCache('/lotes'),
       buscarComCache('/empresas'),
     ])
-    transportes.value = respTransportes
+    const paginaTransportes = normalizarPagina(respTransportes)
+    transportes.value = acrescentar
+      ? [...transportes.value, ...paginaTransportes.itens]
+      : paginaTransportes.itens
+    paginaAtual.value = paginaTransportes.page
+    temMaisTransportes.value = paginaTransportes.hasNext
     lotes.value       = respLotes
     empresas.value    = respEmpresas
   } catch (erro) {
@@ -770,8 +809,11 @@ const carregarDados = async () => {
     exibirToast('Falha ao carregar dados do servidor.', CORES_STATUS.CANCELADO, AlertCircle)
   } finally {
     carregando.value = false
+    carregandoMais.value = false
   }
 }
+
+const carregarMaisTransportes = () => carregarDados({ acrescentar: true })
 
 const salvarTransporte = async () => {
   if (salvando.value) return
@@ -893,6 +935,8 @@ const baixarManifesto = async (transporte) => {
 
 watch(termoBusca, () => {
   clearTimeout(timeoutBusca)
+  paginaAtual.value = 0
+  temMaisTransportes.value = false
   timeoutBusca = setTimeout(carregarDados, ATRASO_BUSCA_MS)
 })
 
