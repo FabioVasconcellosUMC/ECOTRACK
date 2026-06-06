@@ -69,12 +69,12 @@
 
           <article
             v-for="lote in lotesPorStatus(coluna.status)"
-            :key="lote.id"
+            :key="chavePublica(lote)"
             @click="abrirDetalhes(lote)"
             class="rounded-xl bg-bg-elevated border border-bg-line p-3.5 hover:border-cyan/40 transition-colors cursor-pointer"
           >
             <div class="flex items-start justify-between mb-3">
-              <span class="mono-tag text-cyan text-[12px]">#{{ formatarIdentificador(lote.id) }}</span>
+              <span class="mono-tag text-cyan text-[12px]">#{{ formatarIdentificador(lote) }}</span>
               <span class="mono-tag text-ink-3 text-[10px]">{{ formatarData(lote.criadoEm) }}</span>
             </div>
 
@@ -117,12 +117,12 @@
           </tr>
           <tr
             v-for="(lote, indice) in lotes"
-            :key="lote.id"
+            :key="chavePublica(lote)"
             @click="abrirDetalhes(lote)"
             class="border-b border-bg-line hover:bg-bg-elevated transition-colors cursor-pointer"
           >
             <td class="px-5 py-3.5 mono-tag text-ink-4 text-[11px]">{{ formatarIndice(indice) }}</td>
-            <td class="px-5 py-3.5 mono-tag text-cyan text-[12px]">#{{ formatarIdentificador(lote.id) }}</td>
+            <td class="px-5 py-3.5 mono-tag text-cyan text-[12px]">#{{ formatarIdentificador(lote) }}</td>
             <td class="px-5 py-3.5 text-[13px] text-ink">{{ lote.descricao || '—' }}</td>
             <td class="px-5 py-3.5">
               <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold tracking-wider bg-info-soft border border-info/30 text-info">
@@ -158,7 +158,7 @@
           <div class="flex items-start justify-between gap-5">
             <div class="flex-1 min-w-0">
               <p class="eyebrow text-cyan">Detalhe do lote</p>
-              <h2 class="section-title text-[36px] mt-1.5">#{{ formatarIdentificador(loteSelecionado.id) }}</h2>
+              <h2 class="section-title text-[36px] mt-1.5">#{{ formatarIdentificador(loteSelecionado) }}</h2>
               <p class="text-[13px] text-ink-2 mt-2">{{ loteSelecionado.descricao || 'Sem descrição' }}</p>
             </div>
 
@@ -202,7 +202,7 @@
 
           <div class="mt-7 pt-5 border-t border-bg-line flex items-center justify-between gap-4">
             <p class="mono-tag text-ink-3 text-[11px]">
-              Identificador interno · #{{ formatarIdentificador(loteSelecionado.id) }}
+              Identificador publico · #{{ formatarIdentificador(loteSelecionado) }}
             </p>
             <button
               @click="exportarSelecionado"
@@ -295,7 +295,7 @@
                   class="flex-1 bg-transparent outline-none text-[13px] text-ink"
                 >
                   <option value="">Selecione uma empresa geradora</option>
-                  <option v-for="empresa in empresasGeradoras" :key="empresa.id" :value="empresa.id">
+                  <option v-for="empresa in empresasGeradoras" :key="chavePublica(empresa)" :value="chavePublica(empresa)">
                     {{ empresa.razaoSocial }}
                   </option>
                 </select>
@@ -433,7 +433,13 @@ const estiloChipStatus = (status) => {
 const formatarData = (data) =>
   data ? new Date(data).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '—'
 
-const formatarIdentificador = (id) => String(id).padStart(TAMANHO_ID, '0')
+const chavePublica = (registro) => registro?.publicId || registro?.id || ''
+const formatarIdentificador = (registro) => {
+  const valor = chavePublica(registro)
+  if (!valor) return ''.padStart(TAMANHO_ID, '0')
+  if (typeof valor === 'string' && valor.includes('-')) return valor.slice(0, 8).toUpperCase()
+  return String(valor).padStart(TAMANHO_ID, '0')
+}
 const formatarIndice = (indice) => String(indice + 1).padStart(TAMANHO_INDICE, '0')
 
 const limparErro = (campo) => { erros.value[campo] = '' }
@@ -468,14 +474,14 @@ const validarFormularioCompleto = () => {
 }
 
 const loteParaCsv = (lote) => ({
-  id: lote.id,
+  id: chavePublica(lote),
   descricao: lote.descricao || '',
   tipoResiduo: lote.tipoResiduo || '',
   quantidade: lote.quantidade || '',
   unidade: lote.unidade || '',
   status: rotuloStatus(lote.status),
   criadoEm: formatarData(lote.criadoEm),
-  empresaGeradoraId: lote.empresaGeradora?.id || lote.empresaGeradoraId || '',
+  empresaGeradoraId: chavePublica(lote.empresaGeradora) || lote.empresaGeradoraId || '',
 })
 
 const exportarTodos = () => {
@@ -485,7 +491,7 @@ const exportarTodos = () => {
 const exportarSelecionado = () => {
   if (!loteSelecionado.value) return
   exportCsv(
-    `ecotrack-lote-${loteSelecionado.value.id}.csv`,
+    `ecotrack-lote-${chavePublica(loteSelecionado.value)}.csv`,
     [loteParaCsv(loteSelecionado.value)],
   )
 }
@@ -531,7 +537,7 @@ const salvarLote = async () => {
       tipoResiduo:     formulario.value.tipoResiduo.trim(),
       quantidade:      Number(formulario.value.quantidade),
       unidade:         formulario.value.unidade,
-      empresaGeradora: { id: Number(formulario.value.empresaGeradoraId) },
+      empresaGeradora: { publicId: formulario.value.empresaGeradoraId },
     })
     fecharModalCadastro()
     await carregarDados()

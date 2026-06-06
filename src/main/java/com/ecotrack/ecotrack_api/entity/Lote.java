@@ -1,5 +1,6 @@
 package com.ecotrack.ecotrack_api.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
@@ -12,6 +13,7 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "lote")
@@ -24,7 +26,11 @@ public class Lote {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Long id;
+
+    @Column(name = "public_id", nullable = false, unique = true, updatable = false)
+    private UUID publicId = UUID.randomUUID();
 
     @NotBlank(message = "Descricao e obrigatoria")
     @Size(max = 1000, message = "Descricao deve ter no maximo 1000 caracteres")

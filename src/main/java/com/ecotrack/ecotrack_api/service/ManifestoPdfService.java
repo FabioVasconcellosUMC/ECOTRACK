@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -33,7 +34,15 @@ public class ManifestoPdfService {
 
     public byte[] gerarManifesto(Long transporteId) {
         Transporte transporte = transporteService.buscarPorId(transporteId);
+        return gerarManifesto(transporte);
+    }
 
+    public byte[] gerarManifesto(UUID transportePublicId) {
+        Transporte transporte = transporteService.buscarPorPublicId(transportePublicId);
+        return gerarManifesto(transporte);
+    }
+
+    private byte[] gerarManifesto(Transporte transporte) {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             Document document = new Document(PageSize.A4, 42, 42, 42, 42);
             PdfWriter.getInstance(document, outputStream);
@@ -56,6 +65,10 @@ public class ManifestoPdfService {
 
     public String nomeArquivo(Long transporteId) {
         return "manifesto-transporte-" + transporteId + ".pdf";
+    }
+
+    public String nomeArquivo(UUID transportePublicId) {
+        return "manifesto-transporte-" + transportePublicId + ".pdf";
     }
 
     private void adicionarCabecalho(Document document, Transporte transporte) {

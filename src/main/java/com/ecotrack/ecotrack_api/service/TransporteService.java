@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -41,12 +42,17 @@ public class TransporteService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Transporte não encontrado"));
     }
 
+    public Transporte buscarPorPublicId(UUID publicId) {
+        return transporteRepository.findByPublicId(publicId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Transporte não encontrado"));
+    }
+
     public Transporte criar(Transporte transporte) {
         Lote lote = buscarLote(transporte);
         validarLoteDisponivel(lote);
 
-        Empresa transportadora = buscarEmpresa(transporte.getTransportadora(), "Transportadora não encontrada");
-        Empresa receptora = buscarEmpresa(transporte.getReceptora(), "Receptora não encontrada");
+        Empresa transportadora = buscarEmpresa(transporte.getTransportadora(), "Transportadora nao encontrada");
+        Empresa receptora = buscarEmpresa(transporte.getReceptora(), "Receptora nao encontrada");
 
         transporte.setLote(lote);
         transporte.setTransportadora(transportadora);
@@ -62,7 +68,30 @@ public class TransporteService {
     }
 
     public Transporte alterarStatus(Long id, StatusTransporte novoStatus, String observacao) {
-        Transporte transporte = buscarPorId(id);
+        return alterarStatus(buscarPorId(id), novoStatus, observacao);
+    }
+
+    public Transporte alterarStatus(UUID publicId, StatusTransporte novoStatus, String observacao) {
+        return alterarStatus(buscarPorPublicId(publicId), novoStatus, observacao);
+    }
+
+    public Transporte confirmarRecebimentoFinal(Long id, String observacao) {
+        return confirmarRecebimentoFinal(buscarPorId(id), observacao);
+    }
+
+    public Transporte confirmarRecebimentoFinal(UUID publicId, String observacao) {
+        return confirmarRecebimentoFinal(buscarPorPublicId(publicId), observacao);
+    }
+
+    public List<Transporte> buscarPorLote(Long loteId) {
+        return transporteRepository.findByLoteId(loteId);
+    }
+
+    public List<Transporte> buscarPorLotePublicId(UUID lotePublicId) {
+        return transporteRepository.findByLote_PublicId(lotePublicId);
+    }
+
+    private Transporte alterarStatus(Transporte transporte, StatusTransporte novoStatus, String observacao) {
         StatusTransporte statusAnterior = transporte.getStatus();
 
         validarAlteracaoStatus(statusAnterior, novoStatus);
@@ -75,8 +104,7 @@ public class TransporteService {
         return transporteRepository.save(transporte);
     }
 
-    public Transporte confirmarRecebimentoFinal(Long id, String observacao) {
-        Transporte transporte = buscarPorId(id);
+    private Transporte confirmarRecebimentoFinal(Transporte transporte, String observacao) {
         validarRecebimentoFinal(transporte);
 
         StatusTransporte statusAnterior = transporte.getStatus();
@@ -88,10 +116,6 @@ public class TransporteService {
                 montarObservacaoRecebimentoFinal(observacao));
 
         return transporteRepository.save(transporte);
-    }
-
-    public List<Transporte> buscarPorLote(Long loteId) {
-        return transporteRepository.findByLoteId(loteId);
     }
 
     private void validarAlteracaoStatus(StatusTransporte statusAnterior, StatusTransporte novoStatus) {
@@ -177,20 +201,38 @@ public class TransporteService {
     }
 
     private Lote buscarLote(Transporte transporte) {
-        if (transporte.getLote() == null || transporte.getLote().getId() == null) {
-            throw new RegraNegocioException("Lote é obrigatório para criar transporte");
+        if (transporte.getLote() == null) {
+            throw new RegraNegocioException("Lote e obrigatorio para criar transporte");
         }
 
-        return loteRepository.findById(transporte.getLote().getId())
+        if (transporte.getLote().getId() != null) {
+            return loteRepository.findById(transporte.getLote().getId())
+                    .orElseThrow(() -> new RecursoNaoEncontradoException("Lote não encontrado"));
+        }
+
+        if (transporte.getLote().getPublicId() == null) {
+            throw new RegraNegocioException("Lote e obrigatorio para criar transporte");
+        }
+
+        return loteRepository.findByPublicId(transporte.getLote().getPublicId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Lote não encontrado"));
     }
 
     private Empresa buscarEmpresa(Empresa empresa, String mensagemErro) {
-        if (empresa == null || empresa.getId() == null) {
+        if (empresa == null) {
             throw new RegraNegocioException(mensagemErro);
         }
 
-        return empresaRepository.findById(empresa.getId())
+        if (empresa.getId() != null) {
+            return empresaRepository.findById(empresa.getId())
+                    .orElseThrow(() -> new RecursoNaoEncontradoException(mensagemErro));
+        }
+
+        if (empresa.getPublicId() == null) {
+            throw new RegraNegocioException(mensagemErro);
+        }
+
+        return empresaRepository.findByPublicId(empresa.getPublicId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException(mensagemErro));
     }
 
@@ -204,12 +246,12 @@ public class TransporteService {
         Empresa transportadora = transporte.getTransportadora();
 
         if (transportadora == null || transportadora.getEmail() == null || transportadora.getEmail().isBlank()) {
-            log.warn("E-mail da transportadora não cadastrado para o transporte {}", transporte.getId());
+            log.warn("E-mail da transportadora nao cadastrado para o transporte {}", transporte.getId());
             return;
         }
 
         try {
-            log.info("Preparando notificação do transporte {} para {}", transporte.getId(), transportadora.getEmail());
+            log.info("Preparando notificacao do transporte {} para {}", transporte.getId(), transportadora.getEmail());
             emailService.enviarNotificacaoTransporte(
                     transportadora.getEmail(),
                     transportadora.getRazaoSocial(),
@@ -217,7 +259,7 @@ public class TransporteService {
                     lote.getDescricao()
             );
         } catch (Exception e) {
-            log.warn("Erro ao enviar e-mail de notificação: {}", e.getMessage());
+            log.warn("Erro ao enviar e-mail de notificacao: {}", e.getMessage());
         }
     }
 }

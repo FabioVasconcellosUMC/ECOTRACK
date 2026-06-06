@@ -1,10 +1,10 @@
 package com.ecotrack.ecotrack_api.service;
 
+import com.ecotrack.ecotrack_api.entity.Empresa;
 import com.ecotrack.ecotrack_api.entity.HistoricoLote;
 import com.ecotrack.ecotrack_api.entity.Lote;
 import com.ecotrack.ecotrack_api.entity.StatusLote;
 import com.ecotrack.ecotrack_api.entity.Usuario;
-import com.ecotrack.ecotrack_api.entity.Empresa;
 import com.ecotrack.ecotrack_api.exception.RecursoNaoEncontradoException;
 import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
 import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -46,8 +47,29 @@ public class LoteService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Lote não encontrado"));
     }
 
+    public Lote buscarPorPublicId(UUID publicId) {
+        return loteRepository.findByPublicIdWithEmpresa(publicId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Lote não encontrado"));
+    }
+
     public Lote alterarStatus(Long id, StatusLote novoStatus, String observacao, Usuario usuario) {
-        Lote lote = buscarPorId(id);
+        return alterarStatus(buscarPorId(id), novoStatus, observacao, usuario);
+    }
+
+    public Lote alterarStatus(UUID publicId, StatusLote novoStatus, String observacao, Usuario usuario) {
+        return alterarStatus(buscarPorPublicId(publicId), novoStatus, observacao, usuario);
+    }
+
+    public List<HistoricoLote> buscarHistorico(Long loteId) {
+        return historicoLoteRepository.findByLoteIdOrderByDataHoraDesc(loteId);
+    }
+
+    public List<HistoricoLote> buscarHistoricoPorPublicId(UUID publicId) {
+        Lote lote = buscarPorPublicId(publicId);
+        return buscarHistorico(lote.getId());
+    }
+
+    private Lote alterarStatus(Lote lote, StatusLote novoStatus, String observacao, Usuario usuario) {
         validarTransicao(lote.getStatus(), novoStatus);
 
         StatusLote statusAnterior = lote.getStatus();
@@ -56,10 +78,6 @@ public class LoteService {
 
         registrarHistorico(lote, statusAnterior, novoStatus, usuario, observacao);
         return lote;
-    }
-
-    public List<HistoricoLote> buscarHistorico(Long loteId) {
-        return historicoLoteRepository.findByLoteIdOrderByDataHoraDesc(loteId);
     }
 
     private void prepararNovoLote(Lote lote, Usuario usuario) {
@@ -91,11 +109,20 @@ public class LoteService {
     }
 
     private Empresa buscarEmpresaGeradora(Lote lote) {
-        if (lote.getEmpresaGeradora() == null || lote.getEmpresaGeradora().getId() == null) {
+        if (lote.getEmpresaGeradora() == null) {
             throw new RegraNegocioException("Empresa geradora e obrigatoria para criar lote");
         }
 
-        return empresaRepository.findById(lote.getEmpresaGeradora().getId())
+        if (lote.getEmpresaGeradora().getId() != null) {
+            return empresaRepository.findById(lote.getEmpresaGeradora().getId())
+                    .orElseThrow(() -> new RecursoNaoEncontradoException("Empresa geradora nao encontrada"));
+        }
+
+        if (lote.getEmpresaGeradora().getPublicId() == null) {
+            throw new RegraNegocioException("Empresa geradora e obrigatoria para criar lote");
+        }
+
+        return empresaRepository.findByPublicId(lote.getEmpresaGeradora().getPublicId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Empresa geradora nao encontrada"));
     }
 }

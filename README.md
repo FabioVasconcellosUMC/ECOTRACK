@@ -84,6 +84,7 @@ O projeto implementa medidas basicas de seguranca e consistencia:
 - controle de acesso por perfil no Spring Security;
 - CORS restrito a origens conhecidas;
 - variaveis de ambiente para segredos e configuracoes sensiveis;
+- identificadores publicos em UUID para empresas, lotes e transportes expostos pela API;
 - bloqueio de cadastro publico com perfil administrador;
 - exclusao logica de usuario com criptografia de dados pessoais;
 - resposta padronizada de erro em JSON no formato `{ "erro": "mensagem" }`;

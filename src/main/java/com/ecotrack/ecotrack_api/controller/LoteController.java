@@ -15,6 +15,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/lotes")
@@ -35,24 +36,24 @@ public class LoteController {
         return ResponseEntity.ok(loteService.listarTodos());
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Lote> buscar(@PathVariable Long id) {
-        return ResponseEntity.ok(loteService.buscarPorId(id));
+    @GetMapping("/{publicId}")
+    public ResponseEntity<Lote> buscar(@PathVariable UUID publicId) {
+        return ResponseEntity.ok(loteService.buscarPorPublicId(publicId));
     }
 
-    @PatchMapping("/{id}/status")
-    public ResponseEntity<Lote> alterarStatus(@PathVariable Long id,
+    @PatchMapping("/{publicId}/status")
+    public ResponseEntity<Lote> alterarStatus(@PathVariable UUID publicId,
                                               @RequestParam StatusLote novoStatus,
                                               @RequestParam(required = false)
                                               @Size(max = 1000, message = "Observacao deve ter no maximo 1000 caracteres")
                                               @Pattern(regexp = "^[^<>]*$", message = "Observacao nao pode conter tags HTML ou scripts")
                                               String observacao,
                                               @AuthenticationPrincipal Usuario usuario) {
-        return ResponseEntity.ok(loteService.alterarStatus(id, novoStatus, observacao, usuario));
+        return ResponseEntity.ok(loteService.alterarStatus(publicId, novoStatus, observacao, usuario));
     }
 
-    @GetMapping("/{id}/historico")
-    public ResponseEntity<List<HistoricoLote>> historico(@PathVariable Long id) {
-        return ResponseEntity.ok(loteService.buscarHistorico(id));
+    @GetMapping("/{publicId}/historico")
+    public ResponseEntity<List<HistoricoLote>> historico(@PathVariable UUID publicId) {
+        return ResponseEntity.ok(loteService.buscarHistoricoPorPublicId(publicId));
     }
 }

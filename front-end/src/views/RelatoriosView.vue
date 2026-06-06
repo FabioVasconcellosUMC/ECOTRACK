@@ -325,10 +325,11 @@ const rankingTransportadoras = computed(() => {
   const contagem = new Map()
   transportes.value.forEach(transporte => {
     const empresa = transporte.transportadora
-    if (!empresa?.id) return
-    const atual = contagem.get(empresa.id) || { id: empresa.id, razaoSocial: empresa.razaoSocial || `Empresa #${empresa.id}`, totalTransportes: 0 }
+    const empresaId = chavePublica(empresa)
+    if (!empresaId) return
+    const atual = contagem.get(empresaId) || { id: empresaId, razaoSocial: empresa.razaoSocial || `Empresa #${empresaId}`, totalTransportes: 0 }
     atual.totalTransportes += 1
-    contagem.set(empresa.id, atual)
+    contagem.set(empresaId, atual)
   })
   return Array.from(contagem.values())
     .sort((a, b) => b.totalTransportes - a.totalTransportes)
@@ -339,10 +340,11 @@ const rankingGeradoras = computed(() => {
   const contagem = new Map()
   lotes.value.forEach(lote => {
     const empresa = lote.empresaGeradora || lote.empresa
-    if (!empresa?.id) return
-    const atual = contagem.get(empresa.id) || { id: empresa.id, razaoSocial: empresa.razaoSocial || `Empresa #${empresa.id}`, totalLotes: 0 }
+    const empresaId = chavePublica(empresa)
+    if (!empresaId) return
+    const atual = contagem.get(empresaId) || { id: empresaId, razaoSocial: empresa.razaoSocial || `Empresa #${empresaId}`, totalLotes: 0 }
     atual.totalLotes += 1
-    contagem.set(empresa.id, atual)
+    contagem.set(empresaId, atual)
   })
   return Array.from(contagem.values())
     .sort((a, b) => b.totalLotes - a.totalLotes)
@@ -380,8 +382,10 @@ const contarRegistros = (chave) => {
   return 0
 }
 
+const chavePublica = (registro) => registro?.publicId || registro?.id || ''
+
 const empresaParaCsv = (empresa) => ({
-  id:          empresa.id,
+  id:          chavePublica(empresa),
   razaoSocial: empresa.razaoSocial,
   cnpj:        empresa.cnpj,
   tipo:        empresa.tipo,
@@ -391,7 +395,7 @@ const empresaParaCsv = (empresa) => ({
 })
 
 const loteParaCsv = (lote) => ({
-  id:         lote.id,
+  id:         chavePublica(lote),
   geradora:   lote.empresaGeradora?.razaoSocial || lote.empresa?.razaoSocial || '',
   quantidade: lote.quantidade,
   unidade:    lote.unidade,
@@ -400,8 +404,8 @@ const loteParaCsv = (lote) => ({
 })
 
 const transporteParaCsv = (transporte) => ({
-  id:             transporte.id,
-  lote:           transporte.lote?.id || '',
+  id:             chavePublica(transporte),
+  lote:           chavePublica(transporte.lote),
   transportadora: transporte.transportadora?.razaoSocial || '',
   receptora:      transporte.receptora?.razaoSocial || '',
   responsavel:    transporte.responsavel || '',

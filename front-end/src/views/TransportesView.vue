@@ -101,7 +101,7 @@
           <tbody>
             <tr
               v-for="transporte in transportesFiltrados"
-              :key="transporte.id"
+              :key="chavePublica(transporte)"
               @click="abrirDetalhes(transporte)"
               class="border-b border-bg-line cursor-pointer hover:bg-bg-elevated/40 transition-colors"
             >
@@ -204,12 +204,12 @@
           <footer class="flex items-center justify-end gap-2 px-7 py-4 bg-bg-elevated/30">
             <button
               @click="baixarManifesto(transporteSelecionado)"
-              :disabled="baixandoManifesto === transporteSelecionado.id"
+              :disabled="baixandoManifesto === chavePublica(transporteSelecionado)"
               class="flex items-center gap-2 h-10 px-4 rounded-md text-[11.5px] font-bold tracking-wider
                      border border-bg-line text-ink-2 hover:border-cyan/40 hover:text-cyan transition-colors
                      disabled:opacity-50"
             >
-              <Loader2 v-if="baixandoManifesto === transporteSelecionado.id" :size="13" class="animate-spin" />
+              <Loader2 v-if="baixandoManifesto === chavePublica(transporteSelecionado)" :size="13" class="animate-spin" />
               <Download v-else :size="13" />
               MANIFESTO PDF
             </button>
@@ -259,7 +259,7 @@
                 :class="{ 'border-danger/60': erros.loteId }"
               >
                 <option value="">Selecione um lote aguardando coleta</option>
-                <option v-for="lote in lotesDisponiveis" :key="lote.id" :value="lote.id">
+                <option v-for="lote in lotesDisponiveis" :key="chavePublica(lote)" :value="chavePublica(lote)">
                   {{ rotuloLote(lote) }} · {{ lote.quantidade }} {{ lote.unidade }}
                 </option>
               </select>
@@ -279,7 +279,7 @@
                 :class="{ 'border-danger/60': erros.transportadoraId }"
               >
                 <option value="">Selecione uma transportadora</option>
-                <option v-for="empresa in transportadoras" :key="empresa.id" :value="empresa.id">
+                <option v-for="empresa in transportadoras" :key="chavePublica(empresa)" :value="chavePublica(empresa)">
                   {{ empresa.razaoSocial }}
                 </option>
               </select>
@@ -296,7 +296,7 @@
                 :class="{ 'border-danger/60': erros.receptoraId }"
               >
                 <option value="">Selecione uma receptora</option>
-                <option v-for="empresa in receptoras" :key="empresa.id" :value="empresa.id">
+                <option v-for="empresa in receptoras" :key="chavePublica(empresa)" :value="chavePublica(empresa)">
                   {{ empresa.razaoSocial }}
                 </option>
               </select>
@@ -537,6 +537,8 @@ const filtroAtivo = ref('TODOS')
 
 const toast = ref(null)
 
+const chavePublica = (registro) => registro?.publicId || registro?.id || ''
+
 const perfilUsuario = computed(() =>
   (localStorage.getItem('perfil') || '').toUpperCase(),
 )
@@ -594,7 +596,10 @@ const formatarId = (transporte) => {
   const ano = transporte.criadoEm
     ? new Date(transporte.criadoEm).getFullYear()
     : new Date().getFullYear()
-  const numero = String(transporte.id).padStart(4, '0')
+  const identificador = chavePublica(transporte)
+  const numero = typeof identificador === 'string' && identificador.includes('-')
+    ? identificador.slice(0, 8).toUpperCase()
+    : String(identificador).padStart(4, '0')
   return `TR-${ano}-${numero}`
 }
 
@@ -603,7 +608,10 @@ const formatarIdLote = (lote) => {
   const ano = lote.criadoEm
     ? new Date(lote.criadoEm).getFullYear()
     : new Date().getFullYear()
-  const numero = String(lote.id).padStart(4, '0')
+  const identificador = chavePublica(lote)
+  const numero = typeof identificador === 'string' && identificador.includes('-')
+    ? identificador.slice(0, 8).toUpperCase()
+    : String(identificador).padStart(4, '0')
   return `LT-${ano}-${numero}`
 }
 
@@ -614,7 +622,7 @@ const rotuloLote = (lote) => {
 
 const rotuloEmpresa = (empresa) => {
   if (!empresa) return '—'
-  return empresa.razaoSocial || empresa.nome || `Empresa #${empresa.id}`
+  return empresa.razaoSocial || empresa.nome || `Empresa #${chavePublica(empresa)}`
 }
 
 const rotuloStatus = (status) => ROTULOS_STATUS[status] || status
@@ -767,9 +775,9 @@ const salvarTransporte = async () => {
   mensagemErro.value = ''
   try {
     const resposta = await api.post('/transportes', {
-      lote:           { id: Number(formulario.value.loteId) },
-      transportadora: { id: Number(formulario.value.transportadoraId) },
-      receptora:      { id: Number(formulario.value.receptoraId) },
+      lote:           { publicId: formulario.value.loteId },
+      transportadora: { publicId: formulario.value.transportadoraId },
+      receptora:      { publicId: formulario.value.receptoraId },
       responsavel:    formulario.value.responsavel.trim(),
     })
     fecharModalCadastro()
@@ -788,13 +796,13 @@ const confirmarMudancaStatus = async () => {
   try {
     if (confirmacaoStatus.value.endpoint === 'recebimento-final') {
       await api.patch(
-        `/transportes/${transporteSelecionado.value.id}/recebimento-final`,
+        `/transportes/${chavePublica(transporteSelecionado.value)}/recebimento-final`,
         null,
         { params: { observacao: observacaoMudanca.value.trim() } },
       )
     } else {
       await api.patch(
-        `/transportes/${transporteSelecionado.value.id}/status`,
+        `/transportes/${chavePublica(transporteSelecionado.value)}/status`,
         null,
         {
           params: {
@@ -843,11 +851,12 @@ const exportarLista = () => {
 }
 
 const baixarManifesto = async (transporte) => {
-  if (!transporte?.id || baixandoManifesto.value) return
+  const transportePublicId = chavePublica(transporte)
+  if (!transportePublicId || baixandoManifesto.value) return
 
-  baixandoManifesto.value = transporte.id
+  baixandoManifesto.value = transportePublicId
   try {
-    const resposta = await api.get(`/transportes/${transporte.id}/manifesto`, {
+    const resposta = await api.get(`/transportes/${transportePublicId}/manifesto`, {
       responseType: 'blob',
     })
 

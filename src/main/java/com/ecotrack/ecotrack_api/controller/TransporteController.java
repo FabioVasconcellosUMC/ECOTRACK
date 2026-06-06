@@ -1,7 +1,7 @@
 package com.ecotrack.ecotrack_api.controller;
 
-import com.ecotrack.ecotrack_api.entity.Transporte;
 import com.ecotrack.ecotrack_api.entity.StatusTransporte;
+import com.ecotrack.ecotrack_api.entity.Transporte;
 import com.ecotrack.ecotrack_api.service.ManifestoPdfService;
 import com.ecotrack.ecotrack_api.service.TransporteService;
 import jakarta.validation.Valid;
@@ -16,6 +16,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/transportes")
@@ -31,9 +32,9 @@ public class TransporteController {
         return ResponseEntity.ok(transporteService.listar());
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Transporte> buscarPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(transporteService.buscarPorId(id));
+    @GetMapping("/{publicId}")
+    public ResponseEntity<Transporte> buscarPorPublicId(@PathVariable UUID publicId) {
+        return ResponseEntity.ok(transporteService.buscarPorPublicId(publicId));
     }
 
     @PostMapping
@@ -41,42 +42,42 @@ public class TransporteController {
         return ResponseEntity.status(201).body(transporteService.criar(transporte));
     }
 
-    @PatchMapping("/{id}/status")
+    @PatchMapping("/{publicId}/status")
     public ResponseEntity<Transporte> alterarStatus(
-            @PathVariable Long id,
+            @PathVariable UUID publicId,
             @RequestParam StatusTransporte novoStatus,
             @RequestParam(required = false)
             @Size(max = 1000, message = "Observacao deve ter no maximo 1000 caracteres")
             @Pattern(regexp = "^[^<>]*$", message = "Observacao nao pode conter tags HTML ou scripts")
             String observacao) {
-        return ResponseEntity.ok(transporteService.alterarStatus(id, novoStatus, observacao));
+        return ResponseEntity.ok(transporteService.alterarStatus(publicId, novoStatus, observacao));
     }
 
-    @PatchMapping("/{id}/recebimento-final")
+    @PatchMapping("/{publicId}/recebimento-final")
     public ResponseEntity<Transporte> confirmarRecebimentoFinal(
-            @PathVariable Long id,
+            @PathVariable UUID publicId,
             @RequestParam(required = false)
             @Size(max = 1000, message = "Observacao deve ter no maximo 1000 caracteres")
             @Pattern(regexp = "^[^<>]*$", message = "Observacao nao pode conter tags HTML ou scripts")
             String observacao) {
-        return ResponseEntity.ok(transporteService.confirmarRecebimentoFinal(id, observacao));
+        return ResponseEntity.ok(transporteService.confirmarRecebimentoFinal(publicId, observacao));
     }
 
-    @GetMapping("/lote/{loteId}")
-    public ResponseEntity<List<Transporte>> buscarPorLote(@PathVariable Long loteId) {
-        return ResponseEntity.ok(transporteService.buscarPorLote(loteId));
+    @GetMapping("/lote/{lotePublicId}")
+    public ResponseEntity<List<Transporte>> buscarPorLote(@PathVariable UUID lotePublicId) {
+        return ResponseEntity.ok(transporteService.buscarPorLotePublicId(lotePublicId));
     }
 
-    @GetMapping("/{id}/manifesto")
-    public ResponseEntity<byte[]> gerarManifesto(@PathVariable Long id) {
-        byte[] pdf = manifestoPdfService.gerarManifesto(id);
+    @GetMapping("/{publicId}/manifesto")
+    public ResponseEntity<byte[]> gerarManifesto(@PathVariable UUID publicId) {
+        byte[] pdf = manifestoPdfService.gerarManifesto(publicId);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment()
-                                .filename(manifestoPdfService.nomeArquivo(id))
+                                .filename(manifestoPdfService.nomeArquivo(publicId))
                                 .build()
                                 .toString()
                 )

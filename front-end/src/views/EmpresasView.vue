@@ -85,7 +85,7 @@
 
         <button
           v-for="(empresa, indice) in empresasFiltradas"
-          :key="empresa.id"
+          :key="chavePublica(empresa)"
           @click="abrirDetalhes(empresa)"
           class="group w-full flex items-center gap-3 px-5 py-4 border-b border-bg-line text-left transition-colors relative cursor-pointer hover:bg-bg-elevated/60"
         >
@@ -172,7 +172,7 @@
             </div>
             <div class="rounded-xl bg-bg-elevated border border-bg-line p-4">
               <p class="eyebrow">Identificador</p>
-              <p class="mono-tag text-cyan text-[13px] mt-2">#{{ formatarIdentificador(empresaSelecionada.id) }}</p>
+              <p class="mono-tag text-cyan text-[13px] mt-2">#{{ formatarIdentificador(empresaSelecionada) }}</p>
             </div>
           </div>
 
@@ -491,11 +491,17 @@ const formatarData = (data) =>
     ? new Date(data).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
     : '—'
 
-const formatarIdentificador = (id) => String(id).padStart(TAMANHO_ID, '0')
+const chavePublica = (registro) => registro?.publicId || registro?.id || ''
+const formatarIdentificador = (registro) => {
+  const valor = chavePublica(registro)
+  if (!valor) return ''.padStart(TAMANHO_ID, '0')
+  if (typeof valor === 'string' && valor.includes('-')) return valor.slice(0, 8).toUpperCase()
+  return String(valor).padStart(TAMANHO_ID, '0')
+}
 const formatarIndice = (indice) => String(indice + 1).padStart(TAMANHO_INDICE, '0')
 
 const empresaParaCsv = (empresa) => ({
-  id: empresa.id,
+  id: chavePublica(empresa),
   razaoSocial: empresa.razaoSocial || '',
   cnpj: empresa.cnpj || '',
   tipo: empresa.tipo || '',
@@ -513,7 +519,7 @@ const exportarTodas = () => {
 const exportarSelecionada = () => {
   if (!empresaSelecionada.value) return
   exportCsv(
-    `ecotrack-empresa-${empresaSelecionada.value.id}.csv`,
+    `ecotrack-empresa-${chavePublica(empresaSelecionada.value)}.csv`,
     [empresaParaCsv(empresaSelecionada.value)],
   )
 }

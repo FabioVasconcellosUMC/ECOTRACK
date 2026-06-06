@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/empresas")
@@ -21,9 +22,9 @@ public class EmpresaController {
         return empresaService.listar();
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Empresa> buscarPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(empresaService.buscarPorId(id));
+    @GetMapping("/{publicId}")
+    public ResponseEntity<Empresa> buscarPorPublicId(@PathVariable UUID publicId) {
+        return ResponseEntity.ok(empresaService.buscarPorPublicId(publicId));
     }
 
     @PostMapping
@@ -31,9 +32,9 @@ public class EmpresaController {
         return ResponseEntity.ok(empresaService.salvar(empresa));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        empresaService.deletar(id);
+    @DeleteMapping("/{publicId}")
+    public ResponseEntity<Void> deletar(@PathVariable UUID publicId) {
+        empresaService.deletarPorPublicId(publicId);
         return ResponseEntity.noContent().build();
     }
 }

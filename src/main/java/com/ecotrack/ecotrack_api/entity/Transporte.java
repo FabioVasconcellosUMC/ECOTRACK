@@ -1,5 +1,6 @@
 package com.ecotrack.ecotrack_api.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -8,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "transporte")
@@ -20,7 +22,11 @@ public class Transporte {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Long id;
+
+    @Column(name = "public_id", nullable = false, unique = true, updatable = false)
+    private UUID publicId = UUID.randomUUID();
 
     @NotNull(message = "Lote e obrigatorio")
     @ManyToOne

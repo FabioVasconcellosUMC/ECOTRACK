@@ -1,5 +1,6 @@
 package com.ecotrack.ecotrack_api.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -10,6 +11,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "empresa")
@@ -22,7 +24,11 @@ public class Empresa {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Long id;
+
+    @Column(name = "public_id", nullable = false, unique = true, updatable = false)
+    private UUID publicId = UUID.randomUUID();
 
     @NotBlank(message = "Razao social e obrigatoria")
     @Size(max = 200, message = "Razao social deve ter no maximo 200 caracteres")

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +24,11 @@ public class EmpresaService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Empresa não encontrada"));
     }
 
+    public Empresa buscarPorPublicId(UUID publicId) {
+        return empresaRepository.findByPublicId(publicId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Empresa não encontrada"));
+    }
+
     public Empresa salvar(Empresa empresa) {
         return empresaRepository.save(empresa);
     }
@@ -33,5 +39,10 @@ public class EmpresaService {
         }
 
         empresaRepository.deleteById(id);
+    }
+
+    public void deletarPorPublicId(UUID publicId) {
+        Empresa empresa = buscarPorPublicId(publicId);
+        empresaRepository.delete(empresa);
     }
 }
