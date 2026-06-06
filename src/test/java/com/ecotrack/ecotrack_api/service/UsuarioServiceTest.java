@@ -41,9 +41,10 @@ class UsuarioServiceTest {
         usuarioService.excluirLogicamente(usuario);
 
         assertThat(usuario.isAtivo()).isFalse();
-        assertThat(usuario.getNome()).isEqualTo("enc:nome-criptografado");
-        assertThat(usuario.getEmail()).isEqualTo("enc:10:email-criptografado");
-        assertThat(usuario.getSenha()).isEqualTo("enc:senha-criptografada");
+        assertThat(usuario.getNome()).isEqualTo("nome-criptografado");
+        assertThat(usuario.getEmail()).isEqualTo("email-criptografado");
+        assertThat(usuario.getSenha()).isEqualTo("senha-criptografada");
+        assertThat(usuario.getEmailHash()).isNull();
         assertThat(usuario.getExcluidoEm()).isNotNull();
         verify(usuarioRepository).save(usuario);
     }

@@ -28,6 +28,7 @@ public class LoteService {
     private final LoteRepository loteRepository;
     private final HistoricoLoteRepository historicoLoteRepository;
     private final EmpresaRepository empresaRepository;
+    private final DadosPessoaisCriptografiaService criptografiaService;
 
     public Lote criar(Lote lote, Usuario usuario) {
         lote.setEmpresaGeradora(buscarEmpresaGeradora(lote));
@@ -39,25 +40,25 @@ public class LoteService {
     }
 
     public List<Lote> listarTodos() {
-        return loteRepository.findAll();
+        return loteRepository.findAll().stream()
+                .map(this::descriptografarEmpresaGeradora)
+                .toList();
     }
 
     public Lote buscarPorId(Long id) {
-        return loteRepository.findByIdWithEmpresa(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Lote não encontrado"));
+        return descriptografarEmpresaGeradora(buscarPorIdInterno(id));
     }
 
     public Lote buscarPorPublicId(UUID publicId) {
-        return loteRepository.findByPublicIdWithEmpresa(publicId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Lote não encontrado"));
+        return descriptografarEmpresaGeradora(buscarPorPublicIdInterno(publicId));
     }
 
     public Lote alterarStatus(Long id, StatusLote novoStatus, String observacao, Usuario usuario) {
-        return alterarStatus(buscarPorId(id), novoStatus, observacao, usuario);
+        return alterarStatus(buscarPorIdInterno(id), novoStatus, observacao, usuario);
     }
 
     public Lote alterarStatus(UUID publicId, StatusLote novoStatus, String observacao, Usuario usuario) {
-        return alterarStatus(buscarPorPublicId(publicId), novoStatus, observacao, usuario);
+        return alterarStatus(buscarPorPublicIdInterno(publicId), novoStatus, observacao, usuario);
     }
 
     public List<HistoricoLote> buscarHistorico(Long loteId) {
@@ -78,6 +79,16 @@ public class LoteService {
 
         registrarHistorico(lote, statusAnterior, novoStatus, usuario, observacao);
         return lote;
+    }
+
+    private Lote buscarPorIdInterno(Long id) {
+        return loteRepository.findByIdWithEmpresa(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Lote não encontrado"));
+    }
+
+    private Lote buscarPorPublicIdInterno(UUID publicId) {
+        return loteRepository.findByPublicIdWithEmpresa(publicId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Lote não encontrado"));
     }
 
     private void prepararNovoLote(Lote lote, Usuario usuario) {
@@ -124,5 +135,16 @@ public class LoteService {
 
         return empresaRepository.findByPublicId(lote.getEmpresaGeradora().getPublicId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Empresa geradora nao encontrada"));
+    }
+
+    private Lote descriptografarEmpresaGeradora(Lote lote) {
+        if (lote.getEmpresaGeradora() != null) {
+            Empresa empresa = lote.getEmpresaGeradora();
+            empresa.setCnpj(criptografiaService.descriptografar(empresa.getCnpj()));
+            empresa.setEmail(criptografiaService.descriptografar(empresa.getEmail()));
+            empresa.setTelefone(criptografiaService.descriptografar(empresa.getTelefone()));
+            empresa.setEndereco(criptografiaService.descriptografar(empresa.getEndereco()));
+        }
+        return lote;
     }
 }

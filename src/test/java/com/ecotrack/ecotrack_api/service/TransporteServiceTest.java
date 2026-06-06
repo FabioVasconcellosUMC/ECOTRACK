@@ -45,6 +45,9 @@ class TransporteServiceTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private DadosPessoaisCriptografiaService criptografiaService;
+
     @InjectMocks
     private TransporteService transporteService;
 
@@ -60,6 +63,7 @@ class TransporteServiceTest {
         when(empresaRepository.findById(2L)).thenReturn(Optional.of(transportadora));
         when(empresaRepository.findById(3L)).thenReturn(Optional.of(receptora));
         when(transporteRepository.save(any(Transporte.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(criptografiaService.descriptografar("transporte@email.com")).thenReturn("transporte@email.com");
 
         Transporte resultado = transporteService.criar(transporte);
 

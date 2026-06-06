@@ -85,6 +85,8 @@ O projeto implementa medidas basicas de seguranca e consistencia:
 - CORS restrito a origens conhecidas;
 - variaveis de ambiente para segredos e configuracoes sensiveis;
 - identificadores publicos em UUID para empresas, lotes e transportes expostos pela API;
+- criptografia em repouso de dados sensiveis como nome/e-mail de usuario e CNPJ/e-mail/telefone/endereco de empresas;
+- hashes normalizados para busca e unicidade de e-mail e CNPJ sem armazenar esses valores em texto claro;
 - bloqueio de cadastro publico com perfil administrador;
 - exclusao logica de usuario com criptografia de dados pessoais;
 - resposta padronizada de erro em JSON no formato `{ "erro": "mensagem" }`;
@@ -119,6 +121,7 @@ JWT_SECRET
 JWT_EXPIRATION
 RESEND_API_KEY
 RESEND_FROM_EMAIL
+LGPD_CRYPTO_SECRET
 SPRING_PROFILES_ACTIVE
 ```
 

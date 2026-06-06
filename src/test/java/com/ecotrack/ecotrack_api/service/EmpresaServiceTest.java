@@ -13,6 +13,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -23,15 +24,20 @@ class EmpresaServiceTest {
     @Mock
     private EmpresaRepository empresaRepository;
 
+    @Mock
+    private DadosPessoaisCriptografiaService criptografiaService;
+
     @InjectMocks
     private EmpresaService empresaService;
 
     @Test
-    void buscarPorIdRetornaEmpresaEncontrada() {
+    void buscarPorIdRetornaEmpresaEncontradaComDadosLegiveis() {
         Empresa empresa = new Empresa();
         empresa.setId(1L);
         empresa.setRazaoSocial("Transportadora Eco");
+        empresa.setCnpj("enc:cnpj");
         when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
+        when(criptografiaService.descriptografar(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         Empresa resultado = empresaService.buscarPorId(1L);
 

@@ -7,5 +7,6 @@ import java.util.UUID;
 
 public interface EmpresaRepository extends JpaRepository<Empresa, Long> {
     boolean existsByCnpj(String cnpj);
+    boolean existsByCnpjHash(String cnpjHash);
     Optional<Empresa> findByPublicId(UUID publicId);
 }

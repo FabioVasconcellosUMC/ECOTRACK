@@ -41,6 +41,9 @@ public class Empresa {
     @Column(unique = true)
     private String cnpj;
 
+    @Column(name = "cnpj_hash", unique = true, length = 100)
+    private String cnpjHash;
+
     @NotNull(message = "Tipo da empresa e obrigatorio")
     @Enumerated(EnumType.STRING)
     private TipoEmpresa tipo;
@@ -52,6 +55,9 @@ public class Empresa {
     @Email(message = "E-mail invalido")
     @Size(max = 150, message = "E-mail deve ter no maximo 150 caracteres")
     private String email;
+
+    @Column(name = "email_hash", length = 100)
+    private String emailHash;
 
     @Size(max = 20, message = "Telefone deve ter no maximo 20 caracteres")
     @Pattern(regexp = "^[0-9()+\\-\\s.]*$", message = "Telefone deve conter apenas numeros e caracteres telefonicos")

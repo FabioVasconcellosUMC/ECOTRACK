@@ -26,9 +26,10 @@ public class UsuarioService {
             throw new RegraNegocioException("Usuário já está excluído");
         }
 
-        usuario.setNome("enc:" + criptografiaService.criptografar(valorSeguro(usuario.getNome())));
-        usuario.setEmail("enc:" + usuario.getId() + ":" + criptografiaService.criptografar(valorSeguro(usuario.getEmail())));
-        usuario.setSenha("enc:" + criptografiaService.criptografar(valorSeguro(usuario.getSenha())));
+        usuario.setNome(criptografiaService.criptografar(valorSeguro(usuario.getNome())));
+        usuario.setEmail(criptografiaService.criptografar(valorSeguro(usuario.getEmail())));
+        usuario.setSenha(criptografiaService.criptografar(valorSeguro(usuario.getSenha())));
+        usuario.setEmailHash(null);
         usuario.setAtivo(false);
         usuario.setExcluidoEm(LocalDateTime.now());
 

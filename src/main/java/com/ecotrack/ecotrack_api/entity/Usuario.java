@@ -30,6 +30,10 @@ public class Usuario implements UserDetails {
     private String email;
 
     @JsonIgnore
+    @Column(name = "email_hash", unique = true, length = 100)
+    private String emailHash;
+
+    @JsonIgnore
     private String senha;
 
     @Enumerated(EnumType.STRING)
@@ -50,7 +54,7 @@ public class Usuario implements UserDetails {
     @JsonIgnore
     @Override public String getPassword() { return senha; }
 
-    @Override public String getUsername() { return email; }
+    @Override public String getUsername() { return emailHash != null ? emailHash : email; }
 
     @JsonIgnore
     @Override public boolean isAccountNonExpired() { return true; }

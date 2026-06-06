@@ -8,6 +8,7 @@ import com.ecotrack.ecotrack_api.entity.Usuario;
 import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
 import com.ecotrack.ecotrack_api.repository.UsuarioRepository;
 import com.ecotrack.ecotrack_api.security.JwtService;
+import com.ecotrack.ecotrack_api.service.DadosPessoaisCriptografiaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +33,7 @@ public class AuthController {
     private final UserDetailsService userDetailsService;
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final DadosPessoaisCriptografiaService criptografiaService;
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -42,7 +44,11 @@ public class AuthController {
         Usuario usuario = (Usuario) userDetailsService.loadUserByUsername(request.email());
         String token = jwtService.gerarToken(usuario);
 
-        return ResponseEntity.ok(new LoginResponse(token, usuario.getNome(), usuario.getPerfil().name()));
+        return ResponseEntity.ok(new LoginResponse(
+                token,
+                criptografiaService.descriptografar(usuario.getNome()),
+                usuario.getPerfil().name()
+        ));
     }
 
     @PostMapping("/cadastro")
@@ -52,32 +58,39 @@ public class AuthController {
         validarPerfilCadastroPublico(perfil);
 
         Usuario usuario = new Usuario();
-        usuario.setNome(request.nome());
-        usuario.setEmail(request.email());
+        usuario.setNome(criptografiaService.criptografar(request.nome()));
+        usuario.setEmail(criptografiaService.criptografar(criptografiaService.normalizarEmail(request.email())));
+        usuario.setEmailHash(hashEmail(request.email()));
         usuario.setSenha(passwordEncoder.encode(request.senha()));
         usuario.setPerfil(perfil);
         usuarioRepository.save(usuario);
 
-        return ResponseEntity.status(201).body(Map.of("mensagem", "Usuário cadastrado com sucesso"));
+        return ResponseEntity.status(201).body(Map.of("mensagem", "Usuario cadastrado com sucesso"));
     }
 
     private void validarEmailDisponivel(String email) {
-        if (usuarioRepository.findByEmail(email).isPresent()) {
-            throw new RegraNegocioException("E-mail já cadastrado");
+        String emailNormalizado = criptografiaService.normalizarEmail(email);
+        if (usuarioRepository.findByEmailHash(hashEmail(email)).isPresent()
+                || usuarioRepository.findByEmail(emailNormalizado).isPresent()) {
+            throw new RegraNegocioException("E-mail ja cadastrado");
         }
+    }
+
+    private String hashEmail(String email) {
+        return criptografiaService.hashBusca(criptografiaService.normalizarEmail(email));
     }
 
     private Perfil converterPerfil(String perfil) {
         try {
             return Perfil.valueOf(perfil.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new RegraNegocioException("Perfil inválido");
+            throw new RegraNegocioException("Perfil invalido");
         }
     }
 
     private void validarPerfilCadastroPublico(Perfil perfil) {
         if (perfil == Perfil.ADMIN) {
-            throw new RegraNegocioException("Cadastro de administrador não é permitido");
+            throw new RegraNegocioException("Cadastro de administrador nao e permitido");
         }
     }
 }

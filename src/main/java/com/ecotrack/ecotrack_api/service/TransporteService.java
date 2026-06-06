@@ -32,19 +32,20 @@ public class TransporteService {
     private final EmpresaRepository empresaRepository;
     private final HistoricoLoteRepository historicoLoteRepository;
     private final EmailService emailService;
+    private final DadosPessoaisCriptografiaService criptografiaService;
 
     public List<Transporte> listar() {
-        return transporteRepository.findAll();
+        return transporteRepository.findAll().stream()
+                .map(this::descriptografarEmpresas)
+                .toList();
     }
 
     public Transporte buscarPorId(Long id) {
-        return transporteRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Transporte não encontrado"));
+        return descriptografarEmpresas(buscarPorIdInterno(id));
     }
 
     public Transporte buscarPorPublicId(UUID publicId) {
-        return transporteRepository.findByPublicId(publicId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Transporte não encontrado"));
+        return descriptografarEmpresas(buscarPorPublicIdInterno(publicId));
     }
 
     public Transporte criar(Transporte transporte) {
@@ -68,19 +69,19 @@ public class TransporteService {
     }
 
     public Transporte alterarStatus(Long id, StatusTransporte novoStatus, String observacao) {
-        return alterarStatus(buscarPorId(id), novoStatus, observacao);
+        return alterarStatus(buscarPorIdInterno(id), novoStatus, observacao);
     }
 
     public Transporte alterarStatus(UUID publicId, StatusTransporte novoStatus, String observacao) {
-        return alterarStatus(buscarPorPublicId(publicId), novoStatus, observacao);
+        return alterarStatus(buscarPorPublicIdInterno(publicId), novoStatus, observacao);
     }
 
     public Transporte confirmarRecebimentoFinal(Long id, String observacao) {
-        return confirmarRecebimentoFinal(buscarPorId(id), observacao);
+        return confirmarRecebimentoFinal(buscarPorIdInterno(id), observacao);
     }
 
     public Transporte confirmarRecebimentoFinal(UUID publicId, String observacao) {
-        return confirmarRecebimentoFinal(buscarPorPublicId(publicId), observacao);
+        return confirmarRecebimentoFinal(buscarPorPublicIdInterno(publicId), observacao);
     }
 
     public List<Transporte> buscarPorLote(Long loteId) {
@@ -102,6 +103,16 @@ public class TransporteService {
         aplicarImpactoNoLote(transporte, statusAnterior, novoStatus, observacao);
 
         return transporteRepository.save(transporte);
+    }
+
+    private Transporte buscarPorIdInterno(Long id) {
+        return transporteRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Transporte não encontrado"));
+    }
+
+    private Transporte buscarPorPublicIdInterno(UUID publicId) {
+        return transporteRepository.findByPublicId(publicId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Transporte não encontrado"));
     }
 
     private Transporte confirmarRecebimentoFinal(Transporte transporte, String observacao) {
@@ -253,7 +264,7 @@ public class TransporteService {
         try {
             log.info("Preparando notificacao do transporte {} para {}", transporte.getId(), transportadora.getEmail());
             emailService.enviarNotificacaoTransporte(
-                    transportadora.getEmail(),
+                    criptografiaService.descriptografar(transportadora.getEmail()),
                     transportadora.getRazaoSocial(),
                     lote.getId(),
                     lote.getDescricao()
@@ -261,5 +272,25 @@ public class TransporteService {
         } catch (Exception e) {
             log.warn("Erro ao enviar e-mail de notificacao: {}", e.getMessage());
         }
+    }
+
+    private Transporte descriptografarEmpresas(Transporte transporte) {
+        descriptografarEmpresa(transporte.getTransportadora());
+        descriptografarEmpresa(transporte.getReceptora());
+        if (transporte.getLote() != null) {
+            descriptografarEmpresa(transporte.getLote().getEmpresaGeradora());
+        }
+        return transporte;
+    }
+
+    private void descriptografarEmpresa(Empresa empresa) {
+        if (empresa == null) {
+            return;
+        }
+
+        empresa.setCnpj(criptografiaService.descriptografar(empresa.getCnpj()));
+        empresa.setEmail(criptografiaService.descriptografar(empresa.getEmail()));
+        empresa.setTelefone(criptografiaService.descriptografar(empresa.getTelefone()));
+        empresa.setEndereco(criptografiaService.descriptografar(empresa.getEndereco()));
     }
 }
