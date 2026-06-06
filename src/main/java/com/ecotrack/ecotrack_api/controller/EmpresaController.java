@@ -2,6 +2,7 @@ package com.ecotrack.ecotrack_api.controller;
 
 import com.ecotrack.ecotrack_api.entity.Empresa;
 import com.ecotrack.ecotrack_api.service.EmpresaService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +27,7 @@ public class EmpresaController {
     }
 
     @PostMapping
-    public ResponseEntity<Empresa> salvar(@RequestBody Empresa empresa) {
+    public ResponseEntity<Empresa> salvar(@Valid @RequestBody Empresa empresa) {
         return ResponseEntity.ok(empresaService.salvar(empresa));
     }
 

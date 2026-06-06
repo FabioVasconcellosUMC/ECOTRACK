@@ -34,6 +34,18 @@ As credenciais de acesso nao sao versionadas neste repositorio. Usuarios e senha
 - Dashboard e relatorios operacionais.
 - Exclusao logica de usuario com inativacao e criptografia de dados pessoais.
 
+## Validacao de entrada
+
+O backend aplica validacoes nos principais payloads recebidos pela API:
+
+- campos obrigatorios em login, cadastro, empresas, lotes e transportes;
+- limites de tamanho para nomes, e-mails, CNPJ, telefone, descricao, responsavel e observacoes;
+- rejeicao de tags HTML/scripts em campos textuais livres;
+- validacao de e-mail, CNPJ e telefone em formatos esperados;
+- bloqueio de quantidades negativas, zeradas ou acima da precisao aceita pelo banco;
+- validacao da existencia da empresa geradora antes da criacao de lotes;
+- resposta padronizada de erro em JSON no formato `{ "erro": "mensagem" }`.
+
 ## Estrutura do projeto
 
 ```text

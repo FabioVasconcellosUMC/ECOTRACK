@@ -4,11 +4,15 @@ import com.ecotrack.ecotrack_api.entity.Transporte;
 import com.ecotrack.ecotrack_api.entity.StatusTransporte;
 import com.ecotrack.ecotrack_api.service.ManifestoPdfService;
 import com.ecotrack.ecotrack_api.service.TransporteService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,6 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/transportes")
 @RequiredArgsConstructor
+@Validated
 public class TransporteController {
 
     private final TransporteService transporteService;
@@ -32,7 +37,7 @@ public class TransporteController {
     }
 
     @PostMapping
-    public ResponseEntity<Transporte> criar(@RequestBody Transporte transporte) {
+    public ResponseEntity<Transporte> criar(@Valid @RequestBody Transporte transporte) {
         return ResponseEntity.status(201).body(transporteService.criar(transporte));
     }
 
@@ -40,14 +45,20 @@ public class TransporteController {
     public ResponseEntity<Transporte> alterarStatus(
             @PathVariable Long id,
             @RequestParam StatusTransporte novoStatus,
-            @RequestParam(required = false) String observacao) {
+            @RequestParam(required = false)
+            @Size(max = 1000, message = "Observacao deve ter no maximo 1000 caracteres")
+            @Pattern(regexp = "^[^<>]*$", message = "Observacao nao pode conter tags HTML ou scripts")
+            String observacao) {
         return ResponseEntity.ok(transporteService.alterarStatus(id, novoStatus, observacao));
     }
 
     @PatchMapping("/{id}/recebimento-final")
     public ResponseEntity<Transporte> confirmarRecebimentoFinal(
             @PathVariable Long id,
-            @RequestParam(required = false) String observacao) {
+            @RequestParam(required = false)
+            @Size(max = 1000, message = "Observacao deve ter no maximo 1000 caracteres")
+            @Pattern(regexp = "^[^<>]*$", message = "Observacao nao pode conter tags HTML ou scripts")
+            String observacao) {
         return ResponseEntity.ok(transporteService.confirmarRecebimentoFinal(id, observacao));
     }
 

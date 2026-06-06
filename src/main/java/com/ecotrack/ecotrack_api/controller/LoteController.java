@@ -5,9 +5,13 @@ import com.ecotrack.ecotrack_api.entity.Lote;
 import com.ecotrack.ecotrack_api.entity.StatusLote;
 import com.ecotrack.ecotrack_api.entity.Usuario;
 import com.ecotrack.ecotrack_api.service.LoteService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,12 +19,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/lotes")
 @RequiredArgsConstructor
+@Validated
 public class LoteController {
 
     private final LoteService loteService;
 
     @PostMapping
-    public ResponseEntity<Lote> criar(@RequestBody Lote lote,
+    public ResponseEntity<Lote> criar(@Valid @RequestBody Lote lote,
                                       @AuthenticationPrincipal Usuario usuario) {
         return ResponseEntity.status(201).body(loteService.criar(lote, usuario));
     }
@@ -38,7 +43,10 @@ public class LoteController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<Lote> alterarStatus(@PathVariable Long id,
                                               @RequestParam StatusLote novoStatus,
-                                              @RequestParam(required = false) String observacao,
+                                              @RequestParam(required = false)
+                                              @Size(max = 1000, message = "Observacao deve ter no maximo 1000 caracteres")
+                                              @Pattern(regexp = "^[^<>]*$", message = "Observacao nao pode conter tags HTML ou scripts")
+                                              String observacao,
                                               @AuthenticationPrincipal Usuario usuario) {
         return ResponseEntity.ok(loteService.alterarStatus(id, novoStatus, observacao, usuario));
     }

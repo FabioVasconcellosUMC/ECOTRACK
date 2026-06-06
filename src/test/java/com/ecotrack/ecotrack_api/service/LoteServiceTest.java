@@ -4,7 +4,9 @@ import com.ecotrack.ecotrack_api.entity.HistoricoLote;
 import com.ecotrack.ecotrack_api.entity.Lote;
 import com.ecotrack.ecotrack_api.entity.StatusLote;
 import com.ecotrack.ecotrack_api.entity.Usuario;
+import com.ecotrack.ecotrack_api.entity.Empresa;
 import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
+import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
 import com.ecotrack.ecotrack_api.repository.HistoricoLoteRepository;
 import com.ecotrack.ecotrack_api.repository.LoteRepository;
 import org.junit.jupiter.api.Test;
@@ -32,17 +34,27 @@ class LoteServiceTest {
     @Mock
     private HistoricoLoteRepository historicoLoteRepository;
 
+    @Mock
+    private EmpresaRepository empresaRepository;
+
     @InjectMocks
     private LoteService loteService;
 
     @Test
     void criarDefineStatusInicialERegistraHistorico() {
         Lote lote = new Lote();
+        Empresa empresaRef = new Empresa();
+        empresaRef.setId(1L);
+        lote.setEmpresaGeradora(empresaRef);
+        Empresa empresaPersistida = new Empresa();
+        empresaPersistida.setId(1L);
         Usuario usuario = new Usuario();
+        when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresaPersistida));
         when(loteRepository.save(lote)).thenAnswer(invocation -> invocation.getArgument(0));
 
         Lote resultado = loteService.criar(lote, usuario);
 
+        assertThat(resultado.getEmpresaGeradora()).isSameAs(empresaPersistida);
         assertThat(resultado.getStatus()).isEqualTo(StatusLote.AGUARDANDO_COLETA);
         assertThat(resultado.getCriadoPor()).isSameAs(usuario);
         assertThat(resultado.getCriadoEm()).isNotNull();

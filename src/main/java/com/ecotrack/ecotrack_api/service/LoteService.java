@@ -4,8 +4,10 @@ import com.ecotrack.ecotrack_api.entity.HistoricoLote;
 import com.ecotrack.ecotrack_api.entity.Lote;
 import com.ecotrack.ecotrack_api.entity.StatusLote;
 import com.ecotrack.ecotrack_api.entity.Usuario;
+import com.ecotrack.ecotrack_api.entity.Empresa;
 import com.ecotrack.ecotrack_api.exception.RecursoNaoEncontradoException;
 import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
+import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
 import com.ecotrack.ecotrack_api.repository.HistoricoLoteRepository;
 import com.ecotrack.ecotrack_api.repository.LoteRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,8 +26,10 @@ public class LoteService {
 
     private final LoteRepository loteRepository;
     private final HistoricoLoteRepository historicoLoteRepository;
+    private final EmpresaRepository empresaRepository;
 
     public Lote criar(Lote lote, Usuario usuario) {
+        lote.setEmpresaGeradora(buscarEmpresaGeradora(lote));
         prepararNovoLote(lote, usuario);
         Lote salvo = loteRepository.save(lote);
 
@@ -84,5 +88,14 @@ public class LoteService {
         historico.setObservacao(observacao);
         historico.setDataHora(LocalDateTime.now());
         historicoLoteRepository.save(historico);
+    }
+
+    private Empresa buscarEmpresaGeradora(Lote lote) {
+        if (lote.getEmpresaGeradora() == null || lote.getEmpresaGeradora().getId() == null) {
+            throw new RegraNegocioException("Empresa geradora e obrigatoria para criar lote");
+        }
+
+        return empresaRepository.findById(lote.getEmpresaGeradora().getId())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Empresa geradora nao encontrada"));
     }
 }
