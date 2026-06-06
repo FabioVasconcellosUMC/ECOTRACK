@@ -1,15 +1,21 @@
 # EcoTrack
 
-Sistema web para gestao e rastreabilidade de residuos solidos, desenvolvido como Projeto Final de Curso em Bacharelado em Sistemas de Informacao.
+Sistema web para gestao e rastreabilidade operacional de residuos solidos, desenvolvido como Projeto Final de Curso em Bacharelado em Sistemas de Informacao.
 
-O EcoTrack apoia o cadastro de empresas geradoras, transportadoras e receptoras, o controle de lotes de residuos, o registro de transportes, a confirmacao de recebimento final pela receptora, a emissao de manifesto em PDF e a consulta de indicadores gerenciais.
+O EcoTrack centraliza o cadastro de empresas geradoras, transportadoras e receptoras, o controle de lotes de residuos, o registro de transportes, a confirmacao de recebimento final, a geracao de manifesto interno em PDF e a visualizacao de indicadores gerenciais.
+
+## Objetivo
+
+O objetivo do projeto e oferecer uma solucao web para apoiar o acompanhamento interno do ciclo operacional de residuos solidos, desde a geracao do lote ate a confirmacao de recebimento pela empresa receptora.
+
+A Politica Nacional de Residuos Solidos (PNRS) e utilizada como referencia conceitual para contextualizar a importancia da responsabilidade compartilhada, da gestao integrada e da rastreabilidade. O EcoTrack nao substitui sistemas oficiais, como SINIR/MTR, nem tem a finalidade de comprovar atendimento legal.
 
 ## Acessos
 
 - Frontend: https://ecotrack-khaki.vercel.app
 - Backend API: https://ecotrack-d5i0.onrender.com
 
-As credenciais de acesso nao sao versionadas neste repositorio. Usuarios e senhas devem ser gerenciados no ambiente de producao ou informados apenas pelos responsaveis do projeto.
+As credenciais de acesso nao sao versionadas neste repositorio. Usuarios e senhas devem ser gerenciados apenas pelos responsaveis do projeto ou pelo ambiente de producao.
 
 ## Tecnologias
 
@@ -17,7 +23,20 @@ As credenciais de acesso nao sao versionadas neste repositorio. Usuarios e senha
 - Frontend: Vue.js, Tailwind CSS, Axios, Chart.js e Vite.
 - Banco de dados: PostgreSQL em nuvem.
 - Hospedagem: Render para a API e Vercel para o frontend.
-- Integracoes: BrasilAPI para consulta de CNPJ e Resend para envio de e-mails operacionais.
+- Integracoes: BrasilAPI para consulta de CNPJ e Resend para notificacoes operacionais por e-mail.
+- Documentos: OpenPDF para geracao de manifesto interno em PDF.
+
+## Arquitetura
+
+O projeto segue uma arquitetura em camadas:
+
+- `controller`: recebe as requisicoes HTTP e expoe os endpoints REST.
+- `service`: concentra as regras de negocio.
+- `repository`: realiza o acesso ao banco de dados por meio do Spring Data JPA.
+- `entity`: representa as tabelas e relacionamentos do banco.
+- `security`: implementa autenticacao JWT e controle de acesso.
+
+O frontend consome a API REST autenticada e armazena o token JWT para enviar nas requisicoes protegidas.
 
 ## Funcionalidades
 
@@ -26,32 +45,61 @@ As credenciais de acesso nao sao versionadas neste repositorio. Usuarios e senha
 - Controle de acesso por perfis: Administrador, Geradora, Transportadora e Receptora.
 - Cadastro e consulta de empresas.
 - Consulta de CNPJ via BrasilAPI no frontend.
-- Cadastro de lotes de residuos com historico de status.
+- Cadastro de lotes de residuos.
+- Historico de alteracoes de status dos lotes.
 - Cadastro de transportes vinculando lote, transportadora e receptora.
+- Notificacao operacional por e-mail quando um transporte e criado.
 - Confirmacao de recebimento final pela empresa receptora.
 - Atualizacao automatica do lote para descartado ao concluir o recebimento.
-- Manifesto de transporte em PDF.
+- Geracao de manifesto interno de transporte em PDF.
 - Dashboard e relatorios operacionais.
 - Exclusao logica de usuario com inativacao e criptografia de dados pessoais.
 
-## Validacao de entrada
+## Perfis de usuario
 
-O backend aplica validacoes nos principais payloads recebidos pela API:
+- `ADMIN`: possui visao ampla do sistema e acesso administrativo.
+- `GERADORA`: pode cadastrar lotes e iniciar transportes.
+- `TRANSPORTADORA`: acompanha transportes e atualiza status operacionais.
+- `RECEPTORA`: confirma o recebimento final do residuo.
 
-- campos obrigatorios em login, cadastro, empresas, lotes e transportes;
-- limites de tamanho para nomes, e-mails, CNPJ, telefone, descricao, responsavel e observacoes;
+## Fluxo operacional
+
+1. O usuario autentica-se no sistema.
+2. A empresa geradora cadastra um lote de residuo.
+3. O sistema registra o lote com status inicial `AGUARDANDO_COLETA`.
+4. A geradora cria um transporte vinculando lote, transportadora e receptora.
+5. A transportadora atualiza o transporte para `EM_TRANSITO`.
+6. O lote passa automaticamente para `EM_TRANSITO`.
+7. A receptora confirma o recebimento final.
+8. O transporte passa para `CONCLUIDO` e o lote para `DESCARTADO`.
+9. O historico do lote registra as movimentacoes relevantes.
+10. O manifesto interno em PDF pode ser gerado para apoio operacional.
+
+## Seguranca e validacao
+
+O projeto implementa medidas basicas de seguranca e consistencia:
+
+- senhas armazenadas com BCrypt;
+- autenticacao JWT;
+- controle de acesso por perfil no Spring Security;
+- CORS restrito a origens conhecidas;
+- variaveis de ambiente para segredos e configuracoes sensiveis;
+- bloqueio de cadastro publico com perfil administrador;
+- exclusao logica de usuario com criptografia de dados pessoais;
+- resposta padronizada de erro em JSON no formato `{ "erro": "mensagem" }`;
+- validacao de campos obrigatorios, tamanhos maximos e formatos esperados;
 - rejeicao de tags HTML/scripts em campos textuais livres;
-- validacao de e-mail, CNPJ e telefone em formatos esperados;
-- bloqueio de quantidades negativas, zeradas ou acima da precisao aceita pelo banco;
-- validacao da existencia da empresa geradora antes da criacao de lotes;
-- resposta padronizada de erro em JSON no formato `{ "erro": "mensagem" }`.
+- bloqueio de quantidades negativas, zeradas ou acima da precisao aceita pelo banco.
 
 ## Estrutura do projeto
 
 ```text
 .
 |-- src/                       # Backend Spring Boot
-|-- front-end/                 # Frontend Vue.js ativo
+|   |-- main/java/...           # Codigo-fonte da API
+|   |-- main/resources/         # Configuracoes e migrations Flyway
+|   `-- test/java/...           # Testes automatizados
+|-- front-end/                 # Frontend Vue.js
 |   |-- src/                   # Codigo-fonte do frontend
 |   |-- public/                # Imagens e arquivos publicos
 |   `-- package.json
@@ -60,9 +108,9 @@ O backend aplica validacoes nos principais payloads recebidos pela API:
 `-- README.md
 ```
 
-## Como executar o backend
+## Variaveis de ambiente
 
-Configure as variaveis de ambiente necessarias:
+Backend:
 
 ```text
 SPRING_DATASOURCE_URL
@@ -73,7 +121,17 @@ RESEND_FROM_EMAIL
 SPRING_PROFILES_ACTIVE
 ```
 
-Depois execute:
+Frontend:
+
+```text
+VITE_API_BASE_URL
+```
+
+Quando `VITE_API_BASE_URL` nao e informada, o frontend usa a API publicada no Render.
+
+## Execucao local
+
+Backend:
 
 ```bash
 ./mvnw spring-boot:run
@@ -85,13 +143,7 @@ No Windows:
 mvnw.cmd spring-boot:run
 ```
 
-## Como executar o frontend
-
-Opcionalmente, configure a URL da API:
-
-```text
-VITE_API_BASE_URL=https://ecotrack-d5i0.onrender.com
-```
+Frontend:
 
 ```bash
 cd front-end
@@ -99,14 +151,7 @@ npm install
 npm run dev
 ```
 
-Para gerar build de producao:
-
-```bash
-cd front-end
-npm run build
-```
-
-## Testes e validacao
+## Testes
 
 Backend:
 
@@ -122,9 +167,8 @@ npm run build
 npm audit --audit-level=moderate
 ```
 
-## Branches de entrega
+## Observacoes academicas
 
-- `main`: codigo principal do projeto.
-- `frontend-deploy`: branch sincronizada para publicacao do frontend na Vercel.
+O EcoTrack e uma solucao academica funcional voltada ao apoio da rastreabilidade operacional interna. O manifesto em PDF gerado pelo sistema e um documento interno de apoio e nao substitui o MTR oficial ou documentos emitidos por sistemas autorizados.
 
-Para a entrega final, o repositorio deve ser congelado apos a validacao e o ZIP deve ser gerado a partir da versao final.
+Como evolucoes futuras, o sistema pode receber isolamento completo por empresa, rate limiting em autenticacao, armazenamento de token em cookie HttpOnly/Secure e integracao com sistemas oficiais, caso exista disponibilidade tecnica e normativa para isso.
