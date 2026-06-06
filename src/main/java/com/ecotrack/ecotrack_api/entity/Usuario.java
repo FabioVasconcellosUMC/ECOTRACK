@@ -39,6 +39,10 @@ public class Usuario implements UserDetails {
     @Enumerated(EnumType.STRING)
     private Perfil perfil;
 
+    @ManyToOne
+    @JoinColumn(name = "empresa_id")
+    private Empresa empresa;
+
     private boolean ativo = true;
 
     private LocalDateTime criadoEm = LocalDateTime.now();

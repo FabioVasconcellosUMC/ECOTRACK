@@ -3,6 +3,7 @@ package com.ecotrack.ecotrack_api.service;
 import com.ecotrack.ecotrack_api.entity.Empresa;
 import com.ecotrack.ecotrack_api.entity.HistoricoLote;
 import com.ecotrack.ecotrack_api.entity.Lote;
+import com.ecotrack.ecotrack_api.entity.Perfil;
 import com.ecotrack.ecotrack_api.entity.StatusLote;
 import com.ecotrack.ecotrack_api.entity.Usuario;
 import com.ecotrack.ecotrack_api.exception.RecursoNaoEncontradoException;
@@ -10,6 +11,7 @@ import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
 import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
 import com.ecotrack.ecotrack_api.repository.HistoricoLoteRepository;
 import com.ecotrack.ecotrack_api.repository.LoteRepository;
+import com.ecotrack.ecotrack_api.repository.TransporteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -29,10 +31,13 @@ public class LoteService {
     private final LoteRepository loteRepository;
     private final HistoricoLoteRepository historicoLoteRepository;
     private final EmpresaRepository empresaRepository;
+    private final TransporteRepository transporteRepository;
     private final DadosPessoaisCriptografiaService criptografiaService;
+    private final EscopoUsuarioService escopoUsuarioService;
 
     public Lote criar(Lote lote, Usuario usuario) {
         lote.setEmpresaGeradora(buscarEmpresaGeradora(lote));
+        validarLoteDentroDoEscopo(lote, usuario);
         prepararNovoLote(lote, usuario);
         Lote salvo = loteRepository.save(lote);
 
@@ -47,6 +52,16 @@ public class LoteService {
 
     @Transactional(readOnly = true)
     public List<Lote> listarTodos(String termoBusca, Integer limite) {
+        Usuario usuario = escopoUsuarioService.usuarioAutenticado();
+        if (!escopoUsuarioService.isAdmin(usuario)) {
+            Empresa empresa = escopoUsuarioService.empresaVinculada(usuario);
+            if (empresa == null) {
+                return List.of();
+            }
+
+            return listarPorEscopo(usuario.getPerfil(), empresa.getId(), termoBusca, limite);
+        }
+
         Integer limiteConsulta = limiteNormalizado(limite);
         if (limiteConsulta == null) {
             return loteRepository.findAll().stream()
@@ -68,12 +83,16 @@ public class LoteService {
 
     @Transactional(readOnly = true)
     public Lote buscarPorId(Long id) {
-        return descriptografarEmpresaGeradora(buscarPorIdInterno(id));
+        Lote lote = buscarPorIdInterno(id);
+        validarLeituraLote(lote);
+        return descriptografarEmpresaGeradora(lote);
     }
 
     @Transactional(readOnly = true)
     public Lote buscarPorPublicId(UUID publicId) {
-        return descriptografarEmpresaGeradora(buscarPorPublicIdInterno(publicId));
+        Lote lote = buscarPorPublicIdInterno(publicId);
+        validarLeituraLote(lote);
+        return descriptografarEmpresaGeradora(lote);
     }
 
     public Lote alterarStatus(Long id, StatusLote novoStatus, String observacao, Usuario usuario) {
@@ -96,6 +115,7 @@ public class LoteService {
     }
 
     private Lote alterarStatus(Lote lote, StatusLote novoStatus, String observacao, Usuario usuario) {
+        validarLoteDentroDoEscopo(lote, usuario);
         validarTransicao(lote.getStatus(), novoStatus);
 
         StatusLote statusAnterior = lote.getStatus();
@@ -142,6 +162,67 @@ public class LoteService {
         historico.setObservacao(observacao);
         historico.setDataHora(LocalDateTime.now());
         historicoLoteRepository.save(historico);
+    }
+
+    private List<Lote> listarPorEscopo(Perfil perfil, Long empresaId, String termoBusca, Integer limite) {
+        PageRequest pageRequest = PageRequest.of(0, limiteNormalizado(limite) == null ? 100 : limiteNormalizado(limite));
+
+        if (termoBusca != null && !termoBusca.isBlank()) {
+            String busca = termoBusca.trim();
+            List<Lote> lotes = switch (perfil) {
+                case GERADORA -> loteRepository.buscarPorTextoGeradora(empresaId, busca, pageRequest);
+                case TRANSPORTADORA -> loteRepository.buscarPorTextoTransportadora(empresaId, busca, pageRequest);
+                case RECEPTORA -> loteRepository.buscarPorTextoReceptora(empresaId, busca, pageRequest);
+                default -> List.of();
+            };
+            return lotes.stream().map(this::descriptografarEmpresaGeradora).toList();
+        }
+
+        List<Lote> lotes = switch (perfil) {
+            case GERADORA -> loteRepository.findByEmpresaGeradoraIdOrderByCriadoEmDesc(empresaId, pageRequest);
+            case TRANSPORTADORA -> loteRepository.findRecentesPorTransportadora(empresaId, pageRequest);
+            case RECEPTORA -> loteRepository.findRecentesPorReceptora(empresaId, pageRequest);
+            default -> List.of();
+        };
+        return lotes.stream().map(this::descriptografarEmpresaGeradora).toList();
+    }
+
+    private void validarLoteDentroDoEscopo(Lote lote, Usuario usuario) {
+        if (usuario.getPerfil() == Perfil.ADMIN) {
+            return;
+        }
+
+        Empresa empresa = escopoUsuarioService.empresaObrigatoria(usuario);
+        if (usuario.getPerfil() != Perfil.GERADORA || !lote.getEmpresaGeradora().getId().equals(empresa.getId())) {
+            throw new RegraNegocioException("Lote deve ser criado pela empresa geradora vinculada ao usuario");
+        }
+    }
+
+    private void validarLeituraLote(Lote lote) {
+        Usuario usuario = escopoUsuarioService.usuarioAutenticado();
+        if (escopoUsuarioService.isAdmin(usuario)) {
+            return;
+        }
+
+        Empresa empresa = escopoUsuarioService.empresaObrigatoria(usuario);
+        boolean permitido = switch (usuario.getPerfil()) {
+            case GERADORA -> lote.getEmpresaGeradora() != null && lote.getEmpresaGeradora().getId().equals(empresa.getId());
+            case TRANSPORTADORA -> transporteVinculado(lote, empresa.getId(), Perfil.TRANSPORTADORA);
+            case RECEPTORA -> transporteVinculado(lote, empresa.getId(), Perfil.RECEPTORA);
+            default -> false;
+        };
+
+        if (!permitido) {
+            throw new RecursoNaoEncontradoException("Lote nao encontrado");
+        }
+    }
+
+    private boolean transporteVinculado(Lote lote, Long empresaId, Perfil perfil) {
+        return switch (perfil) {
+            case TRANSPORTADORA -> transporteRepository.existsByLoteIdAndTransportadoraId(lote.getId(), empresaId);
+            case RECEPTORA -> transporteRepository.existsByLoteIdAndReceptoraId(lote.getId(), empresaId);
+            default -> false;
+        };
     }
 
     private Integer limiteNormalizado(Integer limite) {

@@ -7,10 +7,9 @@ import com.ecotrack.ecotrack_api.entity.Usuario;
 import com.ecotrack.ecotrack_api.exception.RecursoNaoEncontradoException;
 import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
 import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
+import com.ecotrack.ecotrack_api.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +26,9 @@ public class EmpresaService {
     private static final String EMAIL_VALIDO = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$";
 
     private final EmpresaRepository empresaRepository;
+    private final UsuarioRepository usuarioRepository;
     private final DadosPessoaisCriptografiaService criptografiaService;
+    private final EscopoUsuarioService escopoUsuarioService;
 
     @Transactional(readOnly = true)
     public List<Empresa> listar() {
@@ -77,9 +78,11 @@ public class EmpresaService {
 
     public Empresa salvar(Empresa empresa) {
         validarDadosAbertos(empresa);
-        validarCadastroPermitidoParaPerfil(empresa);
+        Usuario usuario = escopoUsuarioService.usuarioAutenticado();
+        validarCadastroPermitidoParaPerfil(empresa, usuario);
         prepararDadosSensiveis(empresa);
         Empresa salva = empresaRepository.save(empresa);
+        vincularEmpresaAoUsuario(salva, usuario);
         return descriptografarDadosSensiveis(salva);
     }
 
@@ -146,11 +149,15 @@ public class EmpresaService {
         }
     }
 
-    private void validarCadastroPermitidoParaPerfil(Empresa empresa) {
-        Perfil perfil = perfilUsuarioAutenticado();
+    private void validarCadastroPermitidoParaPerfil(Empresa empresa, Usuario usuario) {
+        Perfil perfil = usuario.getPerfil();
 
         if (perfil == Perfil.ADMIN) {
             return;
+        }
+
+        if (usuario.getEmpresa() != null) {
+            throw new RegraNegocioException("Usuario ja possui empresa vinculada");
         }
 
         TipoEmpresa tipoPermitido = switch (perfil) {
@@ -165,14 +172,13 @@ public class EmpresaService {
         }
     }
 
-    private Perfil perfilUsuarioAutenticado() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof Usuario usuario)) {
-            throw new RegraNegocioException("Usuario autenticado nao identificado");
+    private void vincularEmpresaAoUsuario(Empresa empresa, Usuario usuario) {
+        if (usuario.getPerfil() == Perfil.ADMIN) {
+            return;
         }
 
-        return usuario.getPerfil();
+        usuario.setEmpresa(empresa);
+        usuarioRepository.save(usuario);
     }
 
     private Integer limiteNormalizado(Integer limite) {

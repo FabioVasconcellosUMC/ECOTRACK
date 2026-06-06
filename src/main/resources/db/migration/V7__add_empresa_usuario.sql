@@ -1,0 +1,2 @@
+ALTER TABLE usuario
+ADD COLUMN IF NOT EXISTS empresa_id BIGINT REFERENCES empresa(id);

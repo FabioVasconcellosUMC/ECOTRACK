@@ -3,14 +3,17 @@ package com.ecotrack.ecotrack_api.service;
 import com.ecotrack.ecotrack_api.entity.Empresa;
 import com.ecotrack.ecotrack_api.entity.HistoricoLote;
 import com.ecotrack.ecotrack_api.entity.Lote;
+import com.ecotrack.ecotrack_api.entity.Perfil;
 import com.ecotrack.ecotrack_api.entity.StatusLote;
 import com.ecotrack.ecotrack_api.entity.StatusTransporte;
 import com.ecotrack.ecotrack_api.entity.Transporte;
+import com.ecotrack.ecotrack_api.entity.Usuario;
 import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
 import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
 import com.ecotrack.ecotrack_api.repository.HistoricoLoteRepository;
 import com.ecotrack.ecotrack_api.repository.LoteRepository;
 import com.ecotrack.ecotrack_api.repository.TransporteRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -24,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -48,8 +52,19 @@ class TransporteServiceTest {
     @Mock
     private DadosPessoaisCriptografiaService criptografiaService;
 
+    @Mock
+    private EscopoUsuarioService escopoUsuarioService;
+
     @InjectMocks
     private TransporteService transporteService;
+
+    @BeforeEach
+    void configurarEscopoAdmin() {
+        Usuario admin = new Usuario();
+        admin.setPerfil(Perfil.ADMIN);
+        lenient().when(escopoUsuarioService.usuarioAutenticado()).thenReturn(admin);
+        lenient().when(escopoUsuarioService.isAdmin(admin)).thenReturn(true);
+    }
 
     @Test
     void criarDefineStatusPendenteEEnviaEmailParaTransportadora() {

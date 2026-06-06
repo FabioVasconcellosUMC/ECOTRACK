@@ -7,6 +7,7 @@ import com.ecotrack.ecotrack_api.entity.Usuario;
 import com.ecotrack.ecotrack_api.exception.RecursoNaoEncontradoException;
 import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
 import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
+import com.ecotrack.ecotrack_api.repository.UsuarioRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,7 +33,13 @@ class EmpresaServiceTest {
     private EmpresaRepository empresaRepository;
 
     @Mock
+    private UsuarioRepository usuarioRepository;
+
+    @Mock
     private DadosPessoaisCriptografiaService criptografiaService;
+
+    @Mock
+    private EscopoUsuarioService escopoUsuarioService;
 
     @InjectMocks
     private EmpresaService empresaService;
@@ -141,6 +148,7 @@ class EmpresaServiceTest {
         usuario.setPerfil(perfil);
         TestingAuthenticationToken authentication = new TestingAuthenticationToken(usuario, null, "ROLE_" + perfil.name());
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        when(escopoUsuarioService.usuarioAutenticado()).thenReturn(usuario);
     }
 
     private Empresa empresaValida(TipoEmpresa tipo) {

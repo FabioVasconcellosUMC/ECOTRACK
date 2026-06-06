@@ -2,6 +2,7 @@ package com.ecotrack.ecotrack_api.service;
 
 import com.ecotrack.ecotrack_api.entity.HistoricoLote;
 import com.ecotrack.ecotrack_api.entity.Lote;
+import com.ecotrack.ecotrack_api.entity.Perfil;
 import com.ecotrack.ecotrack_api.entity.StatusLote;
 import com.ecotrack.ecotrack_api.entity.Usuario;
 import com.ecotrack.ecotrack_api.entity.Empresa;
@@ -9,6 +10,7 @@ import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
 import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
 import com.ecotrack.ecotrack_api.repository.HistoricoLoteRepository;
 import com.ecotrack.ecotrack_api.repository.LoteRepository;
+import com.ecotrack.ecotrack_api.repository.TransporteRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -37,6 +39,15 @@ class LoteServiceTest {
     @Mock
     private EmpresaRepository empresaRepository;
 
+    @Mock
+    private TransporteRepository transporteRepository;
+
+    @Mock
+    private DadosPessoaisCriptografiaService criptografiaService;
+
+    @Mock
+    private EscopoUsuarioService escopoUsuarioService;
+
     @InjectMocks
     private LoteService loteService;
 
@@ -48,7 +59,7 @@ class LoteServiceTest {
         lote.setEmpresaGeradora(empresaRef);
         Empresa empresaPersistida = new Empresa();
         empresaPersistida.setId(1L);
-        Usuario usuario = new Usuario();
+        Usuario usuario = usuarioAdmin();
         when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresaPersistida));
         when(loteRepository.save(lote)).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -75,7 +86,7 @@ class LoteServiceTest {
         Lote lote = new Lote();
         lote.setId(1L);
         lote.setStatus(StatusLote.AGUARDANDO_COLETA);
-        Usuario usuario = new Usuario();
+        Usuario usuario = usuarioAdmin();
         when(loteRepository.findByIdWithEmpresa(1L)).thenReturn(Optional.of(lote));
 
         Lote resultado = loteService.alterarStatus(1L, StatusLote.EM_TRANSITO, "coleta iniciada", usuario);
@@ -99,7 +110,7 @@ class LoteServiceTest {
         lote.setStatus(StatusLote.AGUARDANDO_COLETA);
         when(loteRepository.findByIdWithEmpresa(1L)).thenReturn(Optional.of(lote));
 
-        assertThatThrownBy(() -> loteService.alterarStatus(1L, StatusLote.AGUARDANDO_COLETA, null, new Usuario()))
+        assertThatThrownBy(() -> loteService.alterarStatus(1L, StatusLote.AGUARDANDO_COLETA, null, usuarioAdmin()))
                 .isInstanceOf(RegraNegocioException.class)
                 .hasMessage("Lote já está com o status informado");
 
@@ -113,8 +124,14 @@ class LoteServiceTest {
         lote.setStatus(StatusLote.DESCARTADO);
         when(loteRepository.findByIdWithEmpresa(1L)).thenReturn(Optional.of(lote));
 
-        assertThatThrownBy(() -> loteService.alterarStatus(1L, StatusLote.CANCELADO, null, new Usuario()))
+        assertThatThrownBy(() -> loteService.alterarStatus(1L, StatusLote.CANCELADO, null, usuarioAdmin()))
                 .isInstanceOf(RegraNegocioException.class)
                 .hasMessage("Lote já está em status final e não pode ser alterado");
+    }
+
+    private Usuario usuarioAdmin() {
+        Usuario usuario = new Usuario();
+        usuario.setPerfil(Perfil.ADMIN);
+        return usuario;
     }
 }

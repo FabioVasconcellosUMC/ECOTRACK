@@ -3,9 +3,11 @@ package com.ecotrack.ecotrack_api.service;
 import com.ecotrack.ecotrack_api.entity.Empresa;
 import com.ecotrack.ecotrack_api.entity.HistoricoLote;
 import com.ecotrack.ecotrack_api.entity.Lote;
+import com.ecotrack.ecotrack_api.entity.Perfil;
 import com.ecotrack.ecotrack_api.entity.StatusLote;
 import com.ecotrack.ecotrack_api.entity.StatusTransporte;
 import com.ecotrack.ecotrack_api.entity.Transporte;
+import com.ecotrack.ecotrack_api.entity.Usuario;
 import com.ecotrack.ecotrack_api.exception.RecursoNaoEncontradoException;
 import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
 import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
@@ -34,6 +36,7 @@ public class TransporteService {
     private final HistoricoLoteRepository historicoLoteRepository;
     private final EmailService emailService;
     private final DadosPessoaisCriptografiaService criptografiaService;
+    private final EscopoUsuarioService escopoUsuarioService;
 
     @Transactional(readOnly = true)
     public List<Transporte> listar() {
@@ -42,6 +45,16 @@ public class TransporteService {
 
     @Transactional(readOnly = true)
     public List<Transporte> listar(String termoBusca, Integer limite) {
+        Usuario usuario = escopoUsuarioService.usuarioAutenticado();
+        if (!escopoUsuarioService.isAdmin(usuario)) {
+            Empresa empresa = escopoUsuarioService.empresaVinculada(usuario);
+            if (empresa == null) {
+                return List.of();
+            }
+
+            return listarPorEscopo(usuario.getPerfil(), empresa.getId(), termoBusca, limite);
+        }
+
         Integer limiteConsulta = limiteNormalizado(limite);
         if (limiteConsulta == null) {
             return transporteRepository.findAll().stream()
@@ -63,16 +76,21 @@ public class TransporteService {
 
     @Transactional(readOnly = true)
     public Transporte buscarPorId(Long id) {
-        return descriptografarEmpresas(buscarPorIdInterno(id));
+        Transporte transporte = buscarPorIdInterno(id);
+        validarLeituraTransporte(transporte);
+        return descriptografarEmpresas(transporte);
     }
 
     @Transactional(readOnly = true)
     public Transporte buscarPorPublicId(UUID publicId) {
-        return descriptografarEmpresas(buscarPorPublicIdInterno(publicId));
+        Transporte transporte = buscarPorPublicIdInterno(publicId);
+        validarLeituraTransporte(transporte);
+        return descriptografarEmpresas(transporte);
     }
 
     public Transporte criar(Transporte transporte) {
         Lote lote = buscarLote(transporte);
+        validarCriacaoDentroDoEscopo(lote);
         validarLoteDisponivel(lote);
 
         Empresa transportadora = buscarEmpresa(transporte.getTransportadora(), "Transportadora nao encontrada");
@@ -118,6 +136,7 @@ public class TransporteService {
     }
 
     private Transporte alterarStatus(Transporte transporte, StatusTransporte novoStatus, String observacao) {
+        validarAlteracaoDentroDoEscopo(transporte);
         StatusTransporte statusAnterior = transporte.getStatus();
 
         validarAlteracaoStatus(statusAnterior, novoStatus);
@@ -141,6 +160,7 @@ public class TransporteService {
     }
 
     private Transporte confirmarRecebimentoFinal(Transporte transporte, String observacao) {
+        validarRecebimentoDentroDoEscopo(transporte);
         validarRecebimentoFinal(transporte);
 
         StatusTransporte statusAnterior = transporte.getStatus();
@@ -226,6 +246,96 @@ public class TransporteService {
         historico.setObservacao(montarObservacaoHistorico(transporte, observacao));
         historico.setDataHora(LocalDateTime.now());
         historicoLoteRepository.save(historico);
+    }
+
+    private List<Transporte> listarPorEscopo(Perfil perfil, Long empresaId, String termoBusca, Integer limite) {
+        PageRequest pageRequest = PageRequest.of(0, limiteNormalizado(limite) == null ? 100 : limiteNormalizado(limite));
+
+        if (termoBusca != null && !termoBusca.isBlank()) {
+            String busca = termoBusca.trim();
+            List<Transporte> transportes = switch (perfil) {
+                case GERADORA -> transporteRepository.buscarPorTextoGeradora(empresaId, busca, pageRequest);
+                case TRANSPORTADORA -> transporteRepository.buscarPorTextoTransportadora(empresaId, busca, pageRequest);
+                case RECEPTORA -> transporteRepository.buscarPorTextoReceptora(empresaId, busca, pageRequest);
+                default -> List.of();
+            };
+            return transportes.stream().map(this::descriptografarEmpresas).toList();
+        }
+
+        List<Transporte> transportes = switch (perfil) {
+            case GERADORA -> transporteRepository.findByLote_EmpresaGeradoraIdOrderByCriadoEmDesc(empresaId, pageRequest);
+            case TRANSPORTADORA -> transporteRepository.findByTransportadoraIdOrderByCriadoEmDesc(empresaId, pageRequest);
+            case RECEPTORA -> transporteRepository.findByReceptoraIdOrderByCriadoEmDesc(empresaId, pageRequest);
+            default -> List.of();
+        };
+        return transportes.stream().map(this::descriptografarEmpresas).toList();
+    }
+
+    private void validarCriacaoDentroDoEscopo(Lote lote) {
+        Usuario usuario = escopoUsuarioService.usuarioAutenticado();
+        if (escopoUsuarioService.isAdmin(usuario)) {
+            return;
+        }
+
+        Empresa empresa = escopoUsuarioService.empresaObrigatoria(usuario);
+        if (usuario.getPerfil() != Perfil.GERADORA
+                || lote.getEmpresaGeradora() == null
+                || !lote.getEmpresaGeradora().getId().equals(empresa.getId())) {
+            throw new RegraNegocioException("Transporte deve ser criado pela empresa geradora vinculada ao usuario");
+        }
+    }
+
+    private void validarLeituraTransporte(Transporte transporte) {
+        Usuario usuario = escopoUsuarioService.usuarioAutenticado();
+        if (escopoUsuarioService.isAdmin(usuario)) {
+            return;
+        }
+
+        Empresa empresa = escopoUsuarioService.empresaObrigatoria(usuario);
+        if (!transporteDentroDoEscopo(transporte, usuario.getPerfil(), empresa.getId())) {
+            throw new RecursoNaoEncontradoException("Transporte nao encontrado");
+        }
+    }
+
+    private void validarAlteracaoDentroDoEscopo(Transporte transporte) {
+        Usuario usuario = escopoUsuarioService.usuarioAutenticado();
+        if (escopoUsuarioService.isAdmin(usuario)) {
+            return;
+        }
+
+        Empresa empresa = escopoUsuarioService.empresaObrigatoria(usuario);
+        if (usuario.getPerfil() != Perfil.TRANSPORTADORA
+                || transporte.getTransportadora() == null
+                || !transporte.getTransportadora().getId().equals(empresa.getId())) {
+            throw new RegraNegocioException("Apenas a transportadora vinculada pode alterar o transporte");
+        }
+    }
+
+    private void validarRecebimentoDentroDoEscopo(Transporte transporte) {
+        Usuario usuario = escopoUsuarioService.usuarioAutenticado();
+        if (escopoUsuarioService.isAdmin(usuario)) {
+            return;
+        }
+
+        Empresa empresa = escopoUsuarioService.empresaObrigatoria(usuario);
+        if (usuario.getPerfil() != Perfil.RECEPTORA
+                || transporte.getReceptora() == null
+                || !transporte.getReceptora().getId().equals(empresa.getId())) {
+            throw new RegraNegocioException("Apenas a receptora vinculada pode confirmar o recebimento final");
+        }
+    }
+
+    private boolean transporteDentroDoEscopo(Transporte transporte, Perfil perfil, Long empresaId) {
+        return switch (perfil) {
+            case GERADORA -> transporte.getLote() != null
+                    && transporte.getLote().getEmpresaGeradora() != null
+                    && transporte.getLote().getEmpresaGeradora().getId().equals(empresaId);
+            case TRANSPORTADORA -> transporte.getTransportadora() != null
+                    && transporte.getTransportadora().getId().equals(empresaId);
+            case RECEPTORA -> transporte.getReceptora() != null
+                    && transporte.getReceptora().getId().equals(empresaId);
+            default -> false;
+        };
     }
 
     private Integer limiteNormalizado(Integer limite) {
