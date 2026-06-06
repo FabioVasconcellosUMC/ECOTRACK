@@ -26,7 +26,7 @@ public class Usuario implements UserDetails {
     @Column(length = 500)
     private String nome;
 
-    @Column(unique = true, length = 500)
+    @Column(columnDefinition = "TEXT")
     private String email;
 
     @JsonIgnore

@@ -2,6 +2,7 @@ package com.ecotrack.ecotrack_api.service;
 
 import com.ecotrack.ecotrack_api.entity.Empresa;
 import com.ecotrack.ecotrack_api.exception.RecursoNaoEncontradoException;
+import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
 import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -71,5 +72,18 @@ class EmpresaServiceTest {
                 .hasMessage("Empresa não encontrada");
 
         verify(empresaRepository, never()).deleteById(1L);
+    }
+
+    @Test
+    void salvarRejeitaDadosSensiveisInvalidosAntesDeCriptografar() {
+        Empresa empresa = new Empresa();
+        empresa.setRazaoSocial("Empresa Eco");
+        empresa.setCnpj("12.345<script>");
+
+        assertThatThrownBy(() -> empresaService.salvar(empresa))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessage("CNPJ deve conter apenas numeros, pontos, barra e hifen");
+
+        verify(empresaRepository, never()).save(any());
     }
 }

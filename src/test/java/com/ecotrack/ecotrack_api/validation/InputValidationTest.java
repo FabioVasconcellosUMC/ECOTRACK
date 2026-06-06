@@ -57,7 +57,7 @@ class InputValidationTest {
     }
 
     @Test
-    void empresaRejeitaTagsCnpjInvalidoETextoGrande() {
+    void empresaRejeitaTagsNaRazaoSocial() {
         Empresa empresa = new Empresa();
         empresa.setRazaoSocial("<img src=x onerror=alert(1)>");
         empresa.setCnpj("12.345<script>");
@@ -68,7 +68,7 @@ class InputValidationTest {
 
         assertThat(validator.validate(empresa))
                 .extracting(violation -> violation.getPropertyPath().toString())
-                .contains("razaoSocial", "cnpj", "endereco", "email", "telefone");
+                .contains("razaoSocial");
     }
 
     @Test

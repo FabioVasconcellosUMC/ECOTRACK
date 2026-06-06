@@ -14,6 +14,11 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class EmpresaService {
 
+    private static final String SEM_TAGS = "^[^<>]*$";
+    private static final String CNPJ_VALIDO = "^[0-9./-]+$";
+    private static final String TELEFONE_VALIDO = "^[0-9()+\\-\\s.]*$";
+    private static final String EMAIL_VALIDO = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$";
+
     private final EmpresaRepository empresaRepository;
     private final DadosPessoaisCriptografiaService criptografiaService;
 
@@ -34,6 +39,7 @@ public class EmpresaService {
     }
 
     public Empresa salvar(Empresa empresa) {
+        validarDadosAbertos(empresa);
         prepararDadosSensiveis(empresa);
         Empresa salva = empresaRepository.save(empresa);
         return descriptografarDadosSensiveis(salva);
@@ -67,6 +73,36 @@ public class EmpresaService {
         empresa.setEmail(criptografiaService.criptografar(criptografiaService.normalizarEmail(empresa.getEmail())));
         empresa.setTelefone(criptografiaService.criptografar(empresa.getTelefone()));
         empresa.setEndereco(criptografiaService.criptografar(empresa.getEndereco()));
+    }
+
+    private void validarDadosAbertos(Empresa empresa) {
+        validarObrigatorio(empresa.getCnpj(), "CNPJ e obrigatorio");
+        validarTamanho(empresa.getCnpj(), 18, "CNPJ deve ter no maximo 18 caracteres");
+        validarPadrao(empresa.getCnpj(), CNPJ_VALIDO, "CNPJ deve conter apenas numeros, pontos, barra e hifen");
+        validarTamanho(empresa.getEndereco(), 300, "Endereco deve ter no maximo 300 caracteres");
+        validarPadrao(empresa.getEndereco(), SEM_TAGS, "Endereco nao pode conter tags HTML ou scripts");
+        validarTamanho(empresa.getEmail(), 150, "E-mail deve ter no maximo 150 caracteres");
+        validarPadrao(empresa.getEmail(), EMAIL_VALIDO, "E-mail invalido");
+        validarTamanho(empresa.getTelefone(), 20, "Telefone deve ter no maximo 20 caracteres");
+        validarPadrao(empresa.getTelefone(), TELEFONE_VALIDO, "Telefone deve conter apenas numeros e caracteres telefonicos");
+    }
+
+    private void validarObrigatorio(String valor, String mensagem) {
+        if (valor == null || valor.isBlank()) {
+            throw new RegraNegocioException(mensagem);
+        }
+    }
+
+    private void validarTamanho(String valor, int tamanhoMaximo, String mensagem) {
+        if (valor != null && valor.length() > tamanhoMaximo) {
+            throw new RegraNegocioException(mensagem);
+        }
+    }
+
+    private void validarPadrao(String valor, String padrao, String mensagem) {
+        if (valor != null && !valor.matches(padrao)) {
+            throw new RegraNegocioException(mensagem);
+        }
     }
 
     private Empresa descriptografarDadosSensiveis(Empresa empresa) {
