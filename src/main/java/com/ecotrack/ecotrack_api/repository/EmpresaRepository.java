@@ -14,5 +14,7 @@ public interface EmpresaRepository extends JpaRepository<Empresa, Long> {
     Optional<Empresa> findByPublicId(UUID publicId);
     List<Empresa> findAllByOrderByCriadoEmDesc(Pageable pageable);
     List<Empresa> findByRazaoSocialContainingIgnoreCaseOrderByCriadoEmDesc(String razaoSocial, Pageable pageable);
+    long countByRazaoSocialContainingIgnoreCase(String razaoSocial);
+    long countByRazaoSocialContainingIgnoreCaseAndTipo(String razaoSocial, TipoEmpresa tipo);
     long countByTipo(TipoEmpresa tipo);
 }

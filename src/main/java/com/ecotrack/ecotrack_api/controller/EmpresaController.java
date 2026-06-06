@@ -18,8 +18,13 @@ public class EmpresaController {
     private final EmpresaService empresaService;
 
     @GetMapping
-    public List<Empresa> listar(@RequestParam(required = false, name = "q") String termoBusca,
-                                @RequestParam(required = false) Integer limit) {
+    public Object listar(@RequestParam(required = false, name = "q") String termoBusca,
+                         @RequestParam(required = false) Integer limit,
+                         @RequestParam(required = false) Integer page) {
+        if (page != null) {
+            return empresaService.listarPagina(termoBusca, page, limit);
+        }
+
         return empresaService.listar(termoBusca, limit);
     }
 

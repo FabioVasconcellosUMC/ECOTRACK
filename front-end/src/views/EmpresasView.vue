@@ -25,9 +25,10 @@
           <p class="eyebrow-italic text-cyan mb-2">Cadastro de empresas</p>
           <h1 class="display-title text-[48px] leading-[0.98]">Empresas</h1>
           <p class="text-ink-3 text-[13px] mt-2 mono-tag">
-            {{ empresas.length }} empresas · {{ contagensPorTipo.GERADORA }} geradoras ·
+            {{ totalEmpresasReal }} empresas · {{ contagensPorTipo.GERADORA }} geradoras ·
             {{ contagensPorTipo.TRANSPORTADORA }} transportadoras ·
             {{ contagensPorTipo.RECEPTORA }} receptoras
+            <span v-if="totalEmpresasReal > empresas.length"> · {{ empresas.length }} carregadas</span>
           </p>
         </div>
 
@@ -55,7 +56,7 @@
           <input
             v-model="termoBusca"
             type="text"
-            placeholder="Buscar por razão social, CNPJ ou e-mail..."
+            placeholder="Buscar por razão social..."
             class="flex-1 bg-transparent outline-none text-[13px] text-ink placeholder:text-ink-4"
           />
         </div>
@@ -121,6 +122,21 @@
         </button>
       </div>
     </section>
+
+    <div
+      v-if="temMaisEmpresas || carregandoMais"
+      class="flex items-center justify-center"
+    >
+      <button
+        @click="carregarMaisEmpresas"
+        :disabled="carregandoMais"
+        class="flex items-center gap-2 h-10 px-4 rounded-md bg-bg-elevated border border-bg-line text-ink-2 text-[11.5px] font-bold tracking-wider hover:border-cyan/40 hover:text-cyan transition-colors disabled:opacity-50"
+      >
+        <Loader2 v-if="carregandoMais" :size="14" class="animate-spin" />
+        <Plus v-else :size="14" />
+        {{ carregandoMais ? 'CARREGANDO...' : 'CARREGAR MAIS EMPRESAS' }}
+      </button>
+    </div>
 
     <Transition name="page">
       <div
@@ -423,6 +439,15 @@ const errosVazio = () => ({
 })
 
 const empresas = ref([])
+const totalEmpresasReal = ref(0)
+const totaisPorTipoReal = ref({
+  [TIPOS.GERADORA]: 0,
+  [TIPOS.TRANSPORTADORA]: 0,
+  [TIPOS.RECEPTORA]: 0,
+})
+const paginaAtual = ref(0)
+const temMaisEmpresas = ref(false)
+const carregandoMais = ref(false)
 const empresaSelecionada = ref(null)
 const modalCadastroAberto = ref(false)
 const buscandoCnpj = ref(false)
@@ -454,11 +479,14 @@ const validarFormularioCompleto = () => {
 }
 
 const contagensPorTipo = computed(() => {
-  const contagem = { [TIPOS.GERADORA]: 0, [TIPOS.TRANSPORTADORA]: 0, [TIPOS.RECEPTORA]: 0 }
-  empresas.value.forEach(empresa => {
-    if (contagem[empresa.tipo] !== undefined) contagem[empresa.tipo]++
-  })
-  return contagem
+  if (totalEmpresasReal.value > 0 || empresas.value.length === 0) {
+    return totaisPorTipoReal.value
+  }
+
+  return empresas.value.reduce((contagem, empresa) => {
+    if (contagem[empresa.tipo] !== undefined) contagem[empresa.tipo] += 1
+    return contagem
+  }, { [TIPOS.GERADORA]: 0, [TIPOS.TRANSPORTADORA]: 0, [TIPOS.RECEPTORA]: 0 })
 })
 
 const empresasFiltradas = computed(() => {
@@ -483,7 +511,7 @@ const empresasFiltradas = computed(() => {
 })
 
 const contadorParaFiltro = (valor) =>
-  valor === 'TODOS' ? empresas.value.length : (contagensPorTipo.value[valor] || 0)
+  valor === 'TODOS' ? totalEmpresasReal.value : (contagensPorTipo.value[valor] || 0)
 
 const corDoTipo = (tipo) => CORES_POR_TIPO[tipo] || COR_PADRAO
 
@@ -548,16 +576,64 @@ const exportarSelecionada = () => {
   )
 }
 
-const carregarEmpresas = async () => {
-  try {
-    empresas.value = await buscarComCache('/empresas', {
-      limit: LIMITE_LISTAGEM,
-      q: termoBusca.value.trim() || undefined,
-    })
-  } catch (erro) {
-    console.error('Erro ao carregar empresas:', erro)
+const normalizarPaginaEmpresas = (resposta) => {
+  if (Array.isArray(resposta)) {
+    return {
+      itens: resposta,
+      hasNext: false,
+      page: 0,
+      total: resposta.length,
+      totalGeradoras: resposta.filter(empresa => empresa.tipo === TIPOS.GERADORA).length,
+      totalTransportadoras: resposta.filter(empresa => empresa.tipo === TIPOS.TRANSPORTADORA).length,
+      totalReceptoras: resposta.filter(empresa => empresa.tipo === TIPOS.RECEPTORA).length,
+    }
+  }
+
+  return {
+    itens: resposta?.itens || [],
+    hasNext: Boolean(resposta?.hasNext),
+    page: Number(resposta?.page) || 0,
+    total: Number(resposta?.total) || 0,
+    totalGeradoras: Number(resposta?.totalGeradoras) || 0,
+    totalTransportadoras: Number(resposta?.totalTransportadoras) || 0,
+    totalReceptoras: Number(resposta?.totalReceptoras) || 0,
   }
 }
+
+const atualizarResumoEmpresas = (pagina) => {
+  totalEmpresasReal.value = pagina.total
+  totaisPorTipoReal.value = {
+    [TIPOS.GERADORA]: pagina.totalGeradoras,
+    [TIPOS.TRANSPORTADORA]: pagina.totalTransportadoras,
+    [TIPOS.RECEPTORA]: pagina.totalReceptoras,
+  }
+}
+
+const carregarEmpresas = async ({ acrescentar = false } = {}) => {
+  const pagina = acrescentar ? paginaAtual.value + 1 : 0
+  if (acrescentar) carregandoMais.value = true
+
+  try {
+    const resposta = await buscarComCache('/empresas', {
+      limit: LIMITE_LISTAGEM,
+      page: pagina,
+      q: termoBusca.value.trim() || undefined,
+    })
+    const paginaEmpresas = normalizarPaginaEmpresas(resposta)
+    empresas.value = acrescentar
+      ? [...empresas.value, ...paginaEmpresas.itens]
+      : paginaEmpresas.itens
+    paginaAtual.value = paginaEmpresas.page
+    temMaisEmpresas.value = paginaEmpresas.hasNext
+    atualizarResumoEmpresas(paginaEmpresas)
+  } catch (erro) {
+    console.error('Erro ao carregar empresas:', erro)
+  } finally {
+    carregandoMais.value = false
+  }
+}
+
+const carregarMaisEmpresas = () => carregarEmpresas({ acrescentar: true })
 
 const abrirDetalhes = (empresa) => { empresaSelecionada.value = empresa }
 const fecharDetalhes = () => { empresaSelecionada.value = null }
@@ -617,6 +693,8 @@ const salvarEmpresa = async () => {
 
 watch(termoBusca, () => {
   clearTimeout(timeoutBusca)
+  paginaAtual.value = 0
+  temMaisEmpresas.value = false
   timeoutBusca = setTimeout(carregarEmpresas, ATRASO_BUSCA_MS)
 })
 

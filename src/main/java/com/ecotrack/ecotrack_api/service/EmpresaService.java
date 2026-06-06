@@ -1,5 +1,6 @@
 package com.ecotrack.ecotrack_api.service;
 
+import com.ecotrack.ecotrack_api.dto.EmpresaPaginaResponse;
 import com.ecotrack.ecotrack_api.entity.Empresa;
 import com.ecotrack.ecotrack_api.entity.Perfil;
 import com.ecotrack.ecotrack_api.entity.TipoEmpresa;
@@ -62,6 +63,34 @@ public class EmpresaService {
         return empresaRepository.findAllByOrderByCriadoEmDesc(pageRequest).stream()
                 .map(this::descriptografarDadosSensiveis)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public EmpresaPaginaResponse listarPagina(String termoBusca, Integer pagina, Integer limite) {
+        int limiteConsulta = limitePaginado(limite);
+        int paginaConsulta = paginaNormalizada(pagina);
+        PageRequest pageRequest = PageRequest.of(paginaConsulta, limiteConsulta + 1);
+        String busca = termoBusca == null ? "" : termoBusca.trim();
+
+        List<Empresa> empresas = busca.isBlank()
+                ? empresaRepository.findAllByOrderByCriadoEmDesc(pageRequest)
+                : empresaRepository.findByRazaoSocialContainingIgnoreCaseOrderByCriadoEmDesc(busca, pageRequest);
+
+        boolean temProxima = empresas.size() > limiteConsulta;
+        List<Empresa> itens = (temProxima ? empresas.subList(0, limiteConsulta) : empresas).stream()
+                .map(this::descriptografarDadosSensiveis)
+                .toList();
+
+        return new EmpresaPaginaResponse(
+                itens,
+                paginaConsulta,
+                limiteConsulta,
+                temProxima,
+                totalEmpresas(busca),
+                totalEmpresasPorTipo(busca, TipoEmpresa.GERADORA),
+                totalEmpresasPorTipo(busca, TipoEmpresa.TRANSPORTADORA),
+                totalEmpresasPorTipo(busca, TipoEmpresa.RECEPTORA)
+        );
     }
 
     @Transactional(readOnly = true)
@@ -187,6 +216,35 @@ public class EmpresaService {
         }
 
         return Math.min(limite, 100);
+    }
+
+    private int paginaNormalizada(Integer pagina) {
+        if (pagina == null || pagina < 0) {
+            return 0;
+        }
+
+        return pagina;
+    }
+
+    private int limitePaginado(Integer limite) {
+        Integer normalizado = limiteNormalizado(limite);
+        return normalizado == null ? 20 : normalizado;
+    }
+
+    private long totalEmpresas(String busca) {
+        if (busca == null || busca.isBlank()) {
+            return empresaRepository.count();
+        }
+
+        return empresaRepository.countByRazaoSocialContainingIgnoreCase(busca);
+    }
+
+    private long totalEmpresasPorTipo(String busca, TipoEmpresa tipo) {
+        if (busca == null || busca.isBlank()) {
+            return empresaRepository.countByTipo(tipo);
+        }
+
+        return empresaRepository.countByRazaoSocialContainingIgnoreCaseAndTipo(busca, tipo);
     }
 
     private Empresa descriptografarDadosSensiveis(Empresa empresa) {
