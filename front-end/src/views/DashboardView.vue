@@ -161,30 +161,26 @@ const animar = (valorAlvo, chave, duracao = DURACAO_ANIMACAO_BASE) => {
 
 const NOMES_MESES = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ']
 
-// Conta quantos lotes foram criados em cada um dos últimos 6 meses
-const calcularLotesPorMes = (lotes) => {
+const preencherLotesPorMes = (lotesPorMes = []) => {
   const hoje = new Date()
   const baldes = []
 
-  // Monta os 6 meses, do mais antigo (5 meses atrás) até o atual
   for (let i = 5; i >= 0; i--) {
     const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1)
     baldes.push({
       ano: data.getFullYear(),
-      mes: data.getMonth(),       // 0 = janeiro
+      mes: data.getMonth(),
       rotulo: NOMES_MESES[data.getMonth()],
       total: 0,
     })
   }
 
-  // Pra cada lote, descobre em qual mês ele foi criado e incrementa
-  lotes.forEach((lote) => {
-    if (!lote.criadoEm) return
-    const dataLote = new Date(lote.criadoEm)
+  lotesPorMes.forEach((item) => {
+    const dataLote = new Date(Number(item.ano), Number(item.mes) - 1, 1)
     const balde = baldes.find(
       (b) => b.ano === dataLote.getFullYear() && b.mes === dataLote.getMonth(),
     )
-    if (balde) balde.total++
+    if (balde) balde.total = Number(item.total) || 0
   })
 
   graficoLabels.value  = baldes.map((b) => b.rotulo)
@@ -193,28 +189,14 @@ const calcularLotesPorMes = (lotes) => {
 
 const carregarIndicadores = async () => {
   try {
-    const [respostaEmpresas, respostaLotes, respostaTransportes] = await Promise.all([
-      buscarComCache('/empresas'),
-      buscarComCache('/lotes'),
-      buscarComCache('/transportes'),
-    ])
+    const resumo = await buscarComCache('/dashboard/resumo')
 
-    totalEmpresas.value = respostaEmpresas.length
-    totalLotes.value    = respostaLotes.length
-    totalEmTransito.value = respostaTransportes.filter(
-      transporte => transporte.status === 'EM_TRANSITO',
-    ).length
+    totalEmpresas.value = Number(resumo.totalEmpresas) || 0
+    totalLotes.value = Number(resumo.totalLotes) || 0
+    totalEmTransito.value = Number(resumo.totalEmTransito) || 0
+    totalToneladas.value = Number(resumo.totalToneladas) || 0
 
-    totalToneladas.value = respostaLotes.reduce((soma, lote) => {
-      const quantidade = Number(lote.quantidade) || 0
-      const unidade = (lote.unidade || '').toUpperCase()
-      if (unidade === 'TON') return soma + quantidade
-      if (unidade === 'KG')  return soma + quantidade / 1000
-      return soma
-    }, 0)
-
-    // Calcula a distribuição de lotes nos últimos 6 meses
-    calcularLotesPorMes(respostaLotes)
+    preencherLotesPorMes(resumo.lotesPorMes)
 
     animar(Math.round(totalToneladas.value), 'toneladas',  DURACAO_ANIMACAO_HERO)
     animar(totalEmpresas.value,                'empresas',  DURACAO_ANIMACAO_BASE)

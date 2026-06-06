@@ -56,7 +56,7 @@
               <p class="eyebrow">Distribuição</p>
               <h3 class="section-title text-[22px] mt-1">Empresas por tipo</h3>
             </div>
-            <span class="mono-tag text-ink-3 text-[11px]">{{ empresas.length }} total</span>
+            <span class="mono-tag text-ink-3 text-[11px]">{{ totalEmpresasResumo }} total</span>
           </div>
 
           <div class="space-y-4">
@@ -88,7 +88,7 @@
               <p class="eyebrow">Operação</p>
               <h3 class="section-title text-[22px] mt-1">Lotes por status</h3>
             </div>
-            <span class="mono-tag text-ink-3 text-[11px]">{{ lotes.length }} total</span>
+            <span class="mono-tag text-ink-3 text-[11px]">{{ totalLotesResumo }} total</span>
           </div>
 
           <div class="space-y-4">
@@ -238,12 +238,21 @@ const empresas    = ref([])
 const lotes       = ref([])
 const transportes = ref([])
 const carregando  = ref(false)
+const resumoRelatorios = ref(null)
+
+const totalEmpresasResumo = computed(() => Number(resumoRelatorios.value?.totalEmpresas) || empresas.value.length)
+const totalLotesResumo = computed(() => Number(resumoRelatorios.value?.totalLotes) || lotes.value.length)
+const totalTransportesResumo = computed(() => Number(resumoRelatorios.value?.totalTransportes) || transportes.value.length)
 
 const dataLonga = new Date().toLocaleDateString('pt-BR', {
   weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
 }).toUpperCase()
 
 const totalToneladas = computed(() => {
+  if (resumoRelatorios.value) {
+    return Math.round(Number(resumoRelatorios.value.totalToneladas) || 0)
+  }
+
   const soma = lotes.value.reduce((acc, lote) => {
     const quantidade = Number(lote.quantidade) || 0
     const unidade = (lote.unidade || '').toUpperCase()
@@ -255,11 +264,13 @@ const totalToneladas = computed(() => {
 })
 
 const transportesConcluidos = computed(() =>
-  transportes.value.filter(t => t.status === 'CONCLUIDO').length,
+  Number(resumoRelatorios.value?.transportesConcluidos)
+    || transportes.value.filter(t => t.status === 'CONCLUIDO').length,
 )
 
 const transportesEmAndamento = computed(() =>
-  transportes.value.filter(t => t.status === 'PENDENTE' || t.status === 'EM_TRANSITO').length,
+  Number(resumoRelatorios.value?.transportesEmAndamento)
+    || transportes.value.filter(t => t.status === 'PENDENTE' || t.status === 'EM_TRANSITO').length,
 )
 
 const cartoesGerais = computed(() => [
@@ -272,7 +283,7 @@ const cartoesGerais = computed(() => [
   },
   {
     rotulo: 'Empresas no ecossistema',
-    valor: empresas.value.length,
+    valor: totalEmpresasResumo.value,
     descricao: 'parceiros cadastrados',
     icone: Building2,
     cor: '#38BDF8',
@@ -294,6 +305,17 @@ const cartoesGerais = computed(() => [
 ])
 
 const empresasPorTipo = computed(() => {
+  if (resumoRelatorios.value?.empresasPorTipo) {
+    const total = totalEmpresasResumo.value
+    return resumoRelatorios.value.empresasPorTipo.map(({ categoria, total: totalTipo }) => ({
+      tipo:       categoria,
+      rotulo:     ROTULOS_TIPO[categoria],
+      cor:        CORES_TIPO[categoria],
+      total:      Number(totalTipo) || 0,
+      percentual: total === 0 ? 0 : Math.round(((Number(totalTipo) || 0) / total) * 100),
+    }))
+  }
+
   const total = empresas.value.length
   return ['GERADORA', 'TRANSPORTADORA', 'RECEPTORA'].map(tipo => {
     const totalTipo = empresas.value.filter(e => e.tipo === tipo).length
@@ -308,6 +330,17 @@ const empresasPorTipo = computed(() => {
 })
 
 const lotesPorStatus = computed(() => {
+  if (resumoRelatorios.value?.lotesPorStatus) {
+    const total = totalLotesResumo.value
+    return resumoRelatorios.value.lotesPorStatus.map(({ categoria, total: totalStatus }) => ({
+      status:     categoria,
+      rotulo:     ROTULOS_STATUS_LOTE[categoria],
+      cor:        CORES_STATUS_LOTE[categoria],
+      total:      Number(totalStatus) || 0,
+      percentual: total === 0 ? 0 : Math.round(((Number(totalStatus) || 0) / total) * 100),
+    }))
+  }
+
   const total = lotes.value.length
   return ['AGUARDANDO_COLETA', 'EM_TRANSITO', 'DESCARTADO', 'CANCELADO'].map(status => {
     const totalStatus = lotes.value.filter(l => l.status === status).length
@@ -322,6 +355,14 @@ const lotesPorStatus = computed(() => {
 })
 
 const rankingTransportadoras = computed(() => {
+  if (resumoRelatorios.value?.rankingTransportadoras) {
+    return resumoRelatorios.value.rankingTransportadoras.map(item => ({
+      id: item.id,
+      razaoSocial: item.razaoSocial,
+      totalTransportes: Number(item.total) || 0,
+    }))
+  }
+
   const contagem = new Map()
   transportes.value.forEach(transporte => {
     const empresa = transporte.transportadora
@@ -337,6 +378,14 @@ const rankingTransportadoras = computed(() => {
 })
 
 const rankingGeradoras = computed(() => {
+  if (resumoRelatorios.value?.rankingGeradoras) {
+    return resumoRelatorios.value.rankingGeradoras.map(item => ({
+      id: item.id,
+      razaoSocial: item.razaoSocial,
+      totalLotes: Number(item.total) || 0,
+    }))
+  }
+
   const contagem = new Map()
   lotes.value.forEach(lote => {
     const empresa = lote.empresaGeradora || lote.empresa
@@ -360,14 +409,7 @@ const estiloIcone = (cor) => ({
 const carregarDados = async () => {
   carregando.value = true
   try {
-    const [respEmpresas, respLotes, respTransportes] = await Promise.all([
-      buscarComCache('/empresas'),
-      buscarComCache('/lotes'),
-      buscarComCache('/transportes'),
-    ])
-    empresas.value    = respEmpresas
-    lotes.value       = respLotes
-    transportes.value = respTransportes
+    resumoRelatorios.value = await buscarComCache('/relatorios/resumo')
   } catch (erro) {
     console.error('Erro ao carregar relatórios:', erro)
   } finally {
@@ -376,9 +418,9 @@ const carregarDados = async () => {
 }
 
 const contarRegistros = (chave) => {
-  if (chave === 'empresas')    return empresas.value.length
-  if (chave === 'lotes')       return lotes.value.length
-  if (chave === 'transportes') return transportes.value.length
+  if (chave === 'empresas')    return totalEmpresasResumo.value
+  if (chave === 'lotes')       return totalLotesResumo.value
+  if (chave === 'transportes') return totalTransportesResumo.value
   return 0
 }
 
@@ -414,7 +456,23 @@ const transporteParaCsv = (transporte) => ({
   dataEntrega:    transporte.dataEntrega || '',
 })
 
-const exportarBase = (chave) => {
+const carregarBaseParaExportacao = async (chave) => {
+  if (chave === 'empresas' && empresas.value.length === 0) {
+    empresas.value = await buscarComCache('/empresas')
+  }
+
+  if (chave === 'lotes' && lotes.value.length === 0) {
+    lotes.value = await buscarComCache('/lotes')
+  }
+
+  if (chave === 'transportes' && transportes.value.length === 0) {
+    transportes.value = await buscarComCache('/transportes')
+  }
+}
+
+const exportarBase = async (chave) => {
+  await carregarBaseParaExportacao(chave)
+
   if (chave === 'empresas') {
     exportCsv('ecotrack-empresas.csv', empresas.value.map(empresaParaCsv))
   } else if (chave === 'lotes') {

@@ -1,6 +1,7 @@
 package com.ecotrack.ecotrack_api.repository;
 
 import com.ecotrack.ecotrack_api.entity.Lote;
+import com.ecotrack.ecotrack_api.entity.StatusLote;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -18,6 +19,7 @@ public interface LoteRepository extends JpaRepository<Lote, Long> {
     Optional<Lote> findByPublicIdWithEmpresa(@Param("publicId") UUID publicId);
 
     Optional<Lote> findByPublicId(UUID publicId);
+    long countByStatus(StatusLote status);
 
     @Query("""
             SELECT l FROM Lote l
@@ -34,4 +36,27 @@ public interface LoteRepository extends JpaRepository<Lote, Long> {
             ORDER BY l.criadoEm DESC
             """)
     List<Lote> buscarPorTexto(@Param("q") String q, Pageable pageable);
+
+    @Query("""
+            SELECT UPPER(l.unidade), COALESCE(SUM(l.quantidade), 0)
+            FROM Lote l
+            GROUP BY UPPER(l.unidade)
+            """)
+    List<Object[]> somarQuantidadePorUnidade();
+
+    @Query("""
+            SELECT YEAR(l.criadoEm), MONTH(l.criadoEm), COUNT(l)
+            FROM Lote l
+            WHERE l.criadoEm >= :inicio
+            GROUP BY YEAR(l.criadoEm), MONTH(l.criadoEm)
+            """)
+    List<Object[]> contarPorMesDesde(@Param("inicio") java.time.LocalDateTime inicio);
+
+    @Query("""
+            SELECT l.empresaGeradora.publicId, l.empresaGeradora.razaoSocial, COUNT(l)
+            FROM Lote l
+            GROUP BY l.empresaGeradora.publicId, l.empresaGeradora.razaoSocial
+            ORDER BY COUNT(l) DESC
+            """)
+    List<Object[]> rankingGeradoras(Pageable pageable);
 }
