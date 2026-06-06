@@ -90,7 +90,7 @@ import {
 import {
   Building2, Boxes, Truck, ScrollText,
 } from 'lucide-vue-next'
-import api from '../services/api'
+import { buscarComCache } from '../services/dataCache'
 
 ChartJS.register(CategoryScale, LinearScale, BarController, BarElement, Tooltip, LineController, LineElement, PointElement)
 
@@ -194,18 +194,18 @@ const calcularLotesPorMes = (lotes) => {
 const carregarIndicadores = async () => {
   try {
     const [respostaEmpresas, respostaLotes, respostaTransportes] = await Promise.all([
-      api.get('/empresas'),
-      api.get('/lotes'),
-      api.get('/transportes'),
+      buscarComCache('/empresas'),
+      buscarComCache('/lotes'),
+      buscarComCache('/transportes'),
     ])
 
-    totalEmpresas.value = respostaEmpresas.data.length
-    totalLotes.value    = respostaLotes.data.length
-    totalEmTransito.value = respostaTransportes.data.filter(
+    totalEmpresas.value = respostaEmpresas.length
+    totalLotes.value    = respostaLotes.length
+    totalEmTransito.value = respostaTransportes.filter(
       transporte => transporte.status === 'EM_TRANSITO',
     ).length
 
-    totalToneladas.value = respostaLotes.data.reduce((soma, lote) => {
+    totalToneladas.value = respostaLotes.reduce((soma, lote) => {
       const quantidade = Number(lote.quantidade) || 0
       const unidade = (lote.unidade || '').toUpperCase()
       if (unidade === 'TON') return soma + quantidade
@@ -214,7 +214,7 @@ const carregarIndicadores = async () => {
     }, 0)
 
     // Calcula a distribuição de lotes nos últimos 6 meses
-    calcularLotesPorMes(respostaLotes.data)
+    calcularLotesPorMes(respostaLotes)
 
     animar(Math.round(totalToneladas.value), 'toneladas',  DURACAO_ANIMACAO_HERO)
     animar(totalEmpresas.value,                'empresas',  DURACAO_ANIMACAO_BASE)

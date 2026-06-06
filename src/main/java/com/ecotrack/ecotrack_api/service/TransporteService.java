@@ -14,6 +14,7 @@ import com.ecotrack.ecotrack_api.repository.LoteRepository;
 import com.ecotrack.ecotrack_api.repository.TransporteRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,7 +37,26 @@ public class TransporteService {
 
     @Transactional(readOnly = true)
     public List<Transporte> listar() {
-        return transporteRepository.findAll().stream()
+        return listar(null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Transporte> listar(String termoBusca, Integer limite) {
+        Integer limiteConsulta = limiteNormalizado(limite);
+        if (limiteConsulta == null) {
+            return transporteRepository.findAll().stream()
+                    .map(this::descriptografarEmpresas)
+                    .toList();
+        }
+
+        PageRequest pageRequest = PageRequest.of(0, limiteConsulta);
+        if (termoBusca != null && !termoBusca.isBlank()) {
+            return transporteRepository.buscarPorTexto(termoBusca.trim(), pageRequest).stream()
+                    .map(this::descriptografarEmpresas)
+                    .toList();
+        }
+
+        return transporteRepository.findAllByOrderByCriadoEmDesc(pageRequest).stream()
                 .map(this::descriptografarEmpresas)
                 .toList();
     }
@@ -206,6 +226,14 @@ public class TransporteService {
         historico.setObservacao(montarObservacaoHistorico(transporte, observacao));
         historico.setDataHora(LocalDateTime.now());
         historicoLoteRepository.save(historico);
+    }
+
+    private Integer limiteNormalizado(Integer limite) {
+        if (limite == null || limite <= 0) {
+            return null;
+        }
+
+        return Math.min(limite, 100);
     }
 
     private String montarObservacaoHistorico(Transporte transporte, String observacao) {

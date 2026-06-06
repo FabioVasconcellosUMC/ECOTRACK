@@ -340,12 +340,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import {
   Search, Plus, Building2, Hash, X, Check,
   AlertCircle, Loader2, Download, ChevronRight,
 } from 'lucide-vue-next'
 import api from '../services/api'
+import { buscarComCache, invalidarCacheDados } from '../services/dataCache'
 import FormField from '../components/ui/FormField.vue'
 import { exportCsv } from '../utils/exportCsv'
 import { removerMascara } from '../composables/useMascara'
@@ -388,6 +389,9 @@ const COR_PADRAO = '#A5ACAF'
 const TAMANHO_ID = 4
 const TAMANHO_INDICE = 2
 const CNPJ_DIGITOS = 14
+const LIMITE_LISTAGEM = 20
+const ATRASO_BUSCA_MS = 350
+let timeoutBusca = null
 
 const perfilUsuario = computed(() =>
   (localStorage.getItem('perfil') || '').toUpperCase(),
@@ -546,8 +550,10 @@ const exportarSelecionada = () => {
 
 const carregarEmpresas = async () => {
   try {
-    const resposta = await api.get('/empresas')
-    empresas.value = resposta.data
+    empresas.value = await buscarComCache('/empresas', {
+      limit: LIMITE_LISTAGEM,
+      q: termoBusca.value.trim() || undefined,
+    })
   } catch (erro) {
     console.error('Erro ao carregar empresas:', erro)
   }
@@ -599,6 +605,7 @@ const salvarEmpresa = async () => {
   mensagemErro.value = ''
   try {
     await api.post('/empresas', formulario.value)
+    invalidarCacheDados('/empresas', '/lotes', '/transportes')
     fecharModalCadastro()
     await carregarEmpresas()
   } catch (erro) {
@@ -607,6 +614,11 @@ const salvarEmpresa = async () => {
     salvando.value = false
   }
 }
+
+watch(termoBusca, () => {
+  clearTimeout(timeoutBusca)
+  timeoutBusca = setTimeout(carregarEmpresas, ATRASO_BUSCA_MS)
+})
 
 onMounted(carregarEmpresas)
 </script>

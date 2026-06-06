@@ -11,6 +11,7 @@ import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
 import com.ecotrack.ecotrack_api.repository.HistoricoLoteRepository;
 import com.ecotrack.ecotrack_api.repository.LoteRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,7 +42,26 @@ public class LoteService {
 
     @Transactional(readOnly = true)
     public List<Lote> listarTodos() {
-        return loteRepository.findAll().stream()
+        return listarTodos(null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Lote> listarTodos(String termoBusca, Integer limite) {
+        Integer limiteConsulta = limiteNormalizado(limite);
+        if (limiteConsulta == null) {
+            return loteRepository.findAll().stream()
+                    .map(this::descriptografarEmpresaGeradora)
+                    .toList();
+        }
+
+        PageRequest pageRequest = PageRequest.of(0, limiteConsulta);
+        if (termoBusca != null && !termoBusca.isBlank()) {
+            return loteRepository.buscarPorTexto(termoBusca.trim(), pageRequest).stream()
+                    .map(this::descriptografarEmpresaGeradora)
+                    .toList();
+        }
+
+        return loteRepository.findRecentes(pageRequest).stream()
                 .map(this::descriptografarEmpresaGeradora)
                 .toList();
     }
@@ -122,6 +142,14 @@ public class LoteService {
         historico.setObservacao(observacao);
         historico.setDataHora(LocalDateTime.now());
         historicoLoteRepository.save(historico);
+    }
+
+    private Integer limiteNormalizado(Integer limite) {
+        if (limite == null || limite <= 0) {
+            return null;
+        }
+
+        return Math.min(limite, 100);
     }
 
     private Empresa buscarEmpresaGeradora(Lote lote) {

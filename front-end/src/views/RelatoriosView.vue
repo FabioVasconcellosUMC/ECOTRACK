@@ -199,7 +199,7 @@ import { ref, computed, onMounted } from 'vue'
 import {
   Download, Loader2, Building2, Boxes, Truck, ScrollText, FileSpreadsheet,
 } from 'lucide-vue-next'
-import api from '../services/api'
+import { buscarComCache } from '../services/dataCache'
 import { exportCsv } from '../utils/exportCsv'
 
 const CORES_TIPO = {
@@ -361,13 +361,13 @@ const carregarDados = async () => {
   carregando.value = true
   try {
     const [respEmpresas, respLotes, respTransportes] = await Promise.all([
-      api.get('/empresas'),
-      api.get('/lotes'),
-      api.get('/transportes'),
+      buscarComCache('/empresas'),
+      buscarComCache('/lotes'),
+      buscarComCache('/transportes'),
     ])
-    empresas.value    = respEmpresas.data
-    lotes.value       = respLotes.data
-    transportes.value = respTransportes.data
+    empresas.value    = respEmpresas
+    lotes.value       = respLotes
+    transportes.value = respTransportes
   } catch (erro) {
     console.error('Erro ao carregar relatórios:', erro)
   } finally {

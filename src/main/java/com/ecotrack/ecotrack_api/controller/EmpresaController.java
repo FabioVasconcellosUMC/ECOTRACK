@@ -18,8 +18,9 @@ public class EmpresaController {
     private final EmpresaService empresaService;
 
     @GetMapping
-    public List<Empresa> listar() {
-        return empresaService.listar();
+    public List<Empresa> listar(@RequestParam(required = false, name = "q") String termoBusca,
+                                @RequestParam(required = false) Integer limit) {
+        return empresaService.listar(termoBusca, limit);
     }
 
     @GetMapping("/{publicId}")

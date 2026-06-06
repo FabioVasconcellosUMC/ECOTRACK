@@ -411,13 +411,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import {
   Plus, Download, Search, X, Save, Loader2, AlertCircle, Truck, Clock,
   Play, CheckCircle, XCircle, Info,
 } from 'lucide-vue-next'
 import FormField from '../components/ui/FormField.vue'
 import api from '../services/api'
+import { buscarComCache, invalidarCacheDados } from '../services/dataCache'
 import { exportCsv } from '../utils/exportCsv'
 
 const STATUS = {
@@ -426,6 +427,10 @@ const STATUS = {
   CONCLUIDO:   'CONCLUIDO',
   CANCELADO:   'CANCELADO',
 }
+
+const LIMITE_LISTAGEM = 20
+const ATRASO_BUSCA_MS = 350
+let timeoutBusca = null
 
 const CORES_STATUS = {
   PENDENTE:    '#F59E0B',
@@ -750,13 +755,16 @@ const carregarDados = async () => {
   carregando.value = true
   try {
     const [respTransportes, respLotes, respEmpresas] = await Promise.all([
-      api.get('/transportes'),
-      api.get('/lotes'),
-      api.get('/empresas'),
+      buscarComCache('/transportes', {
+        limit: LIMITE_LISTAGEM,
+        q: termoBusca.value.trim() || undefined,
+      }),
+      buscarComCache('/lotes'),
+      buscarComCache('/empresas'),
     ])
-    transportes.value = respTransportes.data
-    lotes.value       = respLotes.data
-    empresas.value    = respEmpresas.data
+    transportes.value = respTransportes
+    lotes.value       = respLotes
+    empresas.value    = respEmpresas
   } catch (erro) {
     console.error('Erro ao carregar dados:', erro)
     exibirToast('Falha ao carregar dados do servidor.', CORES_STATUS.CANCELADO, AlertCircle)
@@ -780,6 +788,7 @@ const salvarTransporte = async () => {
       receptora:      { publicId: formulario.value.receptoraId },
       responsavel:    formulario.value.responsavel.trim(),
     })
+    invalidarCacheDados('/transportes', '/lotes')
     fecharModalCadastro()
     await carregarDados()
     exibirToast(`Transporte ${formatarId(resposta.data)} criado · status PENDENTE`)
@@ -813,6 +822,7 @@ const confirmarMudancaStatus = async () => {
       )
     }
     const novoStatus = confirmacaoStatus.value.novoStatus
+    invalidarCacheDados('/transportes', '/lotes')
     fecharConfirmacaoStatus()
     fecharDetalhes()
     await carregarDados()
@@ -880,6 +890,11 @@ const baixarManifesto = async (transporte) => {
     baixandoManifesto.value = null
   }
 }
+
+watch(termoBusca, () => {
+  clearTimeout(timeoutBusca)
+  timeoutBusca = setTimeout(carregarDados, ATRASO_BUSCA_MS)
+})
 
 onMounted(carregarDados)
 </script>

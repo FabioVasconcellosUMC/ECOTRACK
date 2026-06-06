@@ -28,8 +28,9 @@ public class TransporteController {
     private final ManifestoPdfService manifestoPdfService;
 
     @GetMapping
-    public ResponseEntity<List<Transporte>> listar() {
-        return ResponseEntity.ok(transporteService.listar());
+    public ResponseEntity<List<Transporte>> listar(@RequestParam(required = false, name = "q") String termoBusca,
+                                                   @RequestParam(required = false) Integer limit) {
+        return ResponseEntity.ok(transporteService.listar(termoBusca, limit));
     }
 
     @GetMapping("/{publicId}")

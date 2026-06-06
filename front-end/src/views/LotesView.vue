@@ -43,6 +43,18 @@
       </div>
     </header>
 
+    <section class="rounded-2xl bg-bg-panel border border-bg-line-strong p-4 helmet-stripe">
+      <div class="relative max-w-xl">
+        <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-ink-3" />
+        <input
+          v-model="termoBusca"
+          type="search"
+          class="w-full h-12 rounded-md bg-bg-base border border-bg-line pl-11 pr-4 text-[14px] text-ink placeholder:text-ink-4 focus:outline-none focus:border-cyan/60"
+          placeholder="Buscar por descrição ou tipo de resíduo..."
+        >
+      </div>
+    </section>
+
     <section v-if="vistaAtiva === 'kanban'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <div
         v-for="coluna in COLUNAS_STATUS"
@@ -340,12 +352,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import {
   Plus, Package, X, Check, AlertCircle, Loader2, Building2,
-  Columns3, Rows3, Download,
+  Columns3, Rows3, Download, Search,
 } from 'lucide-vue-next'
 import api from '../services/api'
+import { buscarComCache, invalidarCacheDados } from '../services/dataCache'
 import FormField from '../components/ui/FormField.vue'
 import { exportCsv } from '../utils/exportCsv'
 import { validarTamanhoMinimo } from '../composables/useValidacao'
@@ -374,6 +387,9 @@ const COR_PADRAO = '#A5ACAF'
 const TAMANHO_ID = 4
 const TAMANHO_INDICE = 2
 const TIPO_EMPRESA_GERADORA = 'GERADORA'
+const LIMITE_LISTAGEM = 20
+const ATRASO_BUSCA_MS = 350
+let timeoutBusca = null
 
 const formularioVazio = () => ({
   descricao: '',
@@ -399,6 +415,7 @@ const mensagemErro = ref('')
 const vistaAtiva = ref('kanban')
 const formulario = ref(formularioVazio())
 const erros = ref(errosVazio())
+const termoBusca = ref('')
 
 const empresasGeradoras = computed(() =>
   empresas.value.filter(empresa => empresa.tipo === TIPO_EMPRESA_GERADORA),
@@ -499,11 +516,14 @@ const exportarSelecionado = () => {
 const carregarDados = async () => {
   try {
     const [respostaLotes, respostaEmpresas] = await Promise.all([
-      api.get('/lotes'),
-      api.get('/empresas'),
+      buscarComCache('/lotes', {
+        limit: LIMITE_LISTAGEM,
+        q: termoBusca.value.trim() || undefined,
+      }),
+      buscarComCache('/empresas'),
     ])
-    lotes.value = respostaLotes.data
-    empresas.value = respostaEmpresas.data
+    lotes.value = respostaLotes
+    empresas.value = respostaEmpresas
   } catch (erro) {
     console.error('Erro ao carregar dados de lotes:', erro)
   }
@@ -539,6 +559,7 @@ const salvarLote = async () => {
       unidade:         formulario.value.unidade,
       empresaGeradora: { publicId: formulario.value.empresaGeradoraId },
     })
+    invalidarCacheDados('/lotes', '/transportes')
     fecharModalCadastro()
     await carregarDados()
   } catch (erro) {
@@ -547,6 +568,11 @@ const salvarLote = async () => {
     salvando.value = false
   }
 }
+
+watch(termoBusca, () => {
+  clearTimeout(timeoutBusca)
+  timeoutBusca = setTimeout(carregarDados, ATRASO_BUSCA_MS)
+})
 
 onMounted(carregarDados)
 </script>

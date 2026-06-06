@@ -32,8 +32,9 @@ public class LoteController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Lote>> listar() {
-        return ResponseEntity.ok(loteService.listarTodos());
+    public ResponseEntity<List<Lote>> listar(@RequestParam(required = false, name = "q") String termoBusca,
+                                             @RequestParam(required = false) Integer limit) {
+        return ResponseEntity.ok(loteService.listarTodos(termoBusca, limit));
     }
 
     @GetMapping("/{publicId}")

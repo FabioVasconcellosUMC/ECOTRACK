@@ -8,6 +8,7 @@ import com.ecotrack.ecotrack_api.exception.RecursoNaoEncontradoException;
 import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
 import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -30,7 +31,34 @@ public class EmpresaService {
 
     @Transactional(readOnly = true)
     public List<Empresa> listar() {
-        return empresaRepository.findAll().stream()
+        return listar(null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Empresa> listar(String termoBusca, Integer limite) {
+        if (limiteNormalizado(limite) == null) {
+            if (termoBusca == null || termoBusca.isBlank()) {
+                return empresaRepository.findAll().stream()
+                        .map(this::descriptografarDadosSensiveis)
+                        .toList();
+            }
+
+            return empresaRepository.findByRazaoSocialContainingIgnoreCaseOrderByCriadoEmDesc(
+                            termoBusca.trim(),
+                            PageRequest.of(0, Integer.MAX_VALUE)
+                    ).stream()
+                    .map(this::descriptografarDadosSensiveis)
+                    .toList();
+        }
+
+        PageRequest pageRequest = PageRequest.of(0, limiteNormalizado(limite));
+        if (termoBusca != null && !termoBusca.isBlank()) {
+            return empresaRepository.findByRazaoSocialContainingIgnoreCaseOrderByCriadoEmDesc(termoBusca.trim(), pageRequest).stream()
+                    .map(this::descriptografarDadosSensiveis)
+                    .toList();
+        }
+
+        return empresaRepository.findAllByOrderByCriadoEmDesc(pageRequest).stream()
                 .map(this::descriptografarDadosSensiveis)
                 .toList();
     }
@@ -145,6 +173,14 @@ public class EmpresaService {
         }
 
         return usuario.getPerfil();
+    }
+
+    private Integer limiteNormalizado(Integer limite) {
+        if (limite == null || limite <= 0) {
+            return null;
+        }
+
+        return Math.min(limite, 100);
     }
 
     private Empresa descriptografarDadosSensiveis(Empresa empresa) {
