@@ -29,18 +29,19 @@ public class DadosSensiveisBackfillRunner implements ApplicationRunner {
     @Transactional
     public void run(ApplicationArguments args) {
         List<Usuario> usuarios = usuarioRepository.findAll();
-        long usuariosAlterados = usuarios.stream()
+        List<Usuario> usuariosAlterados = usuarios.stream()
                 .filter(this::protegerUsuario)
-                .count();
-        usuarioRepository.saveAll(usuarios);
+                .toList();
+        usuarioRepository.saveAllAndFlush(usuariosAlterados);
 
         List<Empresa> empresas = empresaRepository.findAll();
-        long empresasAlteradas = empresas.stream()
+        List<Empresa> empresasAlteradas = empresas.stream()
                 .filter(this::protegerEmpresa)
-                .count();
-        empresaRepository.saveAll(empresas);
+                .toList();
+        empresaRepository.saveAllAndFlush(empresasAlteradas);
 
-        log.info("Backfill LGPD concluido: {} usuarios e {} empresas protegidos", usuariosAlterados, empresasAlteradas);
+        log.info("Backfill LGPD concluido: {} usuarios e {} empresas protegidos",
+                usuariosAlterados.size(), empresasAlteradas.size());
     }
 
     private boolean protegerUsuario(Usuario usuario) {
