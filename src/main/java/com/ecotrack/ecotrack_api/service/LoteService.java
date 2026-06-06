@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -93,7 +94,7 @@ public class LoteService {
         if (!escopoUsuarioService.isAdmin(usuario)) {
             Empresa empresa = escopoUsuarioService.empresaVinculada(usuario);
             if (empresa == null) {
-                return new PaginaResponse<>(List.of(), paginaConsulta, limiteConsulta, false);
+                return new PaginaResponse<>(List.of(), paginaConsulta, limiteConsulta, false, 0, totaisVazios());
             }
 
             lotes = listarPorEscopo(usuario.getPerfil(), empresa.getId(), termoBusca, pageRequest);
@@ -107,7 +108,7 @@ public class LoteService {
                     .toList();
         }
 
-        return montarPagina(lotes, paginaConsulta, limiteConsulta);
+        return montarPagina(lotes, paginaConsulta, limiteConsulta, usuario, termoBusca);
     }
 
     @Transactional(readOnly = true)
@@ -219,10 +220,11 @@ public class LoteService {
         return lotes.stream().map(this::descriptografarEmpresaGeradora).toList();
     }
 
-    private PaginaResponse<Lote> montarPagina(List<Lote> lotes, int pagina, int limite) {
+    private PaginaResponse<Lote> montarPagina(List<Lote> lotes, int pagina, int limite, Usuario usuario, String termoBusca) {
         boolean temProxima = lotes.size() > limite;
         List<Lote> itens = temProxima ? lotes.subList(0, limite) : lotes;
-        return new PaginaResponse<>(itens, pagina, limite, temProxima);
+        String busca = termoBusca == null ? "" : termoBusca.trim();
+        return new PaginaResponse<>(itens, pagina, limite, temProxima, totalLotes(usuario, busca), totaisPorStatus(usuario, busca));
     }
 
     private int paginaNormalizada(Integer pagina) {
@@ -236,6 +238,77 @@ public class LoteService {
     private int limitePaginado(Integer limite) {
         Integer normalizado = limiteNormalizado(limite);
         return normalizado == null ? 20 : normalizado;
+    }
+
+    private long totalLotes(Usuario usuario, String busca) {
+        if (escopoUsuarioService.isAdmin(usuario)) {
+            return busca.isBlank() ? loteRepository.count() : loteRepository.countPorTexto(busca);
+        }
+
+        Empresa empresa = escopoUsuarioService.empresaVinculada(usuario);
+        if (empresa == null) {
+            return 0;
+        }
+
+        return switch (usuario.getPerfil()) {
+            case GERADORA -> busca.isBlank()
+                    ? loteRepository.countByEmpresaGeradoraId(empresa.getId())
+                    : loteRepository.countByEmpresaGeradoraIdAndDescricaoContainingIgnoreCaseOrEmpresaGeradoraIdAndTipoResiduoContainingIgnoreCase(
+                            empresa.getId(), busca, empresa.getId(), busca);
+            case TRANSPORTADORA -> busca.isBlank()
+                    ? loteRepository.countPorTransportadora(empresa.getId())
+                    : loteRepository.countPorTextoTransportadora(empresa.getId(), busca);
+            case RECEPTORA -> busca.isBlank()
+                    ? loteRepository.countPorReceptora(empresa.getId())
+                    : loteRepository.countPorTextoReceptora(empresa.getId(), busca);
+            default -> 0;
+        };
+    }
+
+    private Map<String, Long> totaisPorStatus(Usuario usuario, String busca) {
+        return Map.of(
+                StatusLote.AGUARDANDO_COLETA.name(), totalLotesPorStatus(usuario, busca, StatusLote.AGUARDANDO_COLETA),
+                StatusLote.EM_TRANSITO.name(), totalLotesPorStatus(usuario, busca, StatusLote.EM_TRANSITO),
+                StatusLote.DESCARTADO.name(), totalLotesPorStatus(usuario, busca, StatusLote.DESCARTADO),
+                StatusLote.CANCELADO.name(), totalLotesPorStatus(usuario, busca, StatusLote.CANCELADO)
+        );
+    }
+
+    private Map<String, Long> totaisVazios() {
+        return Map.of(
+                StatusLote.AGUARDANDO_COLETA.name(), 0L,
+                StatusLote.EM_TRANSITO.name(), 0L,
+                StatusLote.DESCARTADO.name(), 0L,
+                StatusLote.CANCELADO.name(), 0L
+        );
+    }
+
+    private long totalLotesPorStatus(Usuario usuario, String busca, StatusLote status) {
+        if (escopoUsuarioService.isAdmin(usuario)) {
+            return busca.isBlank()
+                    ? loteRepository.countByStatus(status)
+                    : loteRepository.countByStatusAndDescricaoContainingIgnoreCaseOrStatusAndTipoResiduoContainingIgnoreCase(
+                            status, busca, status, busca);
+        }
+
+        Empresa empresa = escopoUsuarioService.empresaVinculada(usuario);
+        if (empresa == null) {
+            return 0;
+        }
+
+        return switch (usuario.getPerfil()) {
+            case GERADORA -> busca.isBlank()
+                    ? loteRepository.countByEmpresaGeradoraIdAndStatus(empresa.getId(), status)
+                    : loteRepository.countByEmpresaGeradoraIdAndStatusAndDescricaoContainingIgnoreCaseOrEmpresaGeradoraIdAndStatusAndTipoResiduoContainingIgnoreCase(
+                            empresa.getId(), status, busca, empresa.getId(), status, busca);
+            case TRANSPORTADORA -> busca.isBlank()
+                    ? loteRepository.countPorTransportadoraEStatus(empresa.getId(), status)
+                    : loteRepository.countPorTextoTransportadoraEStatus(empresa.getId(), busca, status);
+            case RECEPTORA -> busca.isBlank()
+                    ? loteRepository.countPorReceptoraEStatus(empresa.getId(), status)
+                    : loteRepository.countPorTextoReceptoraEStatus(empresa.getId(), busca, status);
+            default -> 0;
+        };
     }
 
     private void validarLoteDentroDoEscopo(Lote lote, Usuario usuario) {

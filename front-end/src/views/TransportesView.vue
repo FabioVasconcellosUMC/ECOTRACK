@@ -8,7 +8,8 @@
           Transportes
         </h1>
         <p class="text-ink-3 text-[13px] mt-2 mono-tag">
-          {{ totalTransportes }} transporte{{ totalTransportes === 1 ? '' : 's' }} cadastrado{{ totalTransportes === 1 ? '' : 's' }} · ciclo operacional rastreado
+          {{ totalTransportesReal }} transporte{{ totalTransportesReal === 1 ? '' : 's' }} cadastrado{{ totalTransportesReal === 1 ? '' : 's' }} - ciclo operacional rastreado
+          <span v-if="totalTransportesReal > transportes.length"> - {{ transportes.length }} carregados</span>
         </p>
       </div>
 
@@ -536,6 +537,13 @@ const errosVazio = () => ({
 })
 
 const transportes = ref([])
+const totalTransportesReal = ref(0)
+const totaisStatusReal = ref({
+  [STATUS.PENDENTE]: 0,
+  [STATUS.EM_TRANSITO]: 0,
+  [STATUS.CONCLUIDO]: 0,
+  [STATUS.CANCELADO]: 0,
+})
 const lotes = ref([])
 const empresas = ref([])
 const carregando = ref(false)
@@ -566,7 +574,7 @@ const perfilUsuario = computed(() =>
   (localStorage.getItem('perfil') || '').toUpperCase(),
 )
 
-const totalTransportes = computed(() => transportes.value.length)
+const totalTransportes = computed(() => totalTransportesReal.value)
 
 const podeCriarTransporte = computed(() =>
   ['ADMIN', 'GERADORA'].includes(perfilUsuario.value),
@@ -610,7 +618,10 @@ const transportesFiltrados = computed(() => {
 })
 
 const contagemPorStatus = (status) => {
-  if (status === 'TODOS') return transportes.value.length
+  if (status === 'TODOS') return totalTransportesReal.value
+  if (totalTransportesReal.value > 0 || transportes.value.length === 0) {
+    return totaisStatusReal.value[status] || 0
+  }
   return transportes.value.filter(t => t.status === status).length
 }
 
@@ -771,13 +782,39 @@ const exibirToast = (mensagem, cor = CORES_STATUS.CONCLUIDO, icone = CheckCircle
 
 const normalizarPagina = (resposta) => {
   if (Array.isArray(resposta)) {
-    return { itens: resposta, hasNext: false, page: 0 }
+    return {
+      itens: resposta,
+      hasNext: false,
+      page: 0,
+      total: resposta.length,
+      totalPorStatus: resposta.reduce((contagem, transporte) => {
+        if (contagem[transporte.status] !== undefined) contagem[transporte.status] += 1
+        return contagem
+      }, {
+        [STATUS.PENDENTE]: 0,
+        [STATUS.EM_TRANSITO]: 0,
+        [STATUS.CONCLUIDO]: 0,
+        [STATUS.CANCELADO]: 0,
+      }),
+    }
   }
 
   return {
     itens: resposta?.itens || [],
     hasNext: Boolean(resposta?.hasNext),
     page: Number(resposta?.page) || 0,
+    total: Number(resposta?.total) || 0,
+    totalPorStatus: resposta?.totalPorStatus || {},
+  }
+}
+
+const atualizarResumoTransportes = (pagina) => {
+  totalTransportesReal.value = pagina.total
+  totaisStatusReal.value = {
+    [STATUS.PENDENTE]: Number(pagina.totalPorStatus?.[STATUS.PENDENTE]) || 0,
+    [STATUS.EM_TRANSITO]: Number(pagina.totalPorStatus?.[STATUS.EM_TRANSITO]) || 0,
+    [STATUS.CONCLUIDO]: Number(pagina.totalPorStatus?.[STATUS.CONCLUIDO]) || 0,
+    [STATUS.CANCELADO]: Number(pagina.totalPorStatus?.[STATUS.CANCELADO]) || 0,
   }
 }
 
@@ -802,6 +839,7 @@ const carregarDados = async ({ acrescentar = false } = {}) => {
       : paginaTransportes.itens
     paginaAtual.value = paginaTransportes.page
     temMaisTransportes.value = paginaTransportes.hasNext
+    atualizarResumoTransportes(paginaTransportes)
     lotes.value       = respLotes
     empresas.value    = respEmpresas
   } catch (erro) {

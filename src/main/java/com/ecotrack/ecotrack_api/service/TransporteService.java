@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -86,7 +87,7 @@ public class TransporteService {
         if (!escopoUsuarioService.isAdmin(usuario)) {
             Empresa empresa = escopoUsuarioService.empresaVinculada(usuario);
             if (empresa == null) {
-                return new PaginaResponse<>(List.of(), paginaConsulta, limiteConsulta, false);
+                return new PaginaResponse<>(List.of(), paginaConsulta, limiteConsulta, false, 0, totaisVazios());
             }
 
             transportes = listarPorEscopo(usuario.getPerfil(), empresa.getId(), termoBusca, pageRequest);
@@ -100,7 +101,7 @@ public class TransporteService {
                     .toList();
         }
 
-        return montarPagina(transportes, paginaConsulta, limiteConsulta);
+        return montarPagina(transportes, paginaConsulta, limiteConsulta, usuario, termoBusca);
     }
 
     @Transactional(readOnly = true)
@@ -303,10 +304,11 @@ public class TransporteService {
         return transportes.stream().map(this::descriptografarEmpresas).toList();
     }
 
-    private PaginaResponse<Transporte> montarPagina(List<Transporte> transportes, int pagina, int limite) {
+    private PaginaResponse<Transporte> montarPagina(List<Transporte> transportes, int pagina, int limite, Usuario usuario, String termoBusca) {
         boolean temProxima = transportes.size() > limite;
         List<Transporte> itens = temProxima ? transportes.subList(0, limite) : transportes;
-        return new PaginaResponse<>(itens, pagina, limite, temProxima);
+        String busca = termoBusca == null ? "" : termoBusca.trim();
+        return new PaginaResponse<>(itens, pagina, limite, temProxima, totalTransportes(usuario, busca), totaisPorStatus(usuario, busca));
     }
 
     private int paginaNormalizada(Integer pagina) {
@@ -320,6 +322,74 @@ public class TransporteService {
     private int limitePaginado(Integer limite) {
         Integer normalizado = limiteNormalizado(limite);
         return normalizado == null ? 20 : normalizado;
+    }
+
+    private long totalTransportes(Usuario usuario, String busca) {
+        if (escopoUsuarioService.isAdmin(usuario)) {
+            return busca.isBlank() ? transporteRepository.count() : transporteRepository.countPorTexto(busca);
+        }
+
+        Empresa empresa = escopoUsuarioService.empresaVinculada(usuario);
+        if (empresa == null) {
+            return 0;
+        }
+
+        return switch (usuario.getPerfil()) {
+            case GERADORA -> busca.isBlank()
+                    ? transporteRepository.countByLote_EmpresaGeradoraId(empresa.getId())
+                    : transporteRepository.countPorTextoGeradora(empresa.getId(), busca);
+            case TRANSPORTADORA -> busca.isBlank()
+                    ? transporteRepository.countByTransportadoraId(empresa.getId())
+                    : transporteRepository.countPorTextoTransportadora(empresa.getId(), busca);
+            case RECEPTORA -> busca.isBlank()
+                    ? transporteRepository.countByReceptoraId(empresa.getId())
+                    : transporteRepository.countPorTextoReceptora(empresa.getId(), busca);
+            default -> 0;
+        };
+    }
+
+    private Map<String, Long> totaisPorStatus(Usuario usuario, String busca) {
+        return Map.of(
+                StatusTransporte.PENDENTE.name(), totalTransportesPorStatus(usuario, busca, StatusTransporte.PENDENTE),
+                StatusTransporte.EM_TRANSITO.name(), totalTransportesPorStatus(usuario, busca, StatusTransporte.EM_TRANSITO),
+                StatusTransporte.CONCLUIDO.name(), totalTransportesPorStatus(usuario, busca, StatusTransporte.CONCLUIDO),
+                StatusTransporte.CANCELADO.name(), totalTransportesPorStatus(usuario, busca, StatusTransporte.CANCELADO)
+        );
+    }
+
+    private Map<String, Long> totaisVazios() {
+        return Map.of(
+                StatusTransporte.PENDENTE.name(), 0L,
+                StatusTransporte.EM_TRANSITO.name(), 0L,
+                StatusTransporte.CONCLUIDO.name(), 0L,
+                StatusTransporte.CANCELADO.name(), 0L
+        );
+    }
+
+    private long totalTransportesPorStatus(Usuario usuario, String busca, StatusTransporte status) {
+        if (escopoUsuarioService.isAdmin(usuario)) {
+            return busca.isBlank()
+                    ? transporteRepository.countByStatus(status)
+                    : transporteRepository.countPorTextoEStatus(busca, status);
+        }
+
+        Empresa empresa = escopoUsuarioService.empresaVinculada(usuario);
+        if (empresa == null) {
+            return 0;
+        }
+
+        return switch (usuario.getPerfil()) {
+            case GERADORA -> busca.isBlank()
+                    ? transporteRepository.countByLote_EmpresaGeradoraIdAndStatus(empresa.getId(), status)
+                    : transporteRepository.countPorTextoGeradoraEStatus(empresa.getId(), busca, status);
+            case TRANSPORTADORA -> busca.isBlank()
+                    ? transporteRepository.countByTransportadoraIdAndStatus(empresa.getId(), status)
+                    : transporteRepository.countPorTextoTransportadoraEStatus(empresa.getId(), busca, status);
+            case RECEPTORA -> busca.isBlank()
+                    ? transporteRepository.countByReceptoraIdAndStatus(empresa.getId(), status)
+                    : transporteRepository.countPorTextoReceptoraEStatus(empresa.getId(), busca, status);
+            default -> 0;
+        };
     }
 
     private void validarCriacaoDentroDoEscopo(Lote lote) {

@@ -6,8 +6,9 @@
         <p class="eyebrow-italic text-cyan mb-2">Operação · Resíduos</p>
         <h1 class="display-title text-[48px] leading-[0.98]">Lotes de resíduos</h1>
         <p class="text-ink-3 text-[13px] mt-2 mono-tag">
-          {{ lotes.length }} lotes · {{ contagens.AGUARDANDO_COLETA }} aguardando ·
-          {{ contagens.EM_TRANSITO }} em trânsito · {{ contagens.DESCARTADO }} descartados
+          {{ totalLotesReal }} lotes - {{ contagens.AGUARDANDO_COLETA }} aguardando -
+          {{ contagens.EM_TRANSITO }} em transito - {{ contagens.DESCARTADO }} descartados
+          <span v-if="totalLotesReal > lotes.length"> - {{ lotes.length }} carregados</span>
         </p>
       </div>
 
@@ -422,6 +423,13 @@ const errosVazio = () => ({
 })
 
 const lotes = ref([])
+const totalLotesReal = ref(0)
+const totaisStatusReal = ref({
+  [STATUS.AGUARDANDO_COLETA]: 0,
+  [STATUS.EM_TRANSITO]: 0,
+  [STATUS.DESCARTADO]: 0,
+  [STATUS.CANCELADO]: 0,
+})
 const empresas = ref([])
 const paginaAtual = ref(0)
 const temMaisLotes = ref(false)
@@ -440,6 +448,10 @@ const empresasGeradoras = computed(() =>
 )
 
 const contagens = computed(() => {
+  if (totalLotesReal.value > 0 || lotes.value.length === 0) {
+    return totaisStatusReal.value
+  }
+
   const contagem = {
     [STATUS.AGUARDANDO_COLETA]: 0,
     [STATUS.EM_TRANSITO]: 0,
@@ -533,13 +545,39 @@ const exportarSelecionado = () => {
 
 const normalizarPagina = (resposta) => {
   if (Array.isArray(resposta)) {
-    return { itens: resposta, hasNext: false, page: 0 }
+    return {
+      itens: resposta,
+      hasNext: false,
+      page: 0,
+      total: resposta.length,
+      totalPorStatus: resposta.reduce((contagem, lote) => {
+        if (contagem[lote.status] !== undefined) contagem[lote.status] += 1
+        return contagem
+      }, {
+        [STATUS.AGUARDANDO_COLETA]: 0,
+        [STATUS.EM_TRANSITO]: 0,
+        [STATUS.DESCARTADO]: 0,
+        [STATUS.CANCELADO]: 0,
+      }),
+    }
   }
 
   return {
     itens: resposta?.itens || [],
     hasNext: Boolean(resposta?.hasNext),
     page: Number(resposta?.page) || 0,
+    total: Number(resposta?.total) || 0,
+    totalPorStatus: resposta?.totalPorStatus || {},
+  }
+}
+
+const atualizarResumoLotes = (pagina) => {
+  totalLotesReal.value = pagina.total
+  totaisStatusReal.value = {
+    [STATUS.AGUARDANDO_COLETA]: Number(pagina.totalPorStatus?.[STATUS.AGUARDANDO_COLETA]) || 0,
+    [STATUS.EM_TRANSITO]: Number(pagina.totalPorStatus?.[STATUS.EM_TRANSITO]) || 0,
+    [STATUS.DESCARTADO]: Number(pagina.totalPorStatus?.[STATUS.DESCARTADO]) || 0,
+    [STATUS.CANCELADO]: Number(pagina.totalPorStatus?.[STATUS.CANCELADO]) || 0,
   }
 }
 
@@ -562,6 +600,7 @@ const carregarDados = async ({ acrescentar = false } = {}) => {
       : paginaLotes.itens
     paginaAtual.value = paginaLotes.page
     temMaisLotes.value = paginaLotes.hasNext
+    atualizarResumoLotes(paginaLotes)
     empresas.value = respostaEmpresas
   } catch (erro) {
     console.error('Erro ao carregar dados de lotes:', erro)

@@ -20,6 +20,8 @@ public interface LoteRepository extends JpaRepository<Lote, Long> {
 
     Optional<Lote> findByPublicId(UUID publicId);
     long countByStatus(StatusLote status);
+    long countByStatusAndDescricaoContainingIgnoreCaseOrStatusAndTipoResiduoContainingIgnoreCase(
+            StatusLote statusDescricao, String descricao, StatusLote statusTipoResiduo, String tipoResiduo);
 
     @Query("""
             SELECT l FROM Lote l
@@ -30,6 +32,11 @@ public interface LoteRepository extends JpaRepository<Lote, Long> {
     List<Lote> findByEmpresaGeradoraIdOrderByCriadoEmDesc(Long empresaId, Pageable pageable);
     long countByEmpresaGeradoraId(Long empresaId);
     long countByEmpresaGeradoraIdAndStatus(Long empresaId, StatusLote status);
+    long countByEmpresaGeradoraIdAndDescricaoContainingIgnoreCaseOrEmpresaGeradoraIdAndTipoResiduoContainingIgnoreCase(
+            Long empresaIdDescricao, String descricao, Long empresaIdTipoResiduo, String tipoResiduo);
+    long countByEmpresaGeradoraIdAndStatusAndDescricaoContainingIgnoreCaseOrEmpresaGeradoraIdAndStatusAndTipoResiduoContainingIgnoreCase(
+            Long empresaIdDescricao, StatusLote statusDescricao, String descricao,
+            Long empresaIdTipoResiduo, StatusLote statusTipoResiduo, String tipoResiduo);
 
     @Query("""
             SELECT l FROM Lote l
@@ -89,6 +96,81 @@ public interface LoteRepository extends JpaRepository<Lote, Long> {
             ORDER BY l.criadoEm DESC
             """)
     List<Lote> buscarPorTextoReceptora(@Param("empresaId") Long empresaId, @Param("q") String q, Pageable pageable);
+
+    @Query("""
+            SELECT COUNT(l) FROM Lote l
+            WHERE LOWER(l.descricao) LIKE LOWER(CONCAT('%', :q, '%'))
+               OR LOWER(l.tipoResiduo) LIKE LOWER(CONCAT('%', :q, '%'))
+            """)
+    long countPorTexto(@Param("q") String q);
+
+    @Query("""
+            SELECT COUNT(DISTINCT l) FROM Lote l
+            JOIN Transporte t ON t.lote = l
+            WHERE t.transportadora.id = :empresaId
+            """)
+    long countPorTransportadora(@Param("empresaId") Long empresaId);
+
+    @Query("""
+            SELECT COUNT(DISTINCT l) FROM Lote l
+            JOIN Transporte t ON t.lote = l
+            WHERE t.receptora.id = :empresaId
+            """)
+    long countPorReceptora(@Param("empresaId") Long empresaId);
+
+    @Query("""
+            SELECT COUNT(DISTINCT l) FROM Lote l
+            JOIN Transporte t ON t.lote = l
+            WHERE t.transportadora.id = :empresaId
+              AND l.status = :status
+            """)
+    long countPorTransportadoraEStatus(@Param("empresaId") Long empresaId, @Param("status") StatusLote status);
+
+    @Query("""
+            SELECT COUNT(DISTINCT l) FROM Lote l
+            JOIN Transporte t ON t.lote = l
+            WHERE t.receptora.id = :empresaId
+              AND l.status = :status
+            """)
+    long countPorReceptoraEStatus(@Param("empresaId") Long empresaId, @Param("status") StatusLote status);
+
+    @Query("""
+            SELECT COUNT(DISTINCT l) FROM Lote l
+            JOIN Transporte t ON t.lote = l
+            WHERE t.transportadora.id = :empresaId
+              AND (LOWER(l.descricao) LIKE LOWER(CONCAT('%', :q, '%'))
+                   OR LOWER(l.tipoResiduo) LIKE LOWER(CONCAT('%', :q, '%')))
+            """)
+    long countPorTextoTransportadora(@Param("empresaId") Long empresaId, @Param("q") String q);
+
+    @Query("""
+            SELECT COUNT(DISTINCT l) FROM Lote l
+            JOIN Transporte t ON t.lote = l
+            WHERE t.receptora.id = :empresaId
+              AND (LOWER(l.descricao) LIKE LOWER(CONCAT('%', :q, '%'))
+                   OR LOWER(l.tipoResiduo) LIKE LOWER(CONCAT('%', :q, '%')))
+            """)
+    long countPorTextoReceptora(@Param("empresaId") Long empresaId, @Param("q") String q);
+
+    @Query("""
+            SELECT COUNT(DISTINCT l) FROM Lote l
+            JOIN Transporte t ON t.lote = l
+            WHERE t.transportadora.id = :empresaId
+              AND l.status = :status
+              AND (LOWER(l.descricao) LIKE LOWER(CONCAT('%', :q, '%'))
+                   OR LOWER(l.tipoResiduo) LIKE LOWER(CONCAT('%', :q, '%')))
+            """)
+    long countPorTextoTransportadoraEStatus(@Param("empresaId") Long empresaId, @Param("q") String q, @Param("status") StatusLote status);
+
+    @Query("""
+            SELECT COUNT(DISTINCT l) FROM Lote l
+            JOIN Transporte t ON t.lote = l
+            WHERE t.receptora.id = :empresaId
+              AND l.status = :status
+              AND (LOWER(l.descricao) LIKE LOWER(CONCAT('%', :q, '%'))
+                   OR LOWER(l.tipoResiduo) LIKE LOWER(CONCAT('%', :q, '%')))
+            """)
+    long countPorTextoReceptoraEStatus(@Param("empresaId") Long empresaId, @Param("q") String q, @Param("status") StatusLote status);
 
     @Query("""
             SELECT UPPER(l.unidade), COALESCE(SUM(l.quantidade), 0)
