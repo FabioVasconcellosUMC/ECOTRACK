@@ -1,10 +1,15 @@
 package com.ecotrack.ecotrack_api.service;
 
 import com.ecotrack.ecotrack_api.entity.Empresa;
+import com.ecotrack.ecotrack_api.entity.Perfil;
+import com.ecotrack.ecotrack_api.entity.TipoEmpresa;
+import com.ecotrack.ecotrack_api.entity.Usuario;
 import com.ecotrack.ecotrack_api.exception.RecursoNaoEncontradoException;
 import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
 import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -40,6 +45,7 @@ public class EmpresaService {
 
     public Empresa salvar(Empresa empresa) {
         validarDadosAbertos(empresa);
+        validarCadastroPermitidoParaPerfil(empresa);
         prepararDadosSensiveis(empresa);
         Empresa salva = empresaRepository.save(empresa);
         return descriptografarDadosSensiveis(salva);
@@ -79,6 +85,9 @@ public class EmpresaService {
         validarObrigatorio(empresa.getCnpj(), "CNPJ e obrigatorio");
         validarTamanho(empresa.getCnpj(), 18, "CNPJ deve ter no maximo 18 caracteres");
         validarPadrao(empresa.getCnpj(), CNPJ_VALIDO, "CNPJ deve conter apenas numeros, pontos, barra e hifen");
+        if (empresa.getTipo() == null) {
+            throw new RegraNegocioException("Tipo da empresa e obrigatorio");
+        }
         validarTamanho(empresa.getEndereco(), 300, "Endereco deve ter no maximo 300 caracteres");
         validarPadrao(empresa.getEndereco(), SEM_TAGS, "Endereco nao pode conter tags HTML ou scripts");
         validarTamanho(empresa.getEmail(), 150, "E-mail deve ter no maximo 150 caracteres");
@@ -103,6 +112,35 @@ public class EmpresaService {
         if (valor != null && !valor.matches(padrao)) {
             throw new RegraNegocioException(mensagem);
         }
+    }
+
+    private void validarCadastroPermitidoParaPerfil(Empresa empresa) {
+        Perfil perfil = perfilUsuarioAutenticado();
+
+        if (perfil == Perfil.ADMIN) {
+            return;
+        }
+
+        TipoEmpresa tipoPermitido = switch (perfil) {
+            case GERADORA -> TipoEmpresa.GERADORA;
+            case TRANSPORTADORA -> TipoEmpresa.TRANSPORTADORA;
+            case RECEPTORA -> TipoEmpresa.RECEPTORA;
+            default -> throw new RegraNegocioException("Perfil sem permissao para cadastrar empresas");
+        };
+
+        if (empresa.getTipo() != tipoPermitido) {
+            throw new RegraNegocioException("Seu perfil permite cadastrar apenas empresa do tipo " + tipoPermitido.name());
+        }
+    }
+
+    private Perfil perfilUsuarioAutenticado() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof Usuario usuario)) {
+            throw new RegraNegocioException("Usuario autenticado nao identificado");
+        }
+
+        return usuario.getPerfil();
     }
 
     private Empresa descriptografarDadosSensiveis(Empresa empresa) {
