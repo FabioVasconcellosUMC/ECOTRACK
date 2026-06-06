@@ -258,7 +258,7 @@
 
             <div>
               <label class="eyebrow block mb-1.5">Tipo</label>
-              <div class="grid grid-cols-3 gap-1.5">
+              <div v-if="usuarioAdmin" class="grid grid-cols-3 gap-1.5">
                 <button
                   v-for="opcao in TIPOS_CADASTRO"
                   :key="opcao.valor"
@@ -270,6 +270,12 @@
                 >
                   {{ opcao.rotulo }}
                 </button>
+              </div>
+              <div
+                v-else
+                class="px-3 py-2.5 rounded-md text-[11.5px] font-bold tracking-wider border border-cyan/40 text-cyan bg-cyan/10 text-center"
+              >
+                {{ rotuloTipoCadastro(formulario.tipo) }}
               </div>
             </div>
 
@@ -383,10 +389,22 @@ const TAMANHO_ID = 4
 const TAMANHO_INDICE = 2
 const CNPJ_DIGITOS = 14
 
+const perfilUsuario = computed(() =>
+  (localStorage.getItem('perfil') || '').toUpperCase(),
+)
+
+const usuarioAdmin = computed(() => perfilUsuario.value === 'ADMIN')
+
+const tipoPermitidoParaPerfil = (perfil) => ({
+  GERADORA:       TIPOS.GERADORA,
+  TRANSPORTADORA: TIPOS.TRANSPORTADORA,
+  RECEPTORA:      TIPOS.RECEPTORA,
+}[perfil] || TIPOS.GERADORA)
+
 const formularioVazio = () => ({
   cnpj: '',
   razaoSocial: '',
-  tipo: TIPOS.GERADORA,
+  tipo: tipoPermitidoParaPerfil(perfilUsuario.value),
   email: '',
   telefone: '',
   endereco: '',
@@ -476,6 +494,8 @@ const estiloChip = (tipo) => {
 }
 
 const rotuloTipoCurto = (tipo) => ROTULOS_CURTOS[tipo] || tipo
+const rotuloTipoCadastro = (tipo) =>
+  TIPOS_CADASTRO.find(opcao => opcao.valor === tipo)?.rotulo || tipo
 
 const iniciais = (texto) =>
   (texto || 'EM')
