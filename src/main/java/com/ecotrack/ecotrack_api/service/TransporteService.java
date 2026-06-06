@@ -34,16 +34,19 @@ public class TransporteService {
     private final EmailService emailService;
     private final DadosPessoaisCriptografiaService criptografiaService;
 
+    @Transactional(readOnly = true)
     public List<Transporte> listar() {
         return transporteRepository.findAll().stream()
                 .map(this::descriptografarEmpresas)
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public Transporte buscarPorId(Long id) {
         return descriptografarEmpresas(buscarPorIdInterno(id));
     }
 
+    @Transactional(readOnly = true)
     public Transporte buscarPorPublicId(UUID publicId) {
         return descriptografarEmpresas(buscarPorPublicIdInterno(publicId));
     }
@@ -84,10 +87,12 @@ public class TransporteService {
         return confirmarRecebimentoFinal(buscarPorPublicIdInterno(publicId), observacao);
     }
 
+    @Transactional(readOnly = true)
     public List<Transporte> buscarPorLote(Long loteId) {
         return transporteRepository.findByLoteId(loteId);
     }
 
+    @Transactional(readOnly = true)
     public List<Transporte> buscarPorLotePublicId(UUID lotePublicId) {
         return transporteRepository.findByLote_PublicId(lotePublicId);
     }

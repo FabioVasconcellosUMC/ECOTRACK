@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -27,17 +28,20 @@ public class EmpresaService {
     private final EmpresaRepository empresaRepository;
     private final DadosPessoaisCriptografiaService criptografiaService;
 
+    @Transactional(readOnly = true)
     public List<Empresa> listar() {
         return empresaRepository.findAll().stream()
                 .map(this::descriptografarDadosSensiveis)
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public Empresa buscarPorId(Long id) {
         return descriptografarDadosSensiveis(empresaRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Empresa não encontrada")));
     }
 
+    @Transactional(readOnly = true)
     public Empresa buscarPorPublicId(UUID publicId) {
         return descriptografarDadosSensiveis(empresaRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Empresa não encontrada")));

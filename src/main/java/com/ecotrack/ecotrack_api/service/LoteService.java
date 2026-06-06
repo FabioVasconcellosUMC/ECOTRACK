@@ -39,16 +39,19 @@ public class LoteService {
         return salvo;
     }
 
+    @Transactional(readOnly = true)
     public List<Lote> listarTodos() {
         return loteRepository.findAll().stream()
                 .map(this::descriptografarEmpresaGeradora)
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public Lote buscarPorId(Long id) {
         return descriptografarEmpresaGeradora(buscarPorIdInterno(id));
     }
 
+    @Transactional(readOnly = true)
     public Lote buscarPorPublicId(UUID publicId) {
         return descriptografarEmpresaGeradora(buscarPorPublicIdInterno(publicId));
     }
@@ -61,10 +64,12 @@ public class LoteService {
         return alterarStatus(buscarPorPublicIdInterno(publicId), novoStatus, observacao, usuario);
     }
 
+    @Transactional(readOnly = true)
     public List<HistoricoLote> buscarHistorico(Long loteId) {
         return historicoLoteRepository.findByLoteIdOrderByDataHoraDesc(loteId);
     }
 
+    @Transactional(readOnly = true)
     public List<HistoricoLote> buscarHistoricoPorPublicId(UUID publicId) {
         Lote lote = buscarPorPublicId(publicId);
         return buscarHistorico(lote.getId());
