@@ -80,9 +80,9 @@
 
       <div v-else-if="transportesFiltrados.length === 0" class="px-5 py-16 flex flex-col items-center gap-3 text-center">
         <Truck :size="28" class="text-ink-4" />
-        <p class="text-ink-2 text-[13px]">Nenhum transporte encontrado</p>
+        <p class="text-ink-2 text-[13px]">{{ mensagemVaziaTransportes }}</p>
         <p class="mono-tag text-ink-3 text-[11px] max-w-md">
-          {{ termoBusca || filtroAtivo !== 'TODOS' ? 'Ajuste os filtros ou a busca' : 'Cadastre o primeiro transporte clicando no botão acima' }}
+          {{ dicaVaziaTransportes }}
         </p>
       </div>
 
@@ -579,6 +579,19 @@ const totalTransportes = computed(() => totalTransportesReal.value)
 const podeCriarTransporte = computed(() =>
   ['ADMIN', 'GERADORA'].includes(perfilUsuario.value),
 )
+
+const mensagemVaziaTransportes = computed(() =>
+  perfilUsuario.value === 'TRANSPORTADORA'
+    ? 'Nenhum transporte atribuído à sua empresa ainda.'
+    : 'Nenhum transporte encontrado',
+)
+
+const dicaVaziaTransportes = computed(() => {
+  if (termoBusca.value || filtroAtivo.value !== 'TODOS') return 'Ajuste os filtros ou a busca'
+  if (perfilUsuario.value === 'TRANSPORTADORA') return 'Quando uma geradora atribuir um transporte, ele aparecerá aqui.'
+  if (perfilUsuario.value === 'RECEPTORA') return 'Quando um transporte for destinado à sua empresa, ele aparecerá aqui.'
+  return 'Cadastre o primeiro transporte clicando no botão acima'
+})
 
 const transportadoras = computed(() =>
   empresas.value.filter(e => e.tipo === 'TRANSPORTADORA'),
