@@ -9,6 +9,7 @@ import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
 import com.ecotrack.ecotrack_api.repository.UsuarioRepository;
 import com.ecotrack.ecotrack_api.security.JwtService;
 import com.ecotrack.ecotrack_api.service.DadosPessoaisCriptografiaService;
+import com.ecotrack.ecotrack_api.validation.TextoSeguro;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -53,6 +54,7 @@ public class AuthController {
 
     @PostMapping("/cadastro")
     public ResponseEntity<Map<String, String>> cadastro(@Valid @RequestBody CadastroRequest request) {
+        TextoSeguro.validar(request.nome(), "Nome");
         validarEmailDisponivel(request.email());
         Perfil perfil = converterPerfil(request.perfil());
         validarPerfilCadastroPublico(perfil);

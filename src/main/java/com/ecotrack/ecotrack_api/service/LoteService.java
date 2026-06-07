@@ -13,6 +13,7 @@ import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
 import com.ecotrack.ecotrack_api.repository.HistoricoLoteRepository;
 import com.ecotrack.ecotrack_api.repository.LoteRepository;
 import com.ecotrack.ecotrack_api.repository.TransporteRepository;
+import com.ecotrack.ecotrack_api.validation.TextoSeguro;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,7 @@ public class LoteService {
     private final EscopoUsuarioService escopoUsuarioService;
 
     public Lote criar(Lote lote, Usuario usuario) {
+        validarTextoLote(lote);
         lote.setEmpresaGeradora(buscarEmpresaGeradora(lote));
         validarLoteDentroDoEscopo(lote, usuario);
         prepararNovoLote(lote, usuario);
@@ -145,6 +147,7 @@ public class LoteService {
     }
 
     private Lote alterarStatus(Lote lote, StatusLote novoStatus, String observacao, Usuario usuario) {
+        TextoSeguro.validar(observacao, "Observacao");
         validarLoteDentroDoEscopo(lote, usuario);
         validarTransicao(lote.getStatus(), novoStatus);
 
@@ -320,6 +323,12 @@ public class LoteService {
         if (usuario.getPerfil() != Perfil.GERADORA || !lote.getEmpresaGeradora().getId().equals(empresa.getId())) {
             throw new RegraNegocioException("Lote deve ser criado pela empresa geradora vinculada ao usuario");
         }
+    }
+
+    private void validarTextoLote(Lote lote) {
+        TextoSeguro.validar(lote.getDescricao(), "Descricao");
+        TextoSeguro.validar(lote.getTipoResiduo(), "Tipo de residuo");
+        TextoSeguro.validar(lote.getUnidade(), "Unidade");
     }
 
     private void validarLeituraLote(Lote lote) {

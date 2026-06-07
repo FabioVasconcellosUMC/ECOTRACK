@@ -9,6 +9,7 @@ import com.ecotrack.ecotrack_api.exception.RecursoNaoEncontradoException;
 import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
 import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
 import com.ecotrack.ecotrack_api.repository.UsuarioRepository;
+import com.ecotrack.ecotrack_api.validation.TextoSeguro;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -146,6 +147,8 @@ public class EmpresaService {
     }
 
     private void validarDadosAbertos(Empresa empresa) {
+        TextoSeguro.validar(empresa.getRazaoSocial(), "Razao social");
+        TextoSeguro.validar(empresa.getEndereco(), "Endereco");
         validarObrigatorio(empresa.getCnpj(), "CNPJ e obrigatorio");
         validarTamanho(empresa.getCnpj(), 18, "CNPJ deve ter no maximo 18 caracteres");
         validarPadrao(empresa.getCnpj(), CNPJ_VALIDO, "CNPJ deve conter apenas numeros, pontos, barra e hifen");

@@ -15,6 +15,7 @@ import com.ecotrack.ecotrack_api.repository.EmpresaRepository;
 import com.ecotrack.ecotrack_api.repository.HistoricoLoteRepository;
 import com.ecotrack.ecotrack_api.repository.LoteRepository;
 import com.ecotrack.ecotrack_api.repository.TransporteRepository;
+import com.ecotrack.ecotrack_api.validation.TextoSeguro;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -119,6 +120,7 @@ public class TransporteService {
     }
 
     public Transporte criar(Transporte transporte) {
+        validarTextoTransporte(transporte);
         Lote lote = buscarLote(transporte);
         validarCriacaoDentroDoEscopo(lote);
         validarLoteDisponivel(lote);
@@ -166,6 +168,7 @@ public class TransporteService {
     }
 
     private Transporte alterarStatus(Transporte transporte, StatusTransporte novoStatus, String observacao) {
+        TextoSeguro.validar(observacao, "Observacao");
         validarAlteracaoDentroDoEscopo(transporte);
         StatusTransporte statusAnterior = transporte.getStatus();
 
@@ -190,6 +193,7 @@ public class TransporteService {
     }
 
     private Transporte confirmarRecebimentoFinal(Transporte transporte, String observacao) {
+        TextoSeguro.validar(observacao, "Observacao");
         validarRecebimentoDentroDoEscopo(transporte);
         validarRecebimentoFinal(transporte);
 
@@ -404,6 +408,11 @@ public class TransporteService {
                 || !lote.getEmpresaGeradora().getId().equals(empresa.getId())) {
             throw new RegraNegocioException("Transporte deve ser criado pela empresa geradora vinculada ao usuario");
         }
+    }
+
+    private void validarTextoTransporte(Transporte transporte) {
+        TextoSeguro.validar(transporte.getResponsavel(), "Responsavel");
+        TextoSeguro.validar(transporte.getObservacao(), "Observacao");
     }
 
     private void validarLeituraTransporte(Transporte transporte) {
