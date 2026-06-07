@@ -8,7 +8,7 @@
           Relatórios
         </h1>
         <p class="text-ink-3 text-[13px] mt-2 mono-tag">
-          {{ dataLonga }} · indicadores agregados em tempo real
+          {{ dataLonga }} · {{ textosRelatorio.subtitulo }}
         </p>
       </div>
 
@@ -21,7 +21,7 @@
                  disabled:opacity-50 cursor-pointer"
         >
           <Download :size="14" />
-          EXPORTAR CONSOLIDADO
+          {{ textosRelatorio.botaoExportar }}
         </button>
       </div>
     </header>
@@ -54,9 +54,9 @@
           <div class="flex items-center justify-between mb-5">
             <div>
               <p class="eyebrow">Distribuição</p>
-              <h3 class="section-title text-[22px] mt-1">Empresas por tipo</h3>
+              <h3 class="section-title text-[22px] mt-1">{{ textosRelatorio.distribuicaoEmpresas }}</h3>
             </div>
-            <span class="mono-tag text-ink-3 text-[11px]">{{ totalEmpresasResumo }} total</span>
+            <span class="mono-tag text-ink-3 text-[11px]">{{ totalEmpresasResumo }} {{ textosRelatorio.totalEmpresas }}</span>
           </div>
 
           <div class="space-y-4">
@@ -86,7 +86,7 @@
           <div class="flex items-center justify-between mb-5">
             <div>
               <p class="eyebrow">Operação</p>
-              <h3 class="section-title text-[22px] mt-1">Lotes por status</h3>
+              <h3 class="section-title text-[22px] mt-1">{{ textosRelatorio.distribuicaoLotes }}</h3>
             </div>
             <span class="mono-tag text-ink-3 text-[11px]">{{ totalLotesResumo }} total</span>
           </div>
@@ -119,10 +119,10 @@
         <div class="col-span-12 lg:col-span-6 rounded-2xl bg-bg-panel border border-bg-line-strong helmet-stripe overflow-hidden">
           <header class="px-6 py-4 border-b border-bg-line">
             <p class="eyebrow text-cyan">Ranking</p>
-            <h3 class="section-title text-[20px] mt-1">Top 5 transportadoras</h3>
+            <h3 class="section-title text-[20px] mt-1">{{ textosRelatorio.rankingTransportadoras }}</h3>
           </header>
           <div v-if="rankingTransportadoras.length === 0" class="px-6 py-10 text-center">
-            <p class="mono-tag text-ink-3 text-[11px]">Nenhum transporte cadastrado ainda</p>
+            <p class="mono-tag text-ink-3 text-[11px]">{{ textosRelatorio.rankingTransportadorasVazio }}</p>
           </div>
           <ul v-else class="divide-y divide-bg-line">
             <li
@@ -142,10 +142,10 @@
         <div class="col-span-12 lg:col-span-6 rounded-2xl bg-bg-panel border border-bg-line-strong helmet-stripe overflow-hidden">
           <header class="px-6 py-4 border-b border-bg-line">
             <p class="eyebrow text-cyan">Ranking</p>
-            <h3 class="section-title text-[20px] mt-1">Top 5 geradoras</h3>
+            <h3 class="section-title text-[20px] mt-1">{{ textosRelatorio.rankingGeradoras }}</h3>
           </header>
           <div v-if="rankingGeradoras.length === 0" class="px-6 py-10 text-center">
-            <p class="mono-tag text-ink-3 text-[11px]">Nenhum lote cadastrado ainda</p>
+            <p class="mono-tag text-ink-3 text-[11px]">{{ textosRelatorio.rankingGeradorasVazio }}</p>
           </div>
           <ul v-else class="divide-y divide-bg-line">
             <li
@@ -167,13 +167,13 @@
         <div class="flex items-center justify-between mb-5">
           <div>
             <p class="eyebrow">Exportações</p>
-            <h3 class="section-title text-[22px] mt-1">Bases para auditoria</h3>
+            <h3 class="section-title text-[22px] mt-1">{{ textosRelatorio.exportacoes }}</h3>
           </div>
         </div>
 
         <div class="grid grid-cols-12 gap-4">
           <button
-            v-for="base in BASES_EXPORTACAO"
+            v-for="base in basesExportacao"
             :key="base.chave"
             @click="exportarBase(base.chave)"
             class="col-span-12 sm:col-span-4 flex items-start gap-3 p-4 rounded-md bg-bg-elevated border border-bg-line hover:border-cyan/40 transition-colors text-left cursor-pointer"
@@ -228,17 +228,103 @@ const ROTULOS_STATUS_LOTE = {
   CANCELADO:         'Cancelado',
 }
 
-const BASES_EXPORTACAO = [
-  { chave: 'empresas',    rotulo: 'Empresas',    descricao: 'Cadastro completo das empresas do ecossistema',     icone: Building2 },
-  { chave: 'lotes',       rotulo: 'Lotes',       descricao: 'Registro dos lotes de resíduos com status atual',   icone: Boxes },
-  { chave: 'transportes', rotulo: 'Transportes', descricao: 'Histórico operacional dos transportes registrados', icone: Truck },
-]
-
 const empresas    = ref([])
 const lotes       = ref([])
 const transportes = ref([])
 const carregando  = ref(false)
 const resumoRelatorios = ref(null)
+const perfilUsuario = computed(() => (localStorage.getItem('perfil') || 'ADMIN').toUpperCase())
+
+const TEXTOS_RELATORIO = {
+  ADMIN: {
+    subtitulo: 'indicadores agregados em tempo real',
+    botaoExportar: 'EXPORTAR CONSOLIDADO',
+    cardEmpresas: 'Empresas no ecossistema',
+    cardEmpresasDescricao: 'parceiros cadastrados',
+    cardResiduosDescricao: 'soma consolidada dos lotes',
+    distribuicaoEmpresas: 'Empresas por tipo',
+    totalEmpresas: 'total',
+    distribuicaoLotes: 'Lotes por status',
+    rankingTransportadoras: 'Top 5 transportadoras',
+    rankingTransportadorasVazio: 'Nenhum transporte cadastrado ainda',
+    rankingGeradoras: 'Top 5 geradoras',
+    rankingGeradorasVazio: 'Nenhum lote cadastrado ainda',
+    exportacoes: 'Bases para auditoria',
+    bases: {
+      empresas: 'Cadastro completo das empresas do ecossistema',
+      lotes: 'Registro dos lotes de residuos com status atual',
+      transportes: 'Historico operacional dos transportes registrados',
+    },
+  },
+  GERADORA: {
+    subtitulo: 'indicadores da empresa geradora vinculada',
+    botaoExportar: 'EXPORTAR MEUS DADOS',
+    cardEmpresas: 'Empresa vinculada',
+    cardEmpresasDescricao: 'cadastro operacional',
+    cardResiduosDescricao: 'soma dos lotes gerados',
+    distribuicaoEmpresas: 'Perfil da empresa',
+    totalEmpresas: 'vinculada',
+    distribuicaoLotes: 'Meus lotes por status',
+    rankingTransportadoras: 'Transportadoras utilizadas',
+    rankingTransportadorasVazio: 'Nenhum transporte vinculado aos seus lotes',
+    rankingGeradoras: 'Minha geradora',
+    rankingGeradorasVazio: 'Nenhum lote gerado ainda',
+    exportacoes: 'Bases da minha operacao',
+    bases: {
+      empresas: 'Empresa vinculada ao usuario autenticado',
+      lotes: 'Lotes gerados pela empresa vinculada',
+      transportes: 'Transportes relacionados aos seus lotes',
+    },
+  },
+  TRANSPORTADORA: {
+    subtitulo: 'indicadores dos transportes atribuidos',
+    botaoExportar: 'EXPORTAR MINHA OPERACAO',
+    cardEmpresas: 'Empresa vinculada',
+    cardEmpresasDescricao: 'cadastro operacional',
+    cardResiduosDescricao: 'volume transportado',
+    distribuicaoEmpresas: 'Perfil da empresa',
+    totalEmpresas: 'vinculada',
+    distribuicaoLotes: 'Lotes transportados por status',
+    rankingTransportadoras: 'Minha transportadora',
+    rankingTransportadorasVazio: 'Nenhum transporte atribuido ainda',
+    rankingGeradoras: 'Geradoras atendidas',
+    rankingGeradorasVazio: 'Nenhuma geradora atendida ainda',
+    exportacoes: 'Bases da minha operacao',
+    bases: {
+      empresas: 'Empresa transportadora vinculada ao usuario',
+      lotes: 'Lotes associados aos seus transportes',
+      transportes: 'Transportes atribuidos a sua empresa',
+    },
+  },
+  RECEPTORA: {
+    subtitulo: 'indicadores dos recebimentos destinados',
+    botaoExportar: 'EXPORTAR RECEBIMENTOS',
+    cardEmpresas: 'Empresa vinculada',
+    cardEmpresasDescricao: 'cadastro operacional',
+    cardResiduosDescricao: 'volume recebido',
+    distribuicaoEmpresas: 'Perfil da empresa',
+    totalEmpresas: 'vinculada',
+    distribuicaoLotes: 'Lotes recebidos por status',
+    rankingTransportadoras: 'Transportadoras recebidas',
+    rankingTransportadorasVazio: 'Nenhum transporte destinado ainda',
+    rankingGeradoras: 'Geradoras de origem',
+    rankingGeradorasVazio: 'Nenhuma geradora de origem ainda',
+    exportacoes: 'Bases dos recebimentos',
+    bases: {
+      empresas: 'Empresa receptora vinculada ao usuario',
+      lotes: 'Lotes destinados a sua empresa',
+      transportes: 'Transportes recebidos ou pendentes de recebimento',
+    },
+  },
+}
+
+const textosRelatorio = computed(() => TEXTOS_RELATORIO[perfilUsuario.value] || TEXTOS_RELATORIO.ADMIN)
+
+const basesExportacao = computed(() => [
+  { chave: 'empresas',    rotulo: 'Empresas',    descricao: textosRelatorio.value.bases.empresas,    icone: Building2 },
+  { chave: 'lotes',       rotulo: 'Lotes',       descricao: textosRelatorio.value.bases.lotes,       icone: Boxes },
+  { chave: 'transportes', rotulo: 'Transportes', descricao: textosRelatorio.value.bases.transportes, icone: Truck },
+])
 
 const totalEmpresasResumo = computed(() => Number(resumoRelatorios.value?.totalEmpresas) || empresas.value.length)
 const totalLotesResumo = computed(() => Number(resumoRelatorios.value?.totalLotes) || lotes.value.length)
@@ -277,14 +363,14 @@ const cartoesGerais = computed(() => [
   {
     rotulo: 'Resíduos rastreados',
     valor: `${totalToneladas.value} TON`,
-    descricao: 'soma consolidada dos lotes',
+    descricao: textosRelatorio.value.cardResiduosDescricao,
     icone: ScrollText,
     cor: '#2DD4BF',
   },
   {
-    rotulo: 'Empresas no ecossistema',
+    rotulo: textosRelatorio.value.cardEmpresas,
     valor: totalEmpresasResumo.value,
-    descricao: 'parceiros cadastrados',
+    descricao: textosRelatorio.value.cardEmpresasDescricao,
     icone: Building2,
     cor: '#38BDF8',
   },
@@ -487,21 +573,21 @@ const exportarConsolidado = () => {
     {
       indicador:  'Resíduos rastreados (TON)',
       valor:      totalToneladas.value,
-      observacao: 'Soma consolidada de todos os lotes',
+      observacao: textosRelatorio.value.cardResiduosDescricao,
     },
     {
-      indicador:  'Empresas no ecossistema',
-      valor:      empresas.value.length,
+      indicador:  textosRelatorio.value.cardEmpresas,
+      valor:      totalEmpresasResumo.value,
       observacao: `${empresasPorTipo.value.map(d => `${d.total} ${d.rotulo.toLowerCase()}`).join(' · ')}`,
     },
     {
-      indicador:  'Lotes registrados',
-      valor:      lotes.value.length,
+      indicador:  textosRelatorio.value.distribuicaoLotes,
+      valor:      totalLotesResumo.value,
       observacao: lotesPorStatus.value.map(d => `${d.total} ${d.rotulo.toLowerCase()}`).join(' · '),
     },
     {
       indicador:  'Transportes registrados',
-      valor:      transportes.value.length,
+      valor:      totalTransportesResumo.value,
       observacao: `${transportesConcluidos.value} concluídos · ${transportesEmAndamento.value} em andamento`,
     },
   ]
