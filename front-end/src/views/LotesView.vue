@@ -98,7 +98,7 @@
 
             <div class="flex items-baseline gap-1.5 pt-3 border-t border-bg-line">
               <span class="scoreboard text-[30px] text-ink leading-none tabular-nums">{{ lote.quantidade }}</span>
-              <span class="font-display text-cyan text-[15px] unidade-italic">{{ lote.unidade }}</span>
+              <span class="font-display text-cyan text-[15px] unidade-italic">{{ formatarUnidade(lote.unidade) }}</span>
             </div>
           </article>
         </div>
@@ -144,7 +144,7 @@
             </td>
             <td class="px-5 py-3.5 text-right">
               <span class="scoreboard text-[20px] text-ink tabular-nums">{{ lote.quantidade }}</span>
-              <span class="mono-tag text-ink-3 ml-1">{{ lote.unidade }}</span>
+              <span class="mono-tag text-ink-3 ml-1">{{ formatarUnidade(lote.unidade) }}</span>
             </td>
             <td class="px-5 py-3.5">
               <span
@@ -220,7 +220,7 @@
                 <span class="scoreboard text-[28px] text-ink leading-none tabular-nums">
                   {{ loteSelecionado.quantidade }}
                 </span>
-                <span class="font-display text-cyan text-[14px] unidade-italic">{{ loteSelecionado.unidade }}</span>
+                <span class="font-display text-cyan text-[14px] unidade-italic">{{ formatarUnidade(loteSelecionado.unidade) }}</span>
               </p>
             </div>
             <div class="rounded-xl bg-bg-elevated border border-bg-line p-4">
@@ -402,7 +402,7 @@ const OPCOES_VISTA = [
   { valor: 'tabela', rotulo: 'TABELA', icone: Rows3 },
 ]
 
-const UNIDADES = ['KG', 'TON', 'L']
+const UNIDADES = ['KG', 'TON', 'L', 'M3']
 const COR_PADRAO = '#A5ACAF'
 const TAMANHO_ID = 4
 const TAMANHO_INDICE = 2
@@ -484,6 +484,12 @@ const estiloChipStatus = (status) => {
 
 const formatarData = (data) =>
   data ? new Date(data).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '—'
+
+const formatarUnidade = (unidade) => {
+  const normalizada = String(unidade || '').trim().toUpperCase()
+  if (normalizada === 'M3' || normalizada === 'M³') return 'm3'
+  return normalizada
+}
 
 const chavePublica = (registro) => registro?.publicId || registro?.id || ''
 const formatarIdentificador = (registro) => {
