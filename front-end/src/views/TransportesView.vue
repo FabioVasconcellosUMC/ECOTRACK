@@ -439,8 +439,11 @@ import { exportCsv } from '../utils/exportCsv'
 
 const STATUS = {
   PENDENTE:    'PENDENTE',
+  ACEITO:      'ACEITO',
   EM_TRANSITO: 'EM_TRANSITO',
   CONCLUIDO:   'CONCLUIDO',
+  RECUSADO:    'RECUSADO',
+  RECEBIMENTO_RECUSADO: 'RECEBIMENTO_RECUSADO',
   CANCELADO:   'CANCELADO',
 }
 
@@ -450,34 +453,65 @@ let timeoutBusca = null
 
 const CORES_STATUS = {
   PENDENTE:    '#F59E0B',
+  ACEITO:      '#2DD4BF',
   EM_TRANSITO: '#38BDF8',
   CONCLUIDO:   '#10B981',
+  RECUSADO:    '#EF4444',
+  RECEBIMENTO_RECUSADO: '#F97316',
   CANCELADO:   '#DC2626',
 }
 
 const ROTULOS_STATUS = {
-  PENDENTE:    'Pendente',
+  PENDENTE:    'Aguardando aceite',
+  ACEITO:      'Aceito',
   EM_TRANSITO: 'Em trânsito',
   CONCLUIDO:   'Concluído',
+  RECUSADO:    'Recusado',
+  RECEBIMENTO_RECUSADO: 'Recebimento recusado',
   CANCELADO:   'Cancelado',
 }
 
 const ICONES_STATUS = {
   PENDENTE:    Clock,
+  ACEITO:      CheckCircle,
   EM_TRANSITO: Truck,
   CONCLUIDO:   CheckCircle,
+  RECUSADO:    XCircle,
+  RECEBIMENTO_RECUSADO: XCircle,
   CANCELADO:   XCircle,
 }
 
 const CHIPS = [
-  { valor: 'TODOS',                rotulo: 'TODOS',                cor: '#2DD4BF', icone: Truck },
-  { valor: STATUS.PENDENTE,        rotulo: 'PENDENTES',            cor: CORES_STATUS.PENDENTE,    icone: Clock },
-  { valor: STATUS.EM_TRANSITO,     rotulo: 'EM TRÂNSITO',          cor: CORES_STATUS.EM_TRANSITO, icone: Truck },
-  { valor: STATUS.CONCLUIDO,       rotulo: 'CONCLUÍDOS',           cor: CORES_STATUS.CONCLUIDO,   icone: CheckCircle },
+  { valor: 'TODOS',                rotulo: 'TODOS',              cor: '#2DD4BF', icone: Truck },
+  { valor: STATUS.PENDENTE,        rotulo: 'AGUARDANDO',         cor: CORES_STATUS.PENDENTE,    icone: Clock },
+  { valor: STATUS.ACEITO,          rotulo: 'ACEITOS',            cor: CORES_STATUS.ACEITO,      icone: CheckCircle },
+  { valor: STATUS.EM_TRANSITO,     rotulo: 'EM TRÂNSITO',        cor: CORES_STATUS.EM_TRANSITO, icone: Truck },
+  { valor: STATUS.CONCLUIDO,       rotulo: 'CONCLUÍDOS',         cor: CORES_STATUS.CONCLUIDO,   icone: CheckCircle },
+  { valor: STATUS.RECUSADO,        rotulo: 'RECUSADOS',          cor: CORES_STATUS.RECUSADO,    icone: XCircle },
 ]
 
 const ACOES_POR_STATUS = {
   [STATUS.PENDENTE]: [
+    {
+      novoStatus: STATUS.ACEITO,
+      rotulo: 'ACEITAR TRANSPORTE',
+      icone: CheckCircle,
+      cor: CORES_STATUS.ACEITO,
+      tituloConfirmacao: 'Aceitar transporte?',
+      descricaoCascata: 'Ao aceitar, a transportadora confirma que realizará a coleta para a receptora informada.',
+      perfis: ['ADMIN', 'TRANSPORTADORA'],
+    },
+    {
+      novoStatus: STATUS.RECUSADO,
+      rotulo: 'RECUSAR TRANSPORTE',
+      icone: XCircle,
+      cor: CORES_STATUS.RECUSADO,
+      tituloConfirmacao: 'Recusar transporte?',
+      descricaoCascata: 'O lote permanecerá disponível para uma nova programação de transporte.',
+      perfis: ['ADMIN', 'TRANSPORTADORA'],
+    },
+  ],
+  [STATUS.ACEITO]: [
     {
       novoStatus: STATUS.EM_TRANSITO,
       rotulo: 'INICIAR TRÂNSITO',
@@ -509,6 +543,16 @@ const ACOES_POR_STATUS = {
       perfis: ['ADMIN', 'RECEPTORA'],
     },
     {
+      novoStatus: STATUS.RECEBIMENTO_RECUSADO,
+      rotulo: 'RECUSAR RECEBIMENTO',
+      icone: XCircle,
+      cor: CORES_STATUS.RECEBIMENTO_RECUSADO,
+      tituloConfirmacao: 'Recusar recebimento?',
+      descricaoCascata: 'O recebimento final será recusado pela receptora e o lote voltará para nova programação.',
+      endpoint: 'recebimento-final/recusar',
+      perfis: ['ADMIN', 'RECEPTORA'],
+    },
+    {
       novoStatus: STATUS.CANCELADO,
       rotulo: 'CANCELAR',
       icone: XCircle,
@@ -519,6 +563,8 @@ const ACOES_POR_STATUS = {
     },
   ],
   [STATUS.CONCLUIDO]: [],
+  [STATUS.RECUSADO]: [],
+  [STATUS.RECEBIMENTO_RECUSADO]: [],
   [STATUS.CANCELADO]: [],
 }
 
@@ -540,8 +586,11 @@ const transportes = ref([])
 const totalTransportesReal = ref(0)
 const totaisStatusReal = ref({
   [STATUS.PENDENTE]: 0,
+  [STATUS.ACEITO]: 0,
   [STATUS.EM_TRANSITO]: 0,
   [STATUS.CONCLUIDO]: 0,
+  [STATUS.RECUSADO]: 0,
+  [STATUS.RECEBIMENTO_RECUSADO]: 0,
   [STATUS.CANCELADO]: 0,
 })
 const lotes = ref([])
@@ -710,7 +759,18 @@ const linhaTempo = (transporte) => {
   if (!transporte) return []
 
   const cancelado = transporte.status === STATUS.CANCELADO
-  const emTransito = transporte.status === STATUS.EM_TRANSITO || transporte.status === STATUS.CONCLUIDO
+  const recusado = transporte.status === STATUS.RECUSADO
+  const recebimentoRecusado = transporte.status === STATUS.RECEBIMENTO_RECUSADO
+  const aceito = [
+    STATUS.ACEITO,
+    STATUS.EM_TRANSITO,
+    STATUS.CONCLUIDO,
+    STATUS.CANCELADO,
+    STATUS.RECEBIMENTO_RECUSADO,
+  ].includes(transporte.status)
+  const emTransito = transporte.status === STATUS.EM_TRANSITO
+    || transporte.status === STATUS.CONCLUIDO
+    || transporte.status === STATUS.RECEBIMENTO_RECUSADO
   const concluido = transporte.status === STATUS.CONCLUIDO
 
   const marcos = [
@@ -720,6 +780,15 @@ const linhaTempo = (transporte) => {
       descricao: formatarData(transporte.criadoEm),
       alcancado: true,
       cor: '#94A3B8',
+    },
+    {
+      chave: 'aceite',
+      rotulo: recusado ? 'Transporte recusado' : 'Transporte aceito',
+      descricao: recusado
+        ? 'transportadora recusou a solicitação'
+        : 'transportadora aceitou a solicitação',
+      alcancado: aceito || recusado,
+      cor: recusado ? CORES_STATUS.RECUSADO : CORES_STATUS.ACEITO,
     },
     {
       chave: 'transito',
@@ -740,6 +809,16 @@ const linhaTempo = (transporte) => {
       cor: CORES_STATUS.CONCLUIDO,
     },
   ]
+
+  if (recebimentoRecusado) {
+    marcos.push({
+      chave: 'recebimento-recusado',
+      rotulo: 'Recebimento recusado',
+      descricao: 'receptora recusou o recebimento final',
+      alcancado: true,
+      cor: CORES_STATUS.RECEBIMENTO_RECUSADO,
+    })
+  }
 
   if (cancelado) {
     marcos.push({
@@ -805,8 +884,11 @@ const normalizarPagina = (resposta) => {
         return contagem
       }, {
         [STATUS.PENDENTE]: 0,
+        [STATUS.ACEITO]: 0,
         [STATUS.EM_TRANSITO]: 0,
         [STATUS.CONCLUIDO]: 0,
+        [STATUS.RECUSADO]: 0,
+        [STATUS.RECEBIMENTO_RECUSADO]: 0,
         [STATUS.CANCELADO]: 0,
       }),
     }
@@ -825,8 +907,11 @@ const atualizarResumoTransportes = (pagina) => {
   totalTransportesReal.value = pagina.total
   totaisStatusReal.value = {
     [STATUS.PENDENTE]: Number(pagina.totalPorStatus?.[STATUS.PENDENTE]) || 0,
+    [STATUS.ACEITO]: Number(pagina.totalPorStatus?.[STATUS.ACEITO]) || 0,
     [STATUS.EM_TRANSITO]: Number(pagina.totalPorStatus?.[STATUS.EM_TRANSITO]) || 0,
     [STATUS.CONCLUIDO]: Number(pagina.totalPorStatus?.[STATUS.CONCLUIDO]) || 0,
+    [STATUS.RECUSADO]: Number(pagina.totalPorStatus?.[STATUS.RECUSADO]) || 0,
+    [STATUS.RECEBIMENTO_RECUSADO]: Number(pagina.totalPorStatus?.[STATUS.RECEBIMENTO_RECUSADO]) || 0,
     [STATUS.CANCELADO]: Number(pagina.totalPorStatus?.[STATUS.CANCELADO]) || 0,
   }
 }
@@ -884,7 +969,7 @@ const salvarTransporte = async () => {
     invalidarCacheDados('/transportes', '/lotes')
     fecharModalCadastro()
     await carregarDados()
-    exibirToast(`Transporte ${formatarId(resposta.data)} criado · status PENDENTE`)
+    exibirToast(`Transporte ${formatarId(resposta.data)} criado · aguardando aceite`)
   } catch (erro) {
     mensagemErro.value = erro.mensagemAmigavel || 'Erro ao cadastrar transporte. Verifique os dados.'
   } finally {
@@ -896,9 +981,9 @@ const confirmarMudancaStatus = async () => {
   if (mudandoStatus.value || !confirmacaoStatus.value || !transporteSelecionado.value) return
   mudandoStatus.value = true
   try {
-    if (confirmacaoStatus.value.endpoint === 'recebimento-final') {
+    if (confirmacaoStatus.value.endpoint) {
       await api.patch(
-        `/transportes/${chavePublica(transporteSelecionado.value)}/recebimento-final`,
+        `/transportes/${chavePublica(transporteSelecionado.value)}/${confirmacaoStatus.value.endpoint}`,
         null,
         { params: { observacao: observacaoMudanca.value.trim() } },
       )

@@ -157,6 +157,14 @@ public class TransporteService {
         return confirmarRecebimentoFinal(buscarPorPublicIdInterno(publicId), observacao);
     }
 
+    public Transporte recusarRecebimentoFinal(Long id, String observacao) {
+        return recusarRecebimentoFinal(buscarPorIdInterno(id), observacao);
+    }
+
+    public Transporte recusarRecebimentoFinal(UUID publicId, String observacao) {
+        return recusarRecebimentoFinal(buscarPorPublicIdInterno(publicId), observacao);
+    }
+
     @Transactional(readOnly = true)
     public List<Transporte> buscarPorLote(Long loteId) {
         return transporteRepository.findByLoteId(loteId);
@@ -208,22 +216,45 @@ public class TransporteService {
         return transporteRepository.save(transporte);
     }
 
+    private Transporte recusarRecebimentoFinal(Transporte transporte, String observacao) {
+        TextoSeguro.validar(observacao, "Observacao");
+        validarRecebimentoDentroDoEscopo(transporte);
+        validarRecebimentoFinal(transporte);
+
+        StatusTransporte statusAnterior = transporte.getStatus();
+        transporte.setStatus(StatusTransporte.RECEBIMENTO_RECUSADO);
+        transporte.setObservacao(observacao);
+
+        aplicarImpactoNoLote(transporte, statusAnterior, StatusTransporte.RECEBIMENTO_RECUSADO,
+                montarObservacaoRecebimentoRecusado(observacao));
+
+        return transporteRepository.save(transporte);
+    }
+
     private void validarAlteracaoStatus(StatusTransporte statusAnterior, StatusTransporte novoStatus) {
         if (novoStatus == StatusTransporte.CONCLUIDO) {
             throw new RegraNegocioException("Recebimento final deve ser confirmado pela empresa receptora");
         }
 
-        if (statusAnterior == StatusTransporte.CONCLUIDO || statusAnterior == StatusTransporte.CANCELADO) {
-            throw new RegraNegocioException("Transporte já está em status final");
+        if (novoStatus == StatusTransporte.RECEBIMENTO_RECUSADO) {
+            throw new RegraNegocioException("Recusa de recebimento deve ser registrada pela empresa receptora");
+        }
+
+        if (statusFinal(statusAnterior)) {
+            throw new RegraNegocioException("Transporte ja esta em status final");
         }
 
         if (statusAnterior == novoStatus) {
-            throw new RegraNegocioException("Transporte já está no status informado");
+            throw new RegraNegocioException("Transporte ja esta no status informado");
+        }
+
+        if (!transicaoPermitida(statusAnterior, novoStatus)) {
+            throw new RegraNegocioException("Transicao de status nao permitida para o transporte");
         }
     }
 
     private void validarRecebimentoFinal(Transporte transporte) {
-        if (transporte.getStatus() == StatusTransporte.CONCLUIDO || transporte.getStatus() == StatusTransporte.CANCELADO) {
+        if (statusFinal(transporte.getStatus())) {
             throw new RegraNegocioException("Transporte ja esta em status final");
         }
 
@@ -240,6 +271,33 @@ public class TransporteService {
         return "Recebimento final confirmado pela receptora";
     }
 
+    private String montarObservacaoRecebimentoRecusado(String observacao) {
+        if (observacao != null && !observacao.isBlank()) {
+            return "Recebimento final recusado pela receptora. " + observacao;
+        }
+
+        return "Recebimento final recusado pela receptora";
+    }
+
+    private boolean statusFinal(StatusTransporte status) {
+        return status == StatusTransporte.CONCLUIDO
+                || status == StatusTransporte.CANCELADO
+                || status == StatusTransporte.RECUSADO
+                || status == StatusTransporte.RECEBIMENTO_RECUSADO;
+    }
+
+    private boolean transicaoPermitida(StatusTransporte statusAnterior, StatusTransporte novoStatus) {
+        return switch (statusAnterior) {
+            case PENDENTE -> novoStatus == StatusTransporte.ACEITO
+                    || novoStatus == StatusTransporte.RECUSADO
+                    || novoStatus == StatusTransporte.CANCELADO;
+            case ACEITO -> novoStatus == StatusTransporte.EM_TRANSITO
+                    || novoStatus == StatusTransporte.CANCELADO;
+            case EM_TRANSITO -> novoStatus == StatusTransporte.CANCELADO;
+            default -> false;
+        };
+    }
+
     private void aplicarImpactoNoLote(Transporte transporte, StatusTransporte statusAnterior,
                                       StatusTransporte novoStatus, String observacao) {
         if (novoStatus == StatusTransporte.EM_TRANSITO) {
@@ -252,7 +310,9 @@ public class TransporteService {
             atualizarStatusLote(transporte, StatusLote.DESCARTADO, observacao);
         }
 
-        if (novoStatus == StatusTransporte.CANCELADO && statusAnterior == StatusTransporte.EM_TRANSITO) {
+        if ((novoStatus == StatusTransporte.CANCELADO && statusAnterior == StatusTransporte.EM_TRANSITO)
+                || novoStatus == StatusTransporte.RECUSADO
+                || novoStatus == StatusTransporte.RECEBIMENTO_RECUSADO) {
             atualizarStatusLote(transporte, StatusLote.AGUARDANDO_COLETA, observacao);
         }
     }
@@ -355,8 +415,11 @@ public class TransporteService {
     private Map<String, Long> totaisPorStatus(Usuario usuario, String busca) {
         return Map.of(
                 StatusTransporte.PENDENTE.name(), totalTransportesPorStatus(usuario, busca, StatusTransporte.PENDENTE),
+                StatusTransporte.ACEITO.name(), totalTransportesPorStatus(usuario, busca, StatusTransporte.ACEITO),
                 StatusTransporte.EM_TRANSITO.name(), totalTransportesPorStatus(usuario, busca, StatusTransporte.EM_TRANSITO),
                 StatusTransporte.CONCLUIDO.name(), totalTransportesPorStatus(usuario, busca, StatusTransporte.CONCLUIDO),
+                StatusTransporte.RECUSADO.name(), totalTransportesPorStatus(usuario, busca, StatusTransporte.RECUSADO),
+                StatusTransporte.RECEBIMENTO_RECUSADO.name(), totalTransportesPorStatus(usuario, busca, StatusTransporte.RECEBIMENTO_RECUSADO),
                 StatusTransporte.CANCELADO.name(), totalTransportesPorStatus(usuario, busca, StatusTransporte.CANCELADO)
         );
     }
@@ -364,8 +427,11 @@ public class TransporteService {
     private Map<String, Long> totaisVazios() {
         return Map.of(
                 StatusTransporte.PENDENTE.name(), 0L,
+                StatusTransporte.ACEITO.name(), 0L,
                 StatusTransporte.EM_TRANSITO.name(), 0L,
                 StatusTransporte.CONCLUIDO.name(), 0L,
+                StatusTransporte.RECUSADO.name(), 0L,
+                StatusTransporte.RECEBIMENTO_RECUSADO.name(), 0L,
                 StatusTransporte.CANCELADO.name(), 0L
         );
     }

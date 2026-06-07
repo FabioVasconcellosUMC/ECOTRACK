@@ -110,12 +110,30 @@ class TransporteServiceTest {
     }
 
     @Test
-    void alterarStatusParaEmTransitoAtualizaLoteEHistorico() {
+    void alterarStatusParaAceitoMantemLoteAguardandoColeta() {
         Lote lote = lote(1L, StatusLote.AGUARDANDO_COLETA);
         Transporte transporte = new Transporte();
         transporte.setId(10L);
         transporte.setLote(lote);
         transporte.setStatus(StatusTransporte.PENDENTE);
+        when(transporteRepository.findById(10L)).thenReturn(Optional.of(transporte));
+        when(transporteRepository.save(transporte)).thenReturn(transporte);
+
+        Transporte resultado = transporteService.alterarStatus(10L, StatusTransporte.ACEITO, "transporte aceito");
+
+        assertThat(resultado.getStatus()).isEqualTo(StatusTransporte.ACEITO);
+        assertThat(lote.getStatus()).isEqualTo(StatusLote.AGUARDANDO_COLETA);
+        verify(loteRepository, never()).save(any(Lote.class));
+        verify(historicoLoteRepository, never()).save(any(HistoricoLote.class));
+    }
+
+    @Test
+    void alterarStatusParaEmTransitoAtualizaLoteEHistorico() {
+        Lote lote = lote(1L, StatusLote.AGUARDANDO_COLETA);
+        Transporte transporte = new Transporte();
+        transporte.setId(10L);
+        transporte.setLote(lote);
+        transporte.setStatus(StatusTransporte.ACEITO);
         when(transporteRepository.findById(10L)).thenReturn(Optional.of(transporte));
         when(transporteRepository.save(transporte)).thenReturn(transporte);
 
@@ -131,6 +149,37 @@ class TransporteServiceTest {
         assertThat(historicoCaptor.getValue().getStatusAnterior()).isEqualTo(StatusLote.AGUARDANDO_COLETA);
         assertThat(historicoCaptor.getValue().getStatusNovo()).isEqualTo(StatusLote.EM_TRANSITO);
         assertThat(historicoCaptor.getValue().getObservacao()).isEqualTo("coleta iniciada");
+    }
+
+    @Test
+    void alterarStatusRejeitaInicioDeTransitoSemAceiteDaTransportadora() {
+        Transporte transporte = new Transporte();
+        transporte.setId(10L);
+        transporte.setStatus(StatusTransporte.PENDENTE);
+        when(transporteRepository.findById(10L)).thenReturn(Optional.of(transporte));
+
+        assertThatThrownBy(() -> transporteService.alterarStatus(10L, StatusTransporte.EM_TRANSITO, null))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessage("Transicao de status nao permitida para o transporte");
+
+        verify(transporteRepository, never()).save(any(Transporte.class));
+    }
+
+    @Test
+    void alterarStatusParaRecusadoFinalizaTransporteELiberaLote() {
+        Lote lote = lote(1L, StatusLote.AGUARDANDO_COLETA);
+        Transporte transporte = new Transporte();
+        transporte.setId(10L);
+        transporte.setLote(lote);
+        transporte.setStatus(StatusTransporte.PENDENTE);
+        when(transporteRepository.findById(10L)).thenReturn(Optional.of(transporte));
+        when(transporteRepository.save(transporte)).thenReturn(transporte);
+
+        Transporte resultado = transporteService.alterarStatus(10L, StatusTransporte.RECUSADO, "transportadora recusou");
+
+        assertThat(resultado.getStatus()).isEqualTo(StatusTransporte.RECUSADO);
+        assertThat(lote.getStatus()).isEqualTo(StatusLote.AGUARDANDO_COLETA);
+        verify(loteRepository, never()).save(any(Lote.class));
     }
 
     @Test
@@ -205,6 +254,30 @@ class TransporteServiceTest {
     }
 
     @Test
+    void recusarRecebimentoFinalFinalizaTransporteELiberaLote() {
+        Lote lote = lote(1L, StatusLote.EM_TRANSITO);
+        Transporte transporte = new Transporte();
+        transporte.setId(10L);
+        transporte.setLote(lote);
+        transporte.setStatus(StatusTransporte.EM_TRANSITO);
+        when(transporteRepository.findById(10L)).thenReturn(Optional.of(transporte));
+        when(transporteRepository.save(transporte)).thenReturn(transporte);
+
+        Transporte resultado = transporteService.recusarRecebimentoFinal(10L, "divergencia no recebimento");
+
+        assertThat(resultado.getStatus()).isEqualTo(StatusTransporte.RECEBIMENTO_RECUSADO);
+        assertThat(lote.getStatus()).isEqualTo(StatusLote.AGUARDANDO_COLETA);
+        verify(loteRepository).save(lote);
+
+        ArgumentCaptor<HistoricoLote> historicoCaptor = ArgumentCaptor.forClass(HistoricoLote.class);
+        verify(historicoLoteRepository).save(historicoCaptor.capture());
+        assertThat(historicoCaptor.getValue().getStatusAnterior()).isEqualTo(StatusLote.EM_TRANSITO);
+        assertThat(historicoCaptor.getValue().getStatusNovo()).isEqualTo(StatusLote.AGUARDANDO_COLETA);
+        assertThat(historicoCaptor.getValue().getObservacao())
+                .isEqualTo("Recebimento final recusado pela receptora. divergencia no recebimento");
+    }
+
+    @Test
     void alterarStatusRejeitaTransporteFinalizado() {
         Transporte transporte = new Transporte();
         transporte.setId(10L);
@@ -213,7 +286,7 @@ class TransporteServiceTest {
 
         assertThatThrownBy(() -> transporteService.alterarStatus(10L, StatusTransporte.CANCELADO, null))
                 .isInstanceOf(RegraNegocioException.class)
-                .hasMessage("Transporte já está em status final");
+                .hasMessage("Transporte ja esta em status final");
 
         verify(transporteRepository, never()).save(any(Transporte.class));
     }
@@ -241,3 +314,4 @@ class TransporteServiceTest {
         return empresa;
     }
 }
+

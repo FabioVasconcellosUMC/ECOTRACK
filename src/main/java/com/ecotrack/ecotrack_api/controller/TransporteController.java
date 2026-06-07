@@ -79,6 +79,16 @@ public class TransporteController {
         return ResponseEntity.ok(transporteService.confirmarRecebimentoFinal(publicId, observacao));
     }
 
+    @PatchMapping("/{publicId}/recebimento-final/recusar")
+    public ResponseEntity<Transporte> recusarRecebimentoFinal(
+            @PathVariable UUID publicId,
+            @RequestParam(required = false)
+            @Size(max = 1000, message = "Observacao deve ter no maximo 1000 caracteres")
+            @Pattern(regexp = "^[^<>]*$", message = "Observacao nao pode conter tags HTML ou scripts")
+            String observacao) {
+        return ResponseEntity.ok(transporteService.recusarRecebimentoFinal(publicId, observacao));
+    }
+
     @GetMapping("/lote/{lotePublicId}")
     public ResponseEntity<List<Transporte>> buscarPorLote(@PathVariable UUID lotePublicId) {
         return ResponseEntity.ok(transporteService.buscarPorLotePublicId(lotePublicId));

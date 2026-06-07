@@ -356,7 +356,9 @@ const transportesConcluidos = computed(() =>
 
 const transportesEmAndamento = computed(() =>
   Number(resumoRelatorios.value?.transportesEmAndamento)
-    || transportes.value.filter(t => t.status === 'PENDENTE' || t.status === 'EM_TRANSITO').length,
+    || transportes.value.filter(t =>
+      ['PENDENTE', 'ACEITO', 'EM_TRANSITO'].includes(t.status),
+    ).length,
 )
 
 const cartoesGerais = computed(() => [

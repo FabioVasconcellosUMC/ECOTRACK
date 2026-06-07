@@ -75,6 +75,7 @@ public class IndicadoresService {
                 transporteRepository.count(),
                 transporteRepository.countByStatus(StatusTransporte.CONCLUIDO),
                 transporteRepository.countByStatus(StatusTransporte.PENDENTE)
+                        + transporteRepository.countByStatus(StatusTransporte.ACEITO)
                         + transporteRepository.countByStatus(StatusTransporte.EM_TRANSITO),
                 totalToneladas(),
                 empresasPorTipo(),
@@ -102,6 +103,7 @@ public class IndicadoresService {
                 totalTransportes(perfil, empresaId),
                 totalTransportesPorStatus(perfil, empresaId, StatusTransporte.CONCLUIDO),
                 totalTransportesPorStatus(perfil, empresaId, StatusTransporte.PENDENTE)
+                        + totalTransportesPorStatus(perfil, empresaId, StatusTransporte.ACEITO)
                         + totalTransportesPorStatus(perfil, empresaId, StatusTransporte.EM_TRANSITO),
                 totalToneladas(perfil, empresaId),
                 List.of(new TotalPorCategoriaResponse(empresa.getTipo().name(), 1)),
