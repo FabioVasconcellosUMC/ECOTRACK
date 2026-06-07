@@ -176,13 +176,14 @@
       </button>
     </div>
 
-    <Transition name="page">
-      <div
-        v-if="loteSelecionado"
-        class="fixed inset-0 z-50 bg-bg-base/80 backdrop-blur-sm flex items-center justify-center p-6"
-        @click.self="fecharDetalhes"
-      >
-        <div class="w-full max-w-2xl rounded-2xl bg-bg-panel border border-bg-line-strong p-7 helmet-stripe fade-up">
+    <Teleport to="body">
+      <Transition name="page">
+        <div
+          v-if="loteSelecionado"
+          class="fixed inset-0 z-[10000] bg-bg-base/80 backdrop-blur-sm overflow-y-auto flex items-start justify-center px-6 pt-28 pb-8"
+          @click.self="fecharDetalhes"
+        >
+          <div class="w-full max-w-2xl max-h-[calc(100vh-8rem)] overflow-y-auto rounded-2xl bg-bg-panel border border-bg-line-strong p-7 helmet-stripe fade-up">
           <div class="flex items-start justify-between gap-5">
             <div class="flex-1 min-w-0">
               <p class="eyebrow text-cyan">Detalhe do lote</p>
@@ -239,18 +240,19 @@
               <Download :size="14" /> EXPORTAR LOTE
             </button>
           </div>
+          </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
 
     <Teleport to="body">
       <Transition name="page">
         <div
           v-if="modalCadastroAberto"
-          class="fixed inset-0 z-[10000] bg-bg-base/80 backdrop-blur-sm flex items-center justify-center p-6"
+          class="fixed inset-0 z-[10000] bg-bg-base/80 backdrop-blur-sm overflow-y-auto flex items-start justify-center px-6 pt-28 pb-8"
           @click.self="fecharModalCadastro"
         >
-          <div class="w-full max-w-xl max-h-[calc(100vh-48px)] overflow-y-auto rounded-2xl bg-bg-panel border border-bg-line-strong p-7 helmet-stripe fade-up">
+          <div class="w-full max-w-xl max-h-[calc(100vh-8rem)] overflow-y-auto rounded-2xl bg-bg-panel border border-bg-line-strong p-7 helmet-stripe fade-up">
             <div class="flex items-center justify-between mb-6">
               <div>
                 <p class="eyebrow text-cyan">Novo registro</p>

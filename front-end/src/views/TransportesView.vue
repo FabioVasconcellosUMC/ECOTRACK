@@ -145,11 +145,11 @@
     <Transition name="modal">
       <div
         v-if="transporteSelecionado"
-        class="fixed inset-0 z-40 flex items-center justify-center px-4 py-8"
+        class="fixed inset-0 z-40 overflow-y-auto flex items-start justify-center px-4 pt-28 pb-8"
       >
         <div class="absolute inset-0 bg-bg-base/85 backdrop-blur-md" @click="fecharDetalhes" />
 
-        <div class="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-bg-panel border border-bg-line-strong helmet-stripe shadow-2xl">
+        <div class="relative w-full max-w-2xl max-h-[calc(100vh-8rem)] overflow-y-auto rounded-2xl bg-bg-panel border border-bg-line-strong helmet-stripe shadow-2xl">
           <header class="flex items-start justify-between gap-3 px-7 py-5 border-b border-bg-line">
             <div>
               <p class="eyebrow text-cyan">Detalhes do transporte</p>
@@ -248,11 +248,11 @@
     <Transition name="modal">
       <div
         v-if="modalCadastroAberto"
-        class="fixed inset-0 z-50 flex items-center justify-center px-4 py-8"
+        class="fixed inset-0 z-50 overflow-y-auto flex items-start justify-center px-4 pt-28 pb-8"
       >
         <div class="absolute inset-0 bg-bg-base/85 backdrop-blur-md" @click="fecharModalCadastro" />
 
-        <div class="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl bg-bg-panel border border-bg-line-strong helmet-stripe shadow-2xl">
+        <div class="relative w-full max-w-xl max-h-[calc(100vh-8rem)] overflow-y-auto rounded-2xl bg-bg-panel border border-bg-line-strong helmet-stripe shadow-2xl">
           <header class="flex items-start justify-between gap-3 px-7 py-5 border-b border-bg-line">
             <div>
               <p class="eyebrow text-cyan">Novo transporte</p>
