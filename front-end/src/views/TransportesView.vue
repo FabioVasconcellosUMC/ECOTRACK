@@ -448,6 +448,7 @@ const STATUS = {
 }
 
 const LIMITE_LISTAGEM = 20
+const LIMITE_AUXILIAR = 100
 const ATRASO_BUSCA_MS = 350
 let timeoutBusca = null
 
@@ -928,8 +929,8 @@ const carregarDados = async ({ acrescentar = false } = {}) => {
         page: pagina,
         q: termoBusca.value.trim() || undefined,
       }),
-      buscarComCache('/lotes'),
-      buscarComCache('/empresas'),
+      buscarComCache('/lotes', { limit: LIMITE_AUXILIAR }),
+      buscarComCache('/empresas', { limit: LIMITE_AUXILIAR }),
     ])
     const paginaTransportes = normalizarPagina(respTransportes)
     transportes.value = acrescentar

@@ -1,6 +1,8 @@
 import api from './api'
 
 const TTL_PADRAO_MS = 90_000
+const LIMITE_AQUECIMENTO = 20
+const LIMITE_AUXILIAR = 100
 const cache = new Map()
 
 const chaveCache = (url, params = {}) =>
@@ -38,4 +40,18 @@ export const invalidarCacheDados = (...prefixos) => {
       cache.delete(chave)
     }
   }
+}
+
+export const aquecerCacheOperacional = () => {
+  const consultas = [
+    buscarComCache('/dashboard/resumo'),
+    buscarComCache('/relatorios/resumo'),
+    buscarComCache('/empresas', { limit: LIMITE_AQUECIMENTO, page: 0 }),
+    buscarComCache('/lotes', { limit: LIMITE_AQUECIMENTO, page: 0 }),
+    buscarComCache('/transportes', { limit: LIMITE_AQUECIMENTO, page: 0 }),
+    buscarComCache('/empresas', { limit: LIMITE_AUXILIAR }),
+    buscarComCache('/lotes', { limit: LIMITE_AUXILIAR }),
+  ]
+
+  Promise.allSettled(consultas).catch(() => {})
 }

@@ -408,6 +408,7 @@ const TAMANHO_ID = 4
 const TAMANHO_INDICE = 2
 const TIPO_EMPRESA_GERADORA = 'GERADORA'
 const LIMITE_LISTAGEM = 20
+const LIMITE_AUXILIAR = 100
 const ATRASO_BUSCA_MS = 350
 let timeoutBusca = null
 
@@ -596,7 +597,7 @@ const carregarDados = async ({ acrescentar = false } = {}) => {
         page: pagina,
         q: termoBusca.value.trim() || undefined,
       }),
-      buscarComCache('/empresas'),
+      buscarComCache('/empresas', { limit: LIMITE_AUXILIAR }),
     ])
     const paginaLotes = normalizarPagina(respostaLotes)
     lotes.value = acrescentar
