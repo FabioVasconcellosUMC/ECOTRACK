@@ -217,25 +217,26 @@
       </div>
     </Transition>
 
-    <Transition name="page">
-      <div
-        v-if="modalCadastroAberto"
-        class="fixed inset-0 z-50 bg-bg-base/80 backdrop-blur-sm flex items-center justify-center p-6"
-        @click.self="fecharModalCadastro"
-      >
-        <div class="w-full max-w-xl rounded-2xl bg-bg-panel border border-bg-line-strong p-7 helmet-stripe fade-up">
-          <div class="flex items-center justify-between mb-6">
-            <div>
-              <p class="eyebrow text-cyan">Novo registro</p>
-              <h2 class="section-title text-[28px] mt-2">Cadastrar empresa</h2>
+    <Teleport to="body">
+      <Transition name="page">
+        <div
+          v-if="modalCadastroAberto"
+          class="fixed inset-0 z-[10000] bg-bg-base/80 backdrop-blur-sm flex items-center justify-center p-6"
+          @click.self="fecharModalCadastro"
+        >
+          <div class="w-full max-w-xl max-h-[calc(100vh-48px)] overflow-y-auto rounded-2xl bg-bg-panel border border-bg-line-strong p-7 helmet-stripe fade-up">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <p class="eyebrow text-cyan">Novo registro</p>
+                <h2 class="section-title text-[28px] mt-2">Cadastrar empresa</h2>
+              </div>
+              <button
+                @click="fecharModalCadastro"
+                class="w-9 h-9 rounded-md flex items-center justify-center text-ink-3 hover:text-ink hover:bg-bg-elevated transition-colors"
+              >
+                <X :size="18" />
+              </button>
             </div>
-            <button
-              @click="fecharModalCadastro"
-              class="w-9 h-9 rounded-md flex items-center justify-center text-ink-3 hover:text-ink hover:bg-bg-elevated transition-colors"
-            >
-              <X :size="18" />
-            </button>
-          </div>
 
           <div class="space-y-4">
             <FormField
@@ -349,9 +350,10 @@
               {{ salvando ? 'SALVANDO...' : 'SALVAR REGISTRO' }}
             </button>
           </div>
+          </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
