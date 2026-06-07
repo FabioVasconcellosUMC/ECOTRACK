@@ -30,7 +30,7 @@
                  text-[11.5px] font-bold tracking-wider hover:bg-cyan-strong transition-colors"
         >
           <Plus :size="14" />
-          NOVO TRANSPORTE
+          PROGRAMAR COLETA
         </button>
       </div>
     </header>
@@ -255,8 +255,8 @@
         <div class="relative w-full max-w-xl max-h-[calc(100vh-8rem)] overflow-y-auto rounded-2xl bg-bg-panel border border-bg-line-strong helmet-stripe shadow-2xl">
           <header class="flex items-start justify-between gap-3 px-7 py-5 border-b border-bg-line">
             <div>
-              <p class="eyebrow text-cyan">Novo transporte</p>
-              <h2 class="display-title text-[26px] mt-1">Vincular lote à transportadora</h2>
+              <p class="eyebrow text-cyan">Programar coleta</p>
+              <h2 class="display-title text-[26px] mt-1">Solicitar transporte do lote</h2>
             </div>
             <button
               @click="fecharModalCadastro"
@@ -351,7 +351,7 @@
             >
               <Loader2 v-if="salvando" :size="13" class="animate-spin" />
               <Save v-else :size="13" />
-              {{ salvando ? 'SALVANDO...' : 'CADASTRAR' }}
+              {{ salvando ? 'SALVANDO...' : 'SOLICITAR COLETA' }}
             </button>
           </footer>
         </div>
@@ -776,7 +776,7 @@ const linhaTempo = (transporte) => {
   const marcos = [
     {
       chave: 'criado',
-      rotulo: 'Transporte criado',
+      rotulo: 'Coleta solicitada',
       descricao: formatarData(transporte.criadoEm),
       alcancado: true,
       cor: '#94A3B8',
@@ -969,9 +969,9 @@ const salvarTransporte = async () => {
     invalidarCacheDados('/transportes', '/lotes')
     fecharModalCadastro()
     await carregarDados()
-    exibirToast(`Transporte ${formatarId(resposta.data)} criado · aguardando aceite`)
+    exibirToast(`Coleta ${formatarId(resposta.data)} solicitada · aguardando aceite`)
   } catch (erro) {
-    mensagemErro.value = erro.mensagemAmigavel || 'Erro ao cadastrar transporte. Verifique os dados.'
+    mensagemErro.value = erro.mensagemAmigavel || 'Erro ao solicitar coleta. Verifique os dados.'
   } finally {
     salvando.value = false
   }
@@ -1099,3 +1099,4 @@ onMounted(carregarDados)
   transform: translateY(12px);
 }
 </style>
+
