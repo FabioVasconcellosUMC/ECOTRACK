@@ -239,11 +239,12 @@ const login = async () => {
   loading.value = true
   erro.value = ''
   try {
-    const r = await api.post('/auth/login', { email: email.value, senha: senha.value })
+    const emailNormalizado = email.value.trim()
+    const r = await api.post('/auth/login', { email: emailNormalizado, senha: senha.value })
     localStorage.setItem('token',  r.data.token)
     localStorage.setItem('nome',   r.data.nome)
     localStorage.setItem('perfil', r.data.perfil)
-    localStorage.setItem('email',  email.value)
+    localStorage.setItem('email',  emailNormalizado)
     router.push('/dashboard')
   } catch {
     erro.value = 'E-mail ou senha inválidos.'
@@ -258,16 +259,17 @@ const cadastrar = async () => {
   erroCadastro.value = ''
   sucessoCadastro.value = ''
   try {
+    const emailNormalizado = cadEmail.value.trim()
     await api.post('/auth/cadastro', {
       nome:   cadNome.value,
-      email:  cadEmail.value,
+      email:  emailNormalizado,
       senha:  cadSenha.value,
       perfil: cadPerfil.value,
     })
     sucessoCadastro.value = 'Cadastro confirmado. Redirecionando ao login...'
     setTimeout(() => {
       mode.value = 'login'
-      email.value = cadEmail.value
+      email.value = emailNormalizado
       sucessoCadastro.value = ''
     }, 1800)
   } catch (e) {

@@ -23,4 +23,9 @@ public record CadastroRequest(
         @NotBlank(message = "Perfil é obrigatório")
         String perfil
 ) {
+        public CadastroRequest {
+                nome = nome == null ? null : nome.trim();
+                email = email == null ? null : email.trim();
+                perfil = perfil == null ? null : perfil.trim();
+        }
 }
