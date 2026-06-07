@@ -252,8 +252,8 @@ const TEXTOS_RELATORIO = {
     exportacoes: 'Bases para auditoria',
     bases: {
       empresas: 'Cadastro completo das empresas do ecossistema',
-      lotes: 'Registro dos lotes de residuos com status atual',
-      transportes: 'Historico operacional dos transportes registrados',
+      lotes: 'Registro dos lotes de resíduos com status atual',
+      transportes: 'Histórico operacional dos transportes registrados',
     },
   },
   GERADORA: {
@@ -269,15 +269,15 @@ const TEXTOS_RELATORIO = {
     rankingTransportadorasVazio: 'Nenhum transporte vinculado aos seus lotes',
     rankingGeradoras: 'Minha geradora',
     rankingGeradorasVazio: 'Nenhum lote gerado ainda',
-    exportacoes: 'Bases da minha operacao',
+    exportacoes: 'Bases da minha operação',
     bases: {
-      empresas: 'Empresa vinculada ao usuario autenticado',
+      empresas: 'Empresa vinculada ao usuário autenticado',
       lotes: 'Lotes gerados pela empresa vinculada',
       transportes: 'Transportes relacionados aos seus lotes',
     },
   },
   TRANSPORTADORA: {
-    subtitulo: 'indicadores dos transportes atribuidos',
+    subtitulo: 'indicadores dos transportes atribuídos',
     botaoExportar: 'EXPORTAR MINHA OPERACAO',
     cardEmpresas: 'Empresa vinculada',
     cardEmpresasDescricao: 'cadastro operacional',
@@ -289,11 +289,11 @@ const TEXTOS_RELATORIO = {
     rankingTransportadorasVazio: 'Nenhum transporte atribuido ainda',
     rankingGeradoras: 'Geradoras atendidas',
     rankingGeradorasVazio: 'Nenhuma geradora atendida ainda',
-    exportacoes: 'Bases da minha operacao',
+    exportacoes: 'Bases da minha operação',
     bases: {
-      empresas: 'Empresa transportadora vinculada ao usuario',
+      empresas: 'Empresa transportadora vinculada ao usuário',
       lotes: 'Lotes associados aos seus transportes',
-      transportes: 'Transportes atribuidos a sua empresa',
+      transportes: 'Transportes atribuídos à sua empresa',
     },
   },
   RECEPTORA: {
@@ -311,8 +311,8 @@ const TEXTOS_RELATORIO = {
     rankingGeradorasVazio: 'Nenhuma geradora de origem ainda',
     exportacoes: 'Bases dos recebimentos',
     bases: {
-      empresas: 'Empresa receptora vinculada ao usuario',
-      lotes: 'Lotes destinados a sua empresa',
+      empresas: 'Empresa receptora vinculada ao usuário',
+      lotes: 'Lotes destinados à sua empresa',
       transportes: 'Transportes recebidos ou pendentes de recebimento',
     },
   },
