@@ -76,36 +76,17 @@
         class="notif-dropdown rounded-2xl bg-bg-panel border border-bg-line-strong shadow-2xl helmet-stripe overflow-hidden"
         :style="estiloDropdown"
       >
-        <div class="px-4 py-3 border-b border-bg-line flex items-center justify-between gap-3 shrink-0">
-          <div>
-            <p class="eyebrow text-cyan">Notificações</p>
-            <p class="text-[12px] text-ink-3 mt-1">Eventos importantes do sistema</p>
-          </div>
-          <button
-            @click="marcarTodasComoLidas"
-            class="px-2.5 h-7 rounded-md bg-cyan/10 border border-cyan/30 text-cyan text-[10px] font-bold tracking-wider hover:bg-cyan/20 transition-colors shrink-0"
-          >
-            LER TODAS
-          </button>
+        <div class="px-4 py-3 border-b border-bg-line shrink-0">
+          <p class="eyebrow text-cyan">Notificações</p>
+          <p class="text-[12px] text-ink-3 mt-1">Central interna do sistema</p>
         </div>
 
-        <div class="overflow-y-auto flex-1">
-          <button
-            v-for="notificacao in notificacoes"
-            :key="notificacao.id"
-            @click="marcarComoLida(notificacao.id)"
-            class="w-full px-4 py-3 border-b border-bg-line text-left hover:bg-bg-elevated transition-colors flex gap-3"
-          >
-            <span
-              class="mt-1 w-2 h-2 rounded-full shrink-0"
-              :class="notificacao.lida ? 'bg-ink-4' : 'bg-cyan live-pulse'"
-            />
-            <span class="min-w-0">
-              <span class="block text-[13px] text-ink font-semibold leading-snug">{{ notificacao.titulo }}</span>
-              <span class="block text-[12px] text-ink-3 mt-1 leading-snug">{{ notificacao.descricao }}</span>
-              <span class="block mono-tag text-[10px] text-ink-4 mt-1.5">{{ notificacao.tempo }}</span>
-            </span>
-          </button>
+        <div class="px-5 py-8 text-center flex-1">
+          <Bell :size="22" class="mx-auto text-ink-4 mb-3" />
+          <p class="text-[13px] text-ink font-semibold">Sem notificações internas</p>
+          <p class="text-[11px] text-ink-3 mt-1 leading-relaxed">
+            Os avisos operacionais reais são enviados por e-mail quando necessário.
+          </p>
         </div>
       </div>
     </Transition>
@@ -192,30 +173,6 @@ const NAV_ITEMS = [
   { to: '/relatorios',  label: 'Relatórios',  icon: FileText },
 ]
 
-const NOTIFICACOES_MOCK = [
-  {
-    id: 1,
-    titulo: 'Lote aguardando coleta',
-    descricao: 'O lote LT-2026-0319 foi criado e está pronto para vincular transporte.',
-    tempo: 'agora',
-    lida: false,
-  },
-  {
-    id: 2,
-    titulo: 'Empresa cadastrada',
-    descricao: 'TerraVerde Ambiental entrou na base como receptora.',
-    tempo: '15 min atrás',
-    lida: false,
-  },
-  {
-    id: 3,
-    titulo: 'Relatório disponível',
-    descricao: 'O resumo demonstrativo do mês pode ser exportado em CSV.',
-    tempo: '1 hora atrás',
-    lida: true,
-  },
-]
-
 const LARGURA_DROPDOWN = 340
 const MARGEM_VIEWPORT = 12
 const ESPACO_BOTAO_DROPDOWN = 8
@@ -227,10 +184,7 @@ const perfilUsuario = computed(() =>
   (localStorage.getItem('perfil') || 'ADMIN').toLowerCase(),
 )
 
-const notificacoes = ref(NOTIFICACOES_MOCK.map(item => ({ ...item })))
-const totalNaoLidas = computed(() =>
-  notificacoes.value.filter(item => !item.lida).length,
-)
+const totalNaoLidas = 0
 
 const estiloOculto = () => ({
   position: 'fixed',
@@ -293,14 +247,6 @@ const fecharNotificacoes = () => {
   notificacoesAbertas.value = false
 }
 
-const marcarComoLida = (id) => {
-  const item = notificacoes.value.find(n => n.id === id)
-  if (item) item.lida = true
-}
-
-const marcarTodasComoLidas = () => {
-  notificacoes.value.forEach(item => { item.lida = true })
-}
 
 const sair = () => {
   localStorage.clear()
