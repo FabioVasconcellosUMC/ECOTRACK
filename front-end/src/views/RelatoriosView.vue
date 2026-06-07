@@ -278,7 +278,7 @@ const TEXTOS_RELATORIO = {
   },
   TRANSPORTADORA: {
     subtitulo: 'indicadores dos transportes atribuídos',
-    botaoExportar: 'EXPORTAR MINHA OPERACAO',
+    botaoExportar: 'EXPORTAR MINHA OPERAÇÃO',
     cardEmpresas: 'Empresa vinculada',
     cardEmpresasDescricao: 'cadastro operacional',
     cardResiduosDescricao: 'volume transportado',
