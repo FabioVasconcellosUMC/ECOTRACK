@@ -138,7 +138,7 @@
             <td class="px-5 py-3.5 mono-tag text-cyan text-[12px]">#{{ formatarIdentificador(lote) }}</td>
             <td class="px-5 py-3.5 text-[13px] text-ink">{{ lote.descricao || '—' }}</td>
             <td class="px-5 py-3.5">
-              <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold tracking-wider bg-info-soft border border-info/30 text-info">
+              <span class="inline-flex max-w-[230px] px-2 py-1 rounded-full text-[10.5px] leading-snug font-bold tracking-wider bg-info-soft border border-info/30 text-info whitespace-normal break-words align-middle">
                 {{ lote.tipoResiduo || '—' }}
               </span>
             </td>
