@@ -6,14 +6,18 @@ const LIMITE_AUXILIAR = 100
 const cache = new Map()
 
 const chaveCache = (url, params = {}) =>
-  `${url}?${JSON.stringify(params)}`
+  `${localStorage.getItem('token') || 'sem-token'}::${url}?${JSON.stringify(params)}`
 
 export const buscarComCache = async (url, params = {}, ttlMs = TTL_PADRAO_MS) => {
   const chave = chaveCache(url, params)
   const agora = Date.now()
   const entrada = cache.get(chave)
 
-  if (entrada && agora - entrada.criadoEm < ttlMs) {
+  if (entrada?.promise) {
+    return entrada.promise
+  }
+
+  if (entrada?.dados !== undefined && agora - entrada.criadoEm < ttlMs) {
     return entrada.dados
   }
 
@@ -33,10 +37,14 @@ export const buscarComCache = async (url, params = {}, ttlMs = TTL_PADRAO_MS) =>
   return promise
 }
 
+export const limparCacheDados = () => {
+  cache.clear()
+}
+
 export const invalidarCacheDados = (...prefixos) => {
   const alvos = prefixos.length ? prefixos : ['/empresas', '/lotes', '/transportes']
   for (const chave of cache.keys()) {
-    if (alvos.some(prefixo => chave.startsWith(prefixo))) {
+    if (alvos.some(prefixo => chave.includes(`::${prefixo}`))) {
       cache.delete(chave)
     }
   }

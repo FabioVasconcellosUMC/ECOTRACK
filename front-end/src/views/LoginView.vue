@@ -204,7 +204,7 @@ import {
 } from 'lucide-vue-next'
 import LogoMark from '../components/LogoMark.vue'
 import api from '../services/api'
-import { aquecerCacheOperacional } from '../services/dataCache'
+import { aquecerCacheOperacional, limparCacheDados } from '../services/dataCache'
 
 const router = useRouter()
 const bgUrl  = '/photos/login-bg.jpg'
@@ -246,6 +246,7 @@ const login = async () => {
     localStorage.setItem('nome',   r.data.nome)
     localStorage.setItem('perfil', r.data.perfil)
     localStorage.setItem('email',  emailNormalizado)
+    limparCacheDados()
     aquecerCacheOperacional()
     router.push('/dashboard')
   } catch {
