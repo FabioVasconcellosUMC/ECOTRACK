@@ -109,7 +109,17 @@
               <h2 class="section-title text-[24px]">Acesso ao sistema</h2>
 
               <FieldInput v-model="email" label="E-mail operacional" placeholder="seu@email.com" type="email" :icon="Mail" />
-              <FieldInput v-model="senha" label="Senha" placeholder="••••••••" type="password" :icon="Lock" @keyup.enter="login" />
+              <FieldInput
+                v-model="senha"
+                label="Senha"
+                placeholder="••••••••"
+                type="password"
+                :icon="Lock"
+                revealable
+                :visible="mostrarSenhaLogin"
+                @toggle-visibility="mostrarSenhaLogin = !mostrarSenhaLogin"
+                @keyup.enter="login"
+              />
 
               <p
                 v-if="erro"
@@ -141,7 +151,16 @@
 
               <FieldInput v-model="cadNome"  label="Nome completo" placeholder="Seu nome"   :icon="User" />
               <FieldInput v-model="cadEmail" label="E-mail"        placeholder="seu@email.com" type="email" :icon="Mail" />
-              <FieldInput v-model="cadSenha" label="Senha"         placeholder="Mínimo 6 caracteres" type="password" :icon="Lock" />
+              <FieldInput
+                v-model="cadSenha"
+                label="Senha"
+                placeholder="Mínimo 6 caracteres"
+                type="password"
+                :icon="Lock"
+                revealable
+                :visible="mostrarSenhaCadastro"
+                @toggle-visibility="mostrarSenhaCadastro = !mostrarSenhaCadastro"
+              />
 
               <div>
                 <label class="eyebrow block mb-1.5">Perfil</label>
@@ -200,7 +219,7 @@ import { ref, h } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Mail, Lock, User, ArrowRight, Loader2, UserPlus,
-  AlertCircle, CheckCircle, ShieldCheck, FileCheck2, Fingerprint,
+  AlertCircle, CheckCircle, ShieldCheck, FileCheck2, Fingerprint, Eye, EyeOff,
 } from 'lucide-vue-next'
 import LogoMark from '../components/LogoMark.vue'
 import api from '../services/api'
@@ -215,6 +234,7 @@ const loading = ref(false)
 const email = ref('')
 const senha = ref('')
 const erro  = ref('')
+const mostrarSenhaLogin = ref(false)
 
 const cadNome   = ref('')
 const cadEmail  = ref('')
@@ -222,6 +242,7 @@ const cadSenha  = ref('')
 const cadPerfil = ref('GERADORA')
 const erroCadastro    = ref('')
 const sucessoCadastro = ref('')
+const mostrarSenhaCadastro = ref(false)
 
 const perfis = [
   { value: 'GERADORA',       label: 'Geradora' },
@@ -291,15 +312,24 @@ const FieldInput = (props, { emit }) => h('div', { class: 'flex flex-col gap-1.5
   }, [
     props.icon ? h(props.icon, { size: 14, class: 'text-ink-3 shrink-0' }) : null,
     h('input', {
-      type:  props.type || 'text',
+      type:  props.revealable && props.visible ? 'text' : (props.type || 'text'),
       placeholder: props.placeholder,
       value: props.modelValue,
       onInput: (e) => emit('update:modelValue', e.target.value),
       onKeyup: (e) => emit('keyup', e),
       class: 'flex-1 bg-transparent outline-none text-[13.5px] text-ink placeholder:text-ink-4',
     }),
+    props.revealable ? h('button', {
+      type: 'button',
+      'aria-label': props.visible ? 'Ocultar senha' : 'Mostrar senha',
+      title: props.visible ? 'Ocultar senha' : 'Mostrar senha',
+      onClick: () => emit('toggle-visibility'),
+      class: 'flex items-center justify-center w-8 h-8 -mr-1 rounded-md text-ink-3 hover:text-cyan hover:bg-cyan/10 transition-colors',
+    }, [
+      h(props.visible ? EyeOff : Eye, { size: 16 }),
+    ]) : null,
   ]),
 ])
-FieldInput.props = ['modelValue', 'label', 'placeholder', 'type', 'icon']
-FieldInput.emits = ['update:modelValue', 'keyup']
+FieldInput.props = ['modelValue', 'label', 'placeholder', 'type', 'icon', 'revealable', 'visible']
+FieldInput.emits = ['update:modelValue', 'keyup', 'toggle-visibility']
 </script>
