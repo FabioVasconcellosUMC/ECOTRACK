@@ -330,6 +330,14 @@ const FieldInput = (props, { emit }) => h('div', { class: 'flex flex-col gap-1.5
     ]) : null,
   ]),
 ])
-FieldInput.props = ['modelValue', 'label', 'placeholder', 'type', 'icon', 'revealable', 'visible']
+FieldInput.props = {
+  modelValue: [String, Number],
+  label: String,
+  placeholder: String,
+  type: String,
+  icon: [Object, Function],
+  revealable: Boolean,
+  visible: Boolean,
+}
 FieldInput.emits = ['update:modelValue', 'keyup', 'toggle-visibility']
 </script>
