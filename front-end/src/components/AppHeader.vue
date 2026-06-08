@@ -45,9 +45,10 @@
           </div>
         </div>
 
-        <span class="w-px self-stretch bg-bg-line my-2" />
+        <span v-if="podeExcluirPropriaConta" class="w-px self-stretch bg-bg-line my-2" />
 
         <button
+          v-if="podeExcluirPropriaConta"
           @click="abrirConfirmacaoExclusao"
           class="flex items-center justify-center w-10 text-ink-2 hover:text-danger hover:bg-danger-soft transition-colors"
           :title="`Excluir conta (${nomeUsuario})`"
@@ -183,6 +184,7 @@ const nomeUsuario = localStorage.getItem('nome') || 'Operador'
 const perfilUsuario = computed(() =>
   (localStorage.getItem('perfil') || 'ADMIN').toLowerCase(),
 )
+const podeExcluirPropriaConta = computed(() => perfilUsuario.value !== 'admin')
 
 const totalNaoLidas = 0
 
@@ -254,6 +256,7 @@ const sair = () => {
 }
 
 const abrirConfirmacaoExclusao = () => {
+  if (!podeExcluirPropriaConta.value) return
   erroExclusao.value = ''
   confirmacaoExclusaoAberta.value = true
 }
@@ -265,6 +268,10 @@ const fecharConfirmacaoExclusao = () => {
 }
 
 const excluirMinhaConta = async () => {
+  if (!podeExcluirPropriaConta.value) {
+    erroExclusao.value = 'A conta administradora principal não pode ser excluída por esta tela.'
+    return
+  }
   if (excluindoConta.value) return
   excluindoConta.value = true
   erroExclusao.value = ''

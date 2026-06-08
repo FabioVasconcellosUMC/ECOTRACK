@@ -62,6 +62,20 @@ class UsuarioServiceTest {
         verify(usuarioRepository, never()).save(usuario);
     }
 
+    @Test
+    void excluirLogicamenteRejeitaContaAdministradora() {
+        Usuario usuario = criarUsuarioAtivo();
+        usuario.setPerfil(Perfil.ADMIN);
+        when(usuarioRepository.findById(10L)).thenReturn(Optional.of(usuario));
+
+        assertThatThrownBy(() -> usuarioService.excluirLogicamente(usuario))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessage("A conta administradora principal não pode ser excluída por esta tela");
+
+        assertThat(usuario.isAtivo()).isTrue();
+        verify(usuarioRepository, never()).save(usuario);
+    }
+
     private Usuario criarUsuarioAtivo() {
         Usuario usuario = new Usuario();
         usuario.setId(10L);

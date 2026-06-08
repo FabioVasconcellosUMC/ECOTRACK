@@ -1,5 +1,6 @@
 package com.ecotrack.ecotrack_api.service;
 
+import com.ecotrack.ecotrack_api.entity.Perfil;
 import com.ecotrack.ecotrack_api.entity.Usuario;
 import com.ecotrack.ecotrack_api.exception.RecursoNaoEncontradoException;
 import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
@@ -24,6 +25,10 @@ public class UsuarioService {
 
         if (!usuario.isAtivo()) {
             throw new RegraNegocioException("Usuário já está excluído");
+        }
+
+        if (usuario.getPerfil() == Perfil.ADMIN) {
+            throw new RegraNegocioException("A conta administradora principal não pode ser excluída por esta tela");
         }
 
         usuario.setNome(criptografiaService.criptografar(valorSeguro(usuario.getNome())));
