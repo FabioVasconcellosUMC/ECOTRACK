@@ -5,6 +5,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 
 import java.util.Map;
 
@@ -41,7 +42,7 @@ class GlobalExceptionHandlerTest {
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).containsEntry("erro", "Dados já cadastrados ou violam uma regra de integridade");
+        assertThat(response.getBody()).containsEntry("erro", "Dados ja cadastrados ou violam uma regra de integridade");
     }
 
     @Test
@@ -51,8 +52,19 @@ class GlobalExceptionHandlerTest {
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-        assertThat(response.getBody()).containsEntry("erro", "E-mail ou senha inválidos");
+        assertThat(response.getBody()).containsEntry("erro", "E-mail ou senha invalidos");
     }
+
+    @Test
+    void handleAuthenticationRetorna401ParaFalhasInternasDeAutenticacao() {
+        ResponseEntity<Map<String, String>> response = handler.handleAuthentication(
+                new InternalAuthenticationServiceException("usuario nao encontrado")
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody()).containsEntry("erro", "E-mail ou senha invalidos");
+    }
+
     @Test
     void handleRuntimeRetornaMensagemGenerica() {
         ResponseEntity<Map<String, String>> response = handler.handleRuntime(

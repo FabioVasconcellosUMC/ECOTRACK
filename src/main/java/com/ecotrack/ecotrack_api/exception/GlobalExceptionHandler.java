@@ -4,6 +4,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -32,7 +33,7 @@ public class GlobalExceptionHandler {
                 .stream()
                 .findFirst()
                 .map(fieldError -> fieldError.getDefaultMessage())
-                .orElse("Dados inválidos");
+                .orElse("Dados invalidos");
 
         return ResponseEntity.badRequest().body(erro(mensagem));
     }
@@ -50,7 +51,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, String>> handleDataIntegrity(DataIntegrityViolationException e) {
-        return ResponseEntity.badRequest().body(erro("Dados já cadastrados ou violam uma regra de integridade"));
+        return ResponseEntity.badRequest().body(erro("Dados ja cadastrados ou violam uma regra de integridade"));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -66,12 +67,21 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Map<String, String>> handleBadCredentials(BadCredentialsException e) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(erro("E-mail ou senha inválidos"));
+        return respostaAutenticacaoInvalida();
     }
 
     @ExceptionHandler(UsernameNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleUserNotFound(UsernameNotFoundException e) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(erro("E-mail ou senha inválidos"));
+        return respostaAutenticacaoInvalida();
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, String>> handleAuthentication(AuthenticationException e) {
+        return respostaAutenticacaoInvalida();
+    }
+
+    private ResponseEntity<Map<String, String>> respostaAutenticacaoInvalida() {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(erro("E-mail ou senha invalidos"));
     }
 
     private Map<String, String> erro(String mensagem) {
