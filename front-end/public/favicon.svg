@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="EcoTrack">
+  <defs>
+    <linearGradient id="leaf-gradient" x1="10" y1="54" x2="54" y2="10" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#006D78"/>
+      <stop offset="1" stop-color="#2DD4BF"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#06272B"/>
+  <rect x="4.5" y="4.5" width="55" height="55" rx="11.5" fill="#0B2B30" stroke="#164E56"/>
+  <g fill="none" stroke="url(#leaf-gradient)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" transform="translate(8 7) scale(2)">
+    <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19.2 2.96c1.4 5.97.05 11.91-2.4 13.43c-2.8 1.71-9.7 1.61-12.5-.13"/>
+    <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+  </g>
+</svg>
