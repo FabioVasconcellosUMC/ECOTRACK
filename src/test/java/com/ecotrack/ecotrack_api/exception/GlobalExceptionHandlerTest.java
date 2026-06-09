@@ -66,6 +66,16 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void handleRuntimeRetorna401QuandoRuntimeForFalhaDeAutenticacao() {
+        ResponseEntity<Map<String, String>> response = handler.handleRuntime(
+                new BadCredentialsException("bad credentials")
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody()).containsEntry("erro", "E-mail ou senha invalidos");
+    }
+
+    @Test
     void handleRuntimeRetornaMensagemGenerica() {
         ResponseEntity<Map<String, String>> response = handler.handleRuntime(
                 new RuntimeException("detalhe interno sensivel")

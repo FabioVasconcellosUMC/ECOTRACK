@@ -61,6 +61,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntime(RuntimeException e) {
+        if (e instanceof AuthenticationException) {
+            return respostaAutenticacaoInvalida();
+        }
+
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(erro("Erro interno ao processar a requisicao"));
     }
