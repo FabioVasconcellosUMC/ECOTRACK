@@ -1,6 +1,7 @@
 package com.ecotrack.ecotrack_api.controller;
 
 import com.ecotrack.ecotrack_api.dto.CadastroRequest;
+import com.ecotrack.ecotrack_api.dto.LoginRequest;
 import com.ecotrack.ecotrack_api.entity.Perfil;
 import com.ecotrack.ecotrack_api.entity.Usuario;
 import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
@@ -16,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -24,6 +26,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -109,6 +113,19 @@ class AuthControllerTest {
                 .hasMessage("Cadastro de administrador nao e permitido");
 
         verify(usuarioRepository, never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void loginConverteFalhaDeAutenticacaoEmCredenciaisInvalidas() {
+        LoginRequest request = new LoginRequest("naoexiste@email.com", "senhaerrada");
+        doThrow(new RuntimeException("detalhe interno"))
+                .when(authenticationManager).authenticate(any());
+
+        assertThatThrownBy(() -> authController.login(request))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessage("E-mail ou senha invalidos");
+
+        verify(userDetailsService, never()).loadUserByUsername(any());
     }
 
     private void prepararEmailDisponivel() {
