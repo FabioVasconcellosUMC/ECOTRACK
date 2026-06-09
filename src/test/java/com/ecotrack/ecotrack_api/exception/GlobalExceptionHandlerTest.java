@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 
@@ -43,6 +44,16 @@ class GlobalExceptionHandlerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).containsEntry("erro", "Dados ja cadastrados ou violam uma regra de integridade");
+    }
+
+    @Test
+    void handleJsonInvalidoRetorna400() {
+        ResponseEntity<Map<String, String>> response = handler.handleJsonInvalido(
+                new HttpMessageNotReadableException("json invalido")
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).containsEntry("erro", "JSON invalido ou mal formatado");
     }
 
     @Test

@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -39,6 +40,11 @@ public class GlobalExceptionHandler {
                 .orElse("Dados invalidos");
 
         return ResponseEntity.badRequest().body(erro(mensagem));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, String>> handleJsonInvalido(HttpMessageNotReadableException e) {
+        return ResponseEntity.badRequest().body(erro("JSON invalido ou mal formatado"));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
