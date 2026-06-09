@@ -11,9 +11,12 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(RecursoNaoEncontradoException.class)
@@ -64,6 +67,8 @@ public class GlobalExceptionHandler {
         if (e instanceof AuthenticationException) {
             return respostaAutenticacaoInvalida();
         }
+
+        log.warn("Erro inesperado tratado pela API: {}", e.getClass().getName(), e);
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(erro("Erro interno ao processar a requisicao"));
