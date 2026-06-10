@@ -138,84 +138,86 @@
       </button>
     </div>
 
-    <Transition name="page">
-      <div
-        v-if="empresaSelecionada"
-        class="fixed inset-0 z-50 bg-bg-base/80 backdrop-blur-sm flex items-center justify-center p-6"
-        @click.self="fecharDetalhes"
-      >
-        <div class="w-full max-w-2xl rounded-2xl bg-bg-panel border border-bg-line-strong p-7 helmet-stripe fade-up">
-          <div class="flex items-start gap-5">
-            <div
-              class="w-16 h-16 rounded-xl flex items-center justify-center text-[20px] font-bold shrink-0"
-              :style="estiloAvatar(empresaSelecionada.tipo)"
-            >
-              {{ iniciais(empresaSelecionada.razaoSocial) }}
+    <Teleport to="body">
+      <Transition name="page">
+        <div
+          v-if="empresaSelecionada"
+          class="fixed inset-0 z-[10000] bg-bg-base/80 backdrop-blur-sm overflow-y-auto flex items-start justify-center px-6 pt-28 pb-8"
+          @click.self="fecharDetalhes"
+        >
+          <div class="w-full max-w-2xl max-h-[calc(100vh-8rem)] overflow-y-auto rounded-2xl bg-bg-panel border border-bg-line-strong p-7 helmet-stripe fade-up">
+            <div class="flex items-start gap-5">
+              <div
+                class="w-16 h-16 rounded-xl flex items-center justify-center text-[20px] font-bold shrink-0"
+                :style="estiloAvatar(empresaSelecionada.tipo)"
+              >
+                {{ iniciais(empresaSelecionada.razaoSocial) }}
+              </div>
+
+              <div class="flex-1 min-w-0">
+                <p class="eyebrow" :style="{ color: corDoTipo(empresaSelecionada.tipo) }">
+                  {{ empresaSelecionada.tipo }}
+                </p>
+                <h2 class="section-title text-[28px] mt-1.5">{{ empresaSelecionada.razaoSocial }}</h2>
+                <p class="mono-tag text-ink-3 text-[11px] mt-2">CNPJ {{ empresaSelecionada.cnpj }}</p>
+              </div>
+
+              <button
+                @click="fecharDetalhes"
+                class="shrink-0 w-9 h-9 rounded-md flex items-center justify-center text-ink-3 hover:text-ink hover:bg-bg-elevated transition-colors"
+              >
+                <X :size="18" />
+              </button>
             </div>
 
-            <div class="flex-1 min-w-0">
-              <p class="eyebrow" :style="{ color: corDoTipo(empresaSelecionada.tipo) }">
-                {{ empresaSelecionada.tipo }}
-              </p>
-              <h2 class="section-title text-[28px] mt-1.5">{{ empresaSelecionada.razaoSocial }}</h2>
-              <p class="mono-tag text-ink-3 text-[11px] mt-2">CNPJ {{ empresaSelecionada.cnpj }}</p>
+            <div class="grid grid-cols-2 gap-4 mt-7">
+              <div class="rounded-xl bg-bg-elevated border border-bg-line p-4">
+                <p class="eyebrow">E-mail</p>
+                <p class="text-[13px] text-ink mt-2 break-words">{{ empresaSelecionada.email || '—' }}</p>
+              </div>
+              <div class="rounded-xl bg-bg-elevated border border-bg-line p-4">
+                <p class="eyebrow">Telefone</p>
+                <p class="text-[13px] text-ink mt-2">{{ empresaSelecionada.telefone || '—' }}</p>
+              </div>
+              <div class="rounded-xl bg-bg-elevated border border-bg-line p-4 col-span-2">
+                <p class="eyebrow">Endereço</p>
+                <p class="text-[13px] text-ink mt-2 break-words">{{ empresaSelecionada.endereco || '—' }}</p>
+              </div>
+              <div class="rounded-xl bg-bg-elevated border border-bg-line p-4">
+                <p class="eyebrow">Cadastrado em</p>
+                <p class="mono-tag text-[13px] text-ink mt-2">{{ formatarData(empresaSelecionada.criadoEm) }}</p>
+              </div>
+              <div class="rounded-xl bg-bg-elevated border border-bg-line p-4">
+                <p class="eyebrow">Identificador</p>
+                <p class="mono-tag text-cyan text-[13px] mt-2">#{{ formatarIdentificador(empresaSelecionada) }}</p>
+              </div>
             </div>
 
-            <button
-              @click="fecharDetalhes"
-              class="shrink-0 w-9 h-9 rounded-md flex items-center justify-center text-ink-3 hover:text-ink hover:bg-bg-elevated transition-colors"
-            >
-              <X :size="18" />
-            </button>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4 mt-7">
-            <div class="rounded-xl bg-bg-elevated border border-bg-line p-4">
-              <p class="eyebrow">E-mail</p>
-              <p class="text-[13px] text-ink mt-2 break-words">{{ empresaSelecionada.email || '—' }}</p>
-            </div>
-            <div class="rounded-xl bg-bg-elevated border border-bg-line p-4">
-              <p class="eyebrow">Telefone</p>
-              <p class="text-[13px] text-ink mt-2">{{ empresaSelecionada.telefone || '—' }}</p>
-            </div>
-            <div class="rounded-xl bg-bg-elevated border border-bg-line p-4 col-span-2">
-              <p class="eyebrow">Endereço</p>
-              <p class="text-[13px] text-ink mt-2 break-words">{{ empresaSelecionada.endereco || '—' }}</p>
-            </div>
-            <div class="rounded-xl bg-bg-elevated border border-bg-line p-4">
-              <p class="eyebrow">Cadastrado em</p>
-              <p class="mono-tag text-[13px] text-ink mt-2">{{ formatarData(empresaSelecionada.criadoEm) }}</p>
-            </div>
-            <div class="rounded-xl bg-bg-elevated border border-bg-line p-4">
-              <p class="eyebrow">Identificador</p>
-              <p class="mono-tag text-cyan text-[13px] mt-2">#{{ formatarIdentificador(empresaSelecionada) }}</p>
-            </div>
-          </div>
-
-          <div class="mt-7 pt-5 border-t border-bg-line flex items-center justify-between gap-4">
-            <span
-              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-bold tracking-wider"
-              :class="empresaSelecionada.ativa
-                ? 'bg-success-soft border border-success/30 text-success'
-                : 'bg-danger-soft border border-danger/30 text-danger'"
-            >
+            <div class="mt-7 pt-5 border-t border-bg-line flex items-center justify-between gap-4">
               <span
-                class="w-1.5 h-1.5 rounded-full"
-                :class="empresaSelecionada.ativa ? 'bg-success' : 'bg-danger'"
-              />
-              {{ empresaSelecionada.ativa ? 'ATIVA' : 'INATIVA' }}
-            </span>
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-bold tracking-wider"
+                :class="empresaSelecionada.ativa
+                  ? 'bg-success-soft border border-success/30 text-success'
+                  : 'bg-danger-soft border border-danger/30 text-danger'"
+              >
+                <span
+                  class="w-1.5 h-1.5 rounded-full"
+                  :class="empresaSelecionada.ativa ? 'bg-success' : 'bg-danger'"
+                />
+                {{ empresaSelecionada.ativa ? 'ATIVA' : 'INATIVA' }}
+              </span>
 
-            <button
-              @click="exportarSelecionada"
-              class="shrink-0 flex items-center gap-2 h-9 px-3 rounded-md bg-bg-elevated border border-bg-line text-ink-2 text-[11px] font-bold tracking-wider hover:border-cyan/40 hover:text-cyan transition-colors"
-            >
-              <Download :size="14" /> EXPORTAR EMPRESA
-            </button>
+              <button
+                @click="exportarSelecionada"
+                class="shrink-0 flex items-center gap-2 h-9 px-3 rounded-md bg-bg-elevated border border-bg-line text-ink-2 text-[11px] font-bold tracking-wider hover:border-cyan/40 hover:text-cyan transition-colors"
+              >
+                <Download :size="14" /> EXPORTAR EMPRESA
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
 
     <Teleport to="body">
       <Transition name="page">
