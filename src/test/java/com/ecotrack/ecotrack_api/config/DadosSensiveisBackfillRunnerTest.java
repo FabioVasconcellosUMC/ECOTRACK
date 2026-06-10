@@ -8,6 +8,7 @@ import com.ecotrack.ecotrack_api.service.DadosPessoaisCriptografiaService;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -69,5 +70,32 @@ class DadosSensiveisBackfillRunnerTest {
         assertThat(empresa.getEmailHash()).isEqualTo("hash-email-empresa");
         verify(usuarioRepository).saveAllAndFlush(anyList());
         verify(empresaRepository).saveAllAndFlush(anyList());
+    }
+
+    @Test
+    void runNaoRestauraHashQuandoOutroUsuarioJaUsaOMesmoHash() {
+        Usuario usuarioInativoAntigo = new Usuario();
+        usuarioInativoAntigo.setId(1L);
+        usuarioInativoAntigo.setNome("Usuario Excluido");
+        usuarioInativoAntigo.setEmail("enc:email-antigo");
+        usuarioInativoAntigo.setEmailHash(null);
+
+        Usuario usuarioAtivoAtual = new Usuario();
+        usuarioAtivoAtual.setId(2L);
+        usuarioAtivoAtual.setEmailHash("hash-repetido");
+
+        when(usuarioRepository.findAll()).thenReturn(List.of(usuarioInativoAntigo));
+        when(empresaRepository.findAll()).thenReturn(List.of());
+        when(criptografiaService.descriptografar("enc:email-antigo")).thenReturn("usuario@email.com");
+        when(criptografiaService.normalizarEmail("usuario@email.com")).thenReturn("usuario@email.com");
+        when(criptografiaService.hashBusca("usuario@email.com")).thenReturn("hash-repetido");
+        when(usuarioRepository.findByEmailHash("hash-repetido")).thenReturn(Optional.of(usuarioAtivoAtual));
+        when(criptografiaService.criptografar("Usuario Excluido")).thenReturn("enc:nome");
+        when(criptografiaService.criptografar("usuario@email.com")).thenReturn("enc:email");
+
+        runner.run(null);
+
+        assertThat(usuarioInativoAntigo.getEmailHash()).isNull();
+        verify(usuarioRepository).saveAllAndFlush(anyList());
     }
 }

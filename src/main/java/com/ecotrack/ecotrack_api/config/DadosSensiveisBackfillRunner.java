@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Component
@@ -48,8 +49,15 @@ public class DadosSensiveisBackfillRunner implements ApplicationRunner {
         boolean alterado = false;
         String emailNormalizado = criptografiaService.normalizarEmail(criptografiaService.descriptografar(usuario.getEmail()));
         if (usuario.getEmailHash() == null && emailNormalizado != null) {
-            usuario.setEmailHash(criptografiaService.hashBusca(emailNormalizado));
-            alterado = true;
+            String emailHash = criptografiaService.hashBusca(emailNormalizado);
+            boolean hashDisponivel = usuarioRepository.findByEmailHash(emailHash)
+                    .map(usuarioExistente -> Objects.equals(usuarioExistente.getId(), usuario.getId()))
+                    .orElse(true);
+
+            if (hashDisponivel) {
+                usuario.setEmailHash(emailHash);
+                alterado = true;
+            }
         }
 
         alterado = alterado || precisaCriptografar(usuario.getNome()) || precisaCriptografar(usuario.getEmail());
