@@ -4,6 +4,19 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### Secrets / local environment ###
+.env
+.env.*
+*.env
+*.local
+*.pem
+*.ppk
+*.key
+*.p12
+*.jks
+credentials*
+secrets*
+
 ### STS ###
 .apt_generated
 .classpath
