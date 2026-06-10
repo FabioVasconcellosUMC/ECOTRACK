@@ -39,12 +39,28 @@ class InputValidationTest {
                 "<script>alert(1)</script>",
                 "fabio@email.com",
                 "a".repeat(73),
-                "GERADORA"
+                "GERADORA",
+                true
         );
 
         assertThat(validator.validate(request))
                 .extracting(violation -> violation.getPropertyPath().toString())
                 .contains("nome", "senha");
+    }
+
+    @Test
+    void cadastroRejeitaTermosDeUsoNaoAceitos() {
+        CadastroRequest request = new CadastroRequest(
+                "Fabio",
+                "fabio@email.com",
+                "123456",
+                "GERADORA",
+                false
+        );
+
+        assertThat(validator.validate(request))
+                .extracting(violation -> violation.getPropertyPath().toString())
+                .contains("aceitouTermosUso");
     }
 
     @Test

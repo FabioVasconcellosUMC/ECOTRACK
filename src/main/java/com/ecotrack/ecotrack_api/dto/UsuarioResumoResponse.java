@@ -12,6 +12,8 @@ public record UsuarioResumoResponse(
         Perfil perfil,
         String empresa,
         boolean ativo,
+        boolean termosUsoAceitos,
+        LocalDateTime termosUsoAceitosEm,
         LocalDateTime criadoEm
 ) {
 }

@@ -50,7 +50,11 @@ public class Usuario implements UserDetails {
 
     private boolean ativo = true;
 
+    private boolean termosUsoAceitos = false;
+
     private LocalDateTime criadoEm = LocalDateTime.now();
+
+    private LocalDateTime termosUsoAceitosEm;
 
     private LocalDateTime excluidoEm;
 

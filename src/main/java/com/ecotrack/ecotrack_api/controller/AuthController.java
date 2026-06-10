@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @RestController
@@ -72,6 +73,8 @@ public class AuthController {
         usuario.setEmailHash(emailHash);
         usuario.setSenha(passwordEncoder.encode(request.senha()));
         usuario.setPerfil(perfil);
+        usuario.setTermosUsoAceitos(true);
+        usuario.setTermosUsoAceitosEm(LocalDateTime.now());
         usuarioRepository.save(usuario);
 
         return ResponseEntity.status(201).body(Map.of("mensagem", "Usuario cadastrado com sucesso"));

@@ -83,6 +83,7 @@
         <section class="lg:col-span-5 flex items-center fade-up-2">
           <div
             class="relative w-full max-w-md mx-auto rounded-2xl helmet-stripe
+                   max-h-[calc(100vh-4rem)] overflow-y-auto
                    bg-bg-panel/55 backdrop-blur-2xl
                    border border-white/10 p-8"
             style="box-shadow: 0 32px 64px -16px rgba(0, 0, 0, 0.7),
@@ -179,6 +180,26 @@
                 </div>
               </div>
 
+              <label
+                class="flex items-start gap-3 rounded-md border border-white/10 bg-bg-base/45 px-3 py-2.5 text-[11.5px] text-ink-2"
+              >
+                <input
+                  v-model="aceitouTermosUso"
+                  type="checkbox"
+                  class="mt-0.5 h-4 w-4 rounded border-white/20 bg-bg-base text-cyan focus:ring-cyan"
+                />
+                <span>
+                  Li e aceito os termos de uso e a política de tratamento de dados do EcoTrack.
+                  <button
+                    type="button"
+                    @click.prevent="termosAbertos = true"
+                    class="text-cyan hover:text-cyan/80 font-semibold"
+                  >
+                    Ver termos
+                  </button>
+                </span>
+              </label>
+
               <p
                 v-if="erroCadastro"
                 class="flex items-center gap-2 text-[12px] text-danger
@@ -210,6 +231,49 @@
         </section>
 
       </div>
+    </div>
+
+    <div
+      v-if="termosAbertos"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-8 backdrop-blur-sm"
+      @click.self="termosAbertos = false"
+    >
+      <section
+        class="w-full max-w-2xl max-h-[86vh] overflow-y-auto rounded-lg border border-cyan/25 bg-bg-panel p-6 shadow-2xl"
+      >
+        <div class="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
+          <div>
+            <p class="eyebrow mb-2">EcoTrack</p>
+            <h2 class="section-title text-[24px]">Termos de uso e privacidade</h2>
+          </div>
+          <button
+            type="button"
+            @click="termosAbertos = false"
+            class="rounded-md px-3 py-2 text-ink-3 hover:bg-white/5 hover:text-ink"
+            aria-label="Fechar termos"
+          >
+            FECHAR
+          </button>
+        </div>
+
+        <div class="mt-5 space-y-4 text-[13px] leading-relaxed text-ink-2">
+          <p>
+            O EcoTrack é um sistema desenvolvido para finalidade acadêmica, como parte de um Projeto Final de Curso,
+            destinado à simulação e gestão interna de cadastros, lotes, transportes, rastreabilidade operacional,
+            relatórios e manifestos internos relacionados a resíduos.
+          </p>
+
+          <div v-for="item in termosUso" :key="item.titulo" class="rounded-md border border-white/10 bg-bg-base/40 p-4">
+            <h3 class="mb-2 text-[13px] font-bold uppercase tracking-wider text-cyan">{{ item.titulo }}</h3>
+            <p>{{ item.texto }}</p>
+          </div>
+
+          <p class="text-[12px] text-ink-3">
+            Ao marcar o aceite, o usuário declara que leu, compreendeu e concorda com estes termos para utilizar o
+            EcoTrack no contexto acadêmico e operacional proposto.
+          </p>
+        </div>
+      </section>
     </div>
   </div>
 </template>
@@ -243,6 +307,8 @@ const cadPerfil = ref('GERADORA')
 const erroCadastro    = ref('')
 const sucessoCadastro = ref('')
 const mostrarSenhaCadastro = ref(false)
+const aceitouTermosUso = ref(false)
+const termosAbertos = ref(false)
 
 const perfis = [
   { value: 'GERADORA',       label: 'Geradora' },
@@ -254,6 +320,33 @@ const badges = [
   { label: 'Controle interno', icon: FileCheck2 },
   { label: 'Rastreabilidade', icon: ShieldCheck },
   { label: 'Acesso seguro',   icon: Fingerprint },
+]
+
+const termosUso = [
+  {
+    titulo: 'Finalidade',
+    texto: 'Os dados informados são utilizados para autenticação, controle de acesso, vinculação de empresa, registro de operações e geração de indicadores internos do sistema.',
+  },
+  {
+    titulo: 'Dados tratados',
+    texto: 'Podem ser tratados nome, e-mail, perfil de acesso, dados empresariais, registros de lotes, transportes, históricos de status, observações operacionais e logs necessários à rastreabilidade.',
+  },
+  {
+    titulo: 'Proteção e segurança',
+    texto: 'O sistema utiliza autenticação por JWT, controle de acesso por perfil, criptografia de dados sensíveis e hashes técnicos para busca, reduzindo exposição direta de informações no banco de dados.',
+  },
+  {
+    titulo: 'Integrações',
+    texto: 'A consulta de CNPJ pode utilizar a BrasilAPI para preenchimento de dados cadastrais públicos. O EcoTrack não substitui sistemas oficiais, documentos legais obrigatórios ou plataformas governamentais.',
+  },
+  {
+    titulo: 'Responsabilidades',
+    texto: 'O usuário deve informar dados compatíveis com a operação simulada ou real do projeto, manter sigilo de suas credenciais e não inserir conteúdo ofensivo, falso, ilícito, scripts ou dados de terceiros sem autorização.',
+  },
+  {
+    titulo: 'LGPD e exclusão',
+    texto: 'O usuário pode solicitar exclusão lógica da conta. Nesse caso, o acesso é desativado e dados pessoais são protegidos, preservando registros operacionais necessários à integridade histórica e acadêmica do sistema.',
+  },
 ]
 
 const login = async () => {
@@ -279,6 +372,10 @@ const login = async () => {
 
 const cadastrar = async () => {
   if (loading.value) return
+  if (!aceitouTermosUso.value) {
+    erroCadastro.value = 'É necessário aceitar os termos de uso para criar a conta.'
+    return
+  }
   loading.value = true
   erroCadastro.value = ''
   sucessoCadastro.value = ''
@@ -289,11 +386,13 @@ const cadastrar = async () => {
       email:  emailNormalizado,
       senha:  cadSenha.value,
       perfil: cadPerfil.value,
+      aceitouTermosUso: aceitouTermosUso.value,
     })
     sucessoCadastro.value = 'Cadastro confirmado. Redirecionando ao login...'
     setTimeout(() => {
       mode.value = 'login'
       email.value = emailNormalizado
+      aceitouTermosUso.value = false
       sucessoCadastro.value = ''
     }, 1800)
   } catch (e) {

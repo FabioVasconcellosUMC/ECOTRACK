@@ -74,6 +74,8 @@ public class UsuarioService {
                 usuario.getPerfil(),
                 usuario.getEmpresa() == null ? null : usuario.getEmpresa().getRazaoSocial(),
                 usuario.isAtivo(),
+                usuario.isTermosUsoAceitos(),
+                usuario.getTermosUsoAceitosEm(),
                 usuario.getCriadoEm()
         );
     }

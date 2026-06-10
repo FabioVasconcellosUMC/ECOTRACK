@@ -58,7 +58,7 @@ class AuthControllerTest {
 
     @Test
     void cadastroCriaUsuarioComSenhaCriptografadaEDadosSensiveisProtegidos() {
-        CadastroRequest request = new CadastroRequest("Fabio", "fabio@email.com", "123456", "GERADORA");
+        CadastroRequest request = new CadastroRequest("Fabio", "fabio@email.com", "123456", "GERADORA", true);
         prepararEmailDisponivel();
         when(criptografiaService.criptografar("Fabio")).thenReturn("enc:nome");
         when(criptografiaService.criptografar("fabio@email.com")).thenReturn("enc:email");
@@ -78,11 +78,13 @@ class AuthControllerTest {
         assertThat(usuarioSalvo.getEmailHash()).isEqualTo("hash-email");
         assertThat(usuarioSalvo.getSenha()).isEqualTo("senha-hash");
         assertThat(usuarioSalvo.getPerfil()).isEqualTo(Perfil.GERADORA);
+        assertThat(usuarioSalvo.isTermosUsoAceitos()).isTrue();
+        assertThat(usuarioSalvo.getTermosUsoAceitosEm()).isNotNull();
     }
 
     @Test
     void cadastroRejeitaEmailJaCadastrado() {
-        CadastroRequest request = new CadastroRequest("Fabio", "fabio@email.com", "123456", "GERADORA");
+        CadastroRequest request = new CadastroRequest("Fabio", "fabio@email.com", "123456", "GERADORA", true);
         prepararHashEmail();
         Usuario usuarioAtivo = new Usuario();
         usuarioAtivo.setAtivo(true);
@@ -97,7 +99,7 @@ class AuthControllerTest {
 
     @Test
     void cadastroRejeitaEmailDeUsuarioExcluidoLogicamenteComMensagemClara() {
-        CadastroRequest request = new CadastroRequest("Fabio Novo", "fabio@email.com", "123456", "GERADORA");
+        CadastroRequest request = new CadastroRequest("Fabio Novo", "fabio@email.com", "123456", "GERADORA", true);
         prepararHashEmail();
         Usuario usuarioInativo = new Usuario();
         usuarioInativo.setAtivo(false);
@@ -113,7 +115,7 @@ class AuthControllerTest {
 
     @Test
     void cadastroRejeitaPerfilInvalido() {
-        CadastroRequest request = new CadastroRequest("Fabio", "fabio@email.com", "123456", "INVALIDO");
+        CadastroRequest request = new CadastroRequest("Fabio", "fabio@email.com", "123456", "INVALIDO", true);
         prepararEmailDisponivel();
 
         assertThatThrownBy(() -> authController.cadastro(request))
@@ -123,7 +125,7 @@ class AuthControllerTest {
 
     @Test
     void cadastroRejeitaPerfilAdminNoCadastroPublico() {
-        CadastroRequest request = new CadastroRequest("Fabio", "fabio@email.com", "123456", "ADMIN");
+        CadastroRequest request = new CadastroRequest("Fabio", "fabio@email.com", "123456", "ADMIN", true);
         prepararEmailDisponivel();
 
         assertThatThrownBy(() -> authController.cadastro(request))
@@ -157,3 +159,4 @@ class AuthControllerTest {
         when(criptografiaService.hashBusca("fabio@email.com")).thenReturn("hash-email");
     }
 }
+
