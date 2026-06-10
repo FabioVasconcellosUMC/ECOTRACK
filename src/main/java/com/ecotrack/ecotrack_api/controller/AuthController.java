@@ -12,6 +12,7 @@ import com.ecotrack.ecotrack_api.service.DadosPessoaisCriptografiaService;
 import com.ecotrack.ecotrack_api.validation.TextoSeguro;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -58,16 +59,20 @@ public class AuthController {
     }
 
     @PostMapping("/cadastro")
+    @Transactional
     public ResponseEntity<Map<String, String>> cadastro(@Valid @RequestBody CadastroRequest request) {
         TextoSeguro.validar(request.nome(), "Nome");
-        validarEmailDisponivel(request.email());
+        String emailNormalizado = criptografiaService.normalizarEmail(request.email());
+        String emailHash = hashEmail(emailNormalizado);
+        validarEmailDisponivel(emailNormalizado, emailHash);
+        liberarHashDeUsuarioInativo(emailHash);
         Perfil perfil = converterPerfil(request.perfil());
         validarPerfilCadastroPublico(perfil);
 
         Usuario usuario = new Usuario();
         usuario.setNome(criptografiaService.criptografar(request.nome()));
-        usuario.setEmail(criptografiaService.criptografar(criptografiaService.normalizarEmail(request.email())));
-        usuario.setEmailHash(hashEmail(request.email()));
+        usuario.setEmail(criptografiaService.criptografar(emailNormalizado));
+        usuario.setEmailHash(emailHash);
         usuario.setSenha(passwordEncoder.encode(request.senha()));
         usuario.setPerfil(perfil);
         usuarioRepository.save(usuario);
@@ -75,16 +80,24 @@ public class AuthController {
         return ResponseEntity.status(201).body(Map.of("mensagem", "Usuario cadastrado com sucesso"));
     }
 
-    private void validarEmailDisponivel(String email) {
-        String emailNormalizado = criptografiaService.normalizarEmail(email);
-        if (usuarioRepository.findByEmailHashAndAtivoTrue(hashEmail(email)).isPresent()
+    private void validarEmailDisponivel(String emailNormalizado, String emailHash) {
+        if (usuarioRepository.findByEmailHashAndAtivoTrue(emailHash).isPresent()
                 || usuarioRepository.findByEmailAndAtivoTrue(emailNormalizado).isPresent()) {
             throw new RegraNegocioException("E-mail ja cadastrado");
         }
     }
 
-    private String hashEmail(String email) {
-        return criptografiaService.hashBusca(criptografiaService.normalizarEmail(email));
+    private void liberarHashDeUsuarioInativo(String emailHash) {
+        usuarioRepository.findByEmailHash(emailHash)
+                .filter(usuario -> !usuario.isAtivo())
+                .ifPresent(usuario -> {
+                    usuario.setEmailHash(null);
+                    usuarioRepository.saveAndFlush(usuario);
+                });
+    }
+
+    private String hashEmail(String emailNormalizado) {
+        return criptografiaService.hashBusca(emailNormalizado);
     }
 
     private Perfil converterPerfil(String perfil) {

@@ -108,6 +108,28 @@ class AuthControllerTest {
     }
 
     @Test
+    void cadastroLimpaHashDeUsuarioInativoAntesDeReutilizarEmail() {
+        CadastroRequest request = new CadastroRequest("Fabio Novo", "fabio@email.com", "123456", "GERADORA");
+        prepararHashEmail();
+        Usuario usuarioInativo = new Usuario();
+        usuarioInativo.setAtivo(false);
+        usuarioInativo.setEmailHash("hash-email");
+        when(usuarioRepository.findByEmailHashAndAtivoTrue("hash-email")).thenReturn(Optional.empty());
+        when(usuarioRepository.findByEmailAndAtivoTrue("fabio@email.com")).thenReturn(Optional.empty());
+        when(usuarioRepository.findByEmailHash("hash-email")).thenReturn(Optional.of(usuarioInativo));
+        when(criptografiaService.criptografar("Fabio Novo")).thenReturn("enc:nome-novo");
+        when(criptografiaService.criptografar("fabio@email.com")).thenReturn("enc:email-novo");
+        when(passwordEncoder.encode("123456")).thenReturn("senha-hash-nova");
+
+        ResponseEntity<Map<String, String>> response = authController.cadastro(request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(usuarioInativo.getEmailHash()).isNull();
+        verify(usuarioRepository).saveAndFlush(usuarioInativo);
+        verify(usuarioRepository).save(org.mockito.ArgumentMatchers.any(Usuario.class));
+    }
+
+    @Test
     void cadastroRejeitaPerfilInvalido() {
         CadastroRequest request = new CadastroRequest("Fabio", "fabio@email.com", "123456", "INVALIDO");
         prepararEmailDisponivel();
@@ -146,6 +168,7 @@ class AuthControllerTest {
         prepararHashEmail();
         when(usuarioRepository.findByEmailHashAndAtivoTrue("hash-email")).thenReturn(Optional.empty());
         when(usuarioRepository.findByEmailAndAtivoTrue("fabio@email.com")).thenReturn(Optional.empty());
+        when(usuarioRepository.findByEmailHash("hash-email")).thenReturn(Optional.empty());
     }
 
     private void prepararHashEmail() {
