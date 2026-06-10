@@ -84,7 +84,9 @@ class AuthControllerTest {
     void cadastroRejeitaEmailJaCadastrado() {
         CadastroRequest request = new CadastroRequest("Fabio", "fabio@email.com", "123456", "GERADORA");
         prepararHashEmail();
-        when(usuarioRepository.findByEmailHashAndAtivoTrue("hash-email")).thenReturn(Optional.of(new Usuario()));
+        Usuario usuarioAtivo = new Usuario();
+        usuarioAtivo.setAtivo(true);
+        when(usuarioRepository.findByEmailHash("hash-email")).thenReturn(Optional.of(usuarioAtivo));
 
         assertThatThrownBy(() -> authController.cadastro(request))
                 .isInstanceOf(RegraNegocioException.class)
@@ -94,39 +96,19 @@ class AuthControllerTest {
     }
 
     @Test
-    void cadastroPermiteEmailDeUsuarioExcluidoLogicamente() {
-        CadastroRequest request = new CadastroRequest("Fabio Novo", "fabio@email.com", "123456", "GERADORA");
-        prepararEmailDisponivel();
-        when(criptografiaService.criptografar("Fabio Novo")).thenReturn("enc:nome-novo");
-        when(criptografiaService.criptografar("fabio@email.com")).thenReturn("enc:email-novo");
-        when(passwordEncoder.encode("123456")).thenReturn("senha-hash-nova");
-
-        ResponseEntity<Map<String, String>> response = authController.cadastro(request);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        verify(usuarioRepository).save(org.mockito.ArgumentMatchers.any(Usuario.class));
-    }
-
-    @Test
-    void cadastroLimpaHashDeUsuarioInativoAntesDeReutilizarEmail() {
+    void cadastroRejeitaEmailDeUsuarioExcluidoLogicamenteComMensagemClara() {
         CadastroRequest request = new CadastroRequest("Fabio Novo", "fabio@email.com", "123456", "GERADORA");
         prepararHashEmail();
         Usuario usuarioInativo = new Usuario();
         usuarioInativo.setAtivo(false);
         usuarioInativo.setEmailHash("hash-email");
-        when(usuarioRepository.findByEmailHashAndAtivoTrue("hash-email")).thenReturn(Optional.empty());
-        when(usuarioRepository.findByEmailAndAtivoTrue("fabio@email.com")).thenReturn(Optional.empty());
         when(usuarioRepository.findByEmailHash("hash-email")).thenReturn(Optional.of(usuarioInativo));
-        when(criptografiaService.criptografar("Fabio Novo")).thenReturn("enc:nome-novo");
-        when(criptografiaService.criptografar("fabio@email.com")).thenReturn("enc:email-novo");
-        when(passwordEncoder.encode("123456")).thenReturn("senha-hash-nova");
 
-        ResponseEntity<Map<String, String>> response = authController.cadastro(request);
+        assertThatThrownBy(() -> authController.cadastro(request))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessage("Conta excluida. Entre em contato com o administrador para solicitar orientacao.");
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(usuarioInativo.getEmailHash()).isNull();
-        verify(usuarioRepository).saveAndFlush(usuarioInativo);
-        verify(usuarioRepository).save(org.mockito.ArgumentMatchers.any(Usuario.class));
+        verify(usuarioRepository, never()).save(org.mockito.ArgumentMatchers.any(Usuario.class));
     }
 
     @Test
@@ -166,9 +148,8 @@ class AuthControllerTest {
 
     private void prepararEmailDisponivel() {
         prepararHashEmail();
-        when(usuarioRepository.findByEmailHashAndAtivoTrue("hash-email")).thenReturn(Optional.empty());
-        when(usuarioRepository.findByEmailAndAtivoTrue("fabio@email.com")).thenReturn(Optional.empty());
         when(usuarioRepository.findByEmailHash("hash-email")).thenReturn(Optional.empty());
+        when(usuarioRepository.findByEmailAndAtivoTrue("fabio@email.com")).thenReturn(Optional.empty());
     }
 
     private void prepararHashEmail() {

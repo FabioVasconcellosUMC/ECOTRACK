@@ -45,7 +45,7 @@ class UsuarioServiceTest {
         assertThat(usuario.getNome()).isEqualTo("nome-criptografado");
         assertThat(usuario.getEmail()).isEqualTo("email-criptografado");
         assertThat(usuario.getSenha()).isEqualTo("senha-criptografada");
-        assertThat(usuario.getEmailHash()).isNull();
+        assertThat(usuario.getEmailHash()).isEqualTo("hash-email");
         assertThat(usuario.getExcluidoEm()).isNotNull();
         verify(usuarioRepository).save(usuario);
     }
@@ -116,6 +116,7 @@ class UsuarioServiceTest {
         usuario.setPublicId(UUID.randomUUID());
         usuario.setNome("Fabio");
         usuario.setEmail("fabio@email.com");
+        usuario.setEmailHash("hash-email");
         usuario.setSenha("senha-hash");
         usuario.setPerfil(Perfil.GERADORA);
         usuario.setAtivo(true);

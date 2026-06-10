@@ -12,7 +12,6 @@ import com.ecotrack.ecotrack_api.service.DadosPessoaisCriptografiaService;
 import com.ecotrack.ecotrack_api.validation.TextoSeguro;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -59,13 +58,11 @@ public class AuthController {
     }
 
     @PostMapping("/cadastro")
-    @Transactional
     public ResponseEntity<Map<String, String>> cadastro(@Valid @RequestBody CadastroRequest request) {
         TextoSeguro.validar(request.nome(), "Nome");
         String emailNormalizado = criptografiaService.normalizarEmail(request.email());
         String emailHash = hashEmail(emailNormalizado);
         validarEmailDisponivel(emailNormalizado, emailHash);
-        liberarHashDeUsuarioInativo(emailHash);
         Perfil perfil = converterPerfil(request.perfil());
         validarPerfilCadastroPublico(perfil);
 
@@ -81,19 +78,16 @@ public class AuthController {
     }
 
     private void validarEmailDisponivel(String emailNormalizado, String emailHash) {
-        if (usuarioRepository.findByEmailHashAndAtivoTrue(emailHash).isPresent()
-                || usuarioRepository.findByEmailAndAtivoTrue(emailNormalizado).isPresent()) {
+        usuarioRepository.findByEmailHash(emailHash).ifPresent(usuario -> {
+            if (usuario.isAtivo()) {
+                throw new RegraNegocioException("E-mail ja cadastrado");
+            }
+            throw new RegraNegocioException("Conta excluida. Entre em contato com o administrador para solicitar orientacao.");
+        });
+
+        if (usuarioRepository.findByEmailAndAtivoTrue(emailNormalizado).isPresent()) {
             throw new RegraNegocioException("E-mail ja cadastrado");
         }
-    }
-
-    private void liberarHashDeUsuarioInativo(String emailHash) {
-        usuarioRepository.findByEmailHash(emailHash)
-                .filter(usuario -> !usuario.isAtivo())
-                .ifPresent(usuario -> {
-                    usuario.setEmailHash(null);
-                    usuarioRepository.saveAndFlush(usuario);
-                });
     }
 
     private String hashEmail(String emailNormalizado) {

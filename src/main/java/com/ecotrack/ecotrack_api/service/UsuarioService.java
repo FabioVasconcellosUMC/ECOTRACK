@@ -59,7 +59,6 @@ public class UsuarioService {
         usuario.setNome(criptografiaService.criptografar(valorSeguro(usuario.getNome())));
         usuario.setEmail(criptografiaService.criptografar(valorSeguro(usuario.getEmail())));
         usuario.setSenha(criptografiaService.criptografar(valorSeguro(usuario.getSenha())));
-        usuario.setEmailHash(null);
         usuario.setAtivo(false);
         usuario.setExcluidoEm(LocalDateTime.now());
 
