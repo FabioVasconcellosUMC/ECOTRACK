@@ -77,8 +77,8 @@ public class AuthController {
 
     private void validarEmailDisponivel(String email) {
         String emailNormalizado = criptografiaService.normalizarEmail(email);
-        if (usuarioRepository.findByEmailHash(hashEmail(email)).isPresent()
-                || usuarioRepository.findByEmail(emailNormalizado).isPresent()) {
+        if (usuarioRepository.findByEmailHashAndAtivoTrue(hashEmail(email)).isPresent()
+                || usuarioRepository.findByEmailAndAtivoTrue(emailNormalizado).isPresent()) {
             throw new RegraNegocioException("E-mail ja cadastrado");
         }
     }

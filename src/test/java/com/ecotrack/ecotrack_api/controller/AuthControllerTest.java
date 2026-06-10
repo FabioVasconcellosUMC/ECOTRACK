@@ -84,13 +84,27 @@ class AuthControllerTest {
     void cadastroRejeitaEmailJaCadastrado() {
         CadastroRequest request = new CadastroRequest("Fabio", "fabio@email.com", "123456", "GERADORA");
         prepararHashEmail();
-        when(usuarioRepository.findByEmailHash("hash-email")).thenReturn(Optional.of(new Usuario()));
+        when(usuarioRepository.findByEmailHashAndAtivoTrue("hash-email")).thenReturn(Optional.of(new Usuario()));
 
         assertThatThrownBy(() -> authController.cadastro(request))
                 .isInstanceOf(RegraNegocioException.class)
                 .hasMessage("E-mail ja cadastrado");
 
         verify(usuarioRepository, never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void cadastroPermiteEmailDeUsuarioExcluidoLogicamente() {
+        CadastroRequest request = new CadastroRequest("Fabio Novo", "fabio@email.com", "123456", "GERADORA");
+        prepararEmailDisponivel();
+        when(criptografiaService.criptografar("Fabio Novo")).thenReturn("enc:nome-novo");
+        when(criptografiaService.criptografar("fabio@email.com")).thenReturn("enc:email-novo");
+        when(passwordEncoder.encode("123456")).thenReturn("senha-hash-nova");
+
+        ResponseEntity<Map<String, String>> response = authController.cadastro(request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        verify(usuarioRepository).save(org.mockito.ArgumentMatchers.any(Usuario.class));
     }
 
     @Test
@@ -130,8 +144,8 @@ class AuthControllerTest {
 
     private void prepararEmailDisponivel() {
         prepararHashEmail();
-        when(usuarioRepository.findByEmailHash("hash-email")).thenReturn(Optional.empty());
-        when(usuarioRepository.findByEmail("fabio@email.com")).thenReturn(Optional.empty());
+        when(usuarioRepository.findByEmailHashAndAtivoTrue("hash-email")).thenReturn(Optional.empty());
+        when(usuarioRepository.findByEmailAndAtivoTrue("fabio@email.com")).thenReturn(Optional.empty());
     }
 
     private void prepararHashEmail() {
