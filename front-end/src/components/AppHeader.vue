@@ -45,7 +45,18 @@
           </div>
         </div>
 
-        <span v-if="podeExcluirPropriaConta" class="w-px self-stretch bg-bg-line my-2" />
+        <span v-if="podeGerenciarUsuarios || podeExcluirPropriaConta" class="w-px self-stretch bg-bg-line my-2" />
+
+        <button
+          v-if="podeGerenciarUsuarios"
+          @click="abrirGerenciamentoUsuarios"
+          class="flex items-center justify-center w-10 text-ink-2 hover:text-cyan hover:bg-bg-base/40 transition-colors"
+          title="Gerenciar usuários"
+        >
+          <Users :size="14" />
+        </button>
+
+        <span v-if="podeGerenciarUsuarios && podeExcluirPropriaConta" class="w-px self-stretch bg-bg-line my-2" />
 
         <button
           v-if="podeExcluirPropriaConta"
@@ -153,6 +164,88 @@
       </div>
     </Transition>
   </Teleport>
+
+  <Teleport to="body">
+    <Transition name="modal">
+      <div
+        v-if="gerenciamentoUsuariosAberto"
+        class="fixed inset-0 z-[10000] flex items-center justify-center px-4 bg-black/65 backdrop-blur-sm"
+        @click.self="fecharGerenciamentoUsuarios"
+      >
+        <section class="w-full max-w-3xl max-h-[82vh] rounded-2xl bg-bg-panel border border-bg-line-strong shadow-2xl helmet-stripe overflow-hidden flex flex-col">
+          <header class="flex items-start justify-between gap-4 px-6 py-5 border-b border-bg-line">
+            <div class="flex items-start gap-3">
+              <span class="flex items-center justify-center w-10 h-10 rounded-md bg-cyan-soft border border-cyan/30 text-cyan shrink-0">
+                <Users :size="18" />
+              </span>
+              <div>
+                <p class="section-title text-[20px]">Gerenciar usuários</p>
+                <p class="text-[12px] text-ink-3 mt-1 leading-relaxed">
+                  Exclusão lógica disponível apenas para usuários não administradores.
+                </p>
+              </div>
+            </div>
+            <button
+              @click="fecharGerenciamentoUsuarios"
+              class="w-8 h-8 rounded-md text-ink-3 hover:text-ink hover:bg-bg-elevated transition-colors shrink-0"
+              title="Fechar"
+            >
+              <X :size="16" class="mx-auto" />
+            </button>
+          </header>
+
+          <div class="px-6 py-5 overflow-y-auto space-y-4">
+            <p
+              v-if="erroUsuarios"
+              class="flex items-center gap-2 text-[12px] text-danger bg-danger-soft border border-danger/30 rounded-md px-3 py-2"
+            >
+              <AlertTriangle :size="14" /> {{ erroUsuarios }}
+            </p>
+
+            <div v-if="carregandoUsuarios" class="flex items-center justify-center gap-2 py-10 text-ink-3 text-[12px] tracking-wider">
+              <Loader2 :size="16" class="animate-spin text-cyan" />
+              CARREGANDO USUÁRIOS...
+            </div>
+
+            <div v-else-if="usuarios.length === 0" class="py-10 text-center text-[13px] text-ink-3">
+              Nenhum usuário ativo encontrado.
+            </div>
+
+            <div v-else class="space-y-2">
+              <article
+                v-for="usuario in usuarios"
+                :key="usuario.publicId"
+                class="flex items-center justify-between gap-4 rounded-md border border-bg-line bg-bg-base/45 px-4 py-3"
+              >
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <p class="text-[13px] font-semibold text-ink truncate">{{ usuario.nome }}</p>
+                    <span class="px-2 py-0.5 rounded-full border border-cyan/25 bg-cyan-soft text-cyan text-[10px] font-bold uppercase">
+                      {{ usuario.perfil }}
+                    </span>
+                  </div>
+                  <p class="text-[11px] text-ink-3 mt-1 truncate">
+                    {{ usuario.emailMascarado }}<span v-if="usuario.empresa"> · {{ usuario.empresa }}</span>
+                  </p>
+                </div>
+
+                <button
+                  @click="confirmarExclusaoUsuario(usuario)"
+                  :disabled="usuario.perfil === 'ADMIN' || excluindoUsuarioId === usuario.publicId"
+                  class="h-9 px-3 rounded-md border border-danger/30 text-danger text-[11px] font-bold tracking-wider hover:bg-danger-soft transition-colors disabled:opacity-45 disabled:cursor-not-allowed flex items-center gap-2 shrink-0"
+                  :title="usuario.perfil === 'ADMIN' ? 'Contas administradoras não podem ser excluídas' : 'Excluir usuário'"
+                >
+                  <Loader2 v-if="excluindoUsuarioId === usuario.publicId" :size="13" class="animate-spin" />
+                  <Trash2 v-else :size="13" />
+                  EXCLUIR
+                </button>
+              </article>
+            </div>
+          </div>
+        </section>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup>
@@ -160,7 +253,7 @@ import { computed, ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import {
   LayoutGrid, Building2, Boxes, LogOut, Truck, FileText, Bell,
-  Trash2, AlertTriangle, X, Loader2,
+  Trash2, AlertTriangle, X, Loader2, Users,
 } from 'lucide-vue-next'
 import LogoMark from './LogoMark.vue'
 import HeaderNav from './HeaderNav.vue'
@@ -185,6 +278,7 @@ const perfilUsuario = computed(() =>
   (localStorage.getItem('perfil') || 'ADMIN').toLowerCase(),
 )
 const podeExcluirPropriaConta = computed(() => perfilUsuario.value !== 'admin')
+const podeGerenciarUsuarios = computed(() => perfilUsuario.value === 'admin')
 
 const totalNaoLidas = 0
 
@@ -206,6 +300,11 @@ const estiloDropdown = ref(estiloOculto())
 const confirmacaoExclusaoAberta = ref(false)
 const excluindoConta = ref(false)
 const erroExclusao = ref('')
+const gerenciamentoUsuariosAberto = ref(false)
+const usuarios = ref([])
+const carregandoUsuarios = ref(false)
+const excluindoUsuarioId = ref(null)
+const erroUsuarios = ref('')
 
 const calcularPosicaoDropdown = () => {
   if (!bellButton.value) return
@@ -265,6 +364,48 @@ const fecharConfirmacaoExclusao = () => {
   if (excluindoConta.value) return
   confirmacaoExclusaoAberta.value = false
   erroExclusao.value = ''
+}
+
+const abrirGerenciamentoUsuarios = async () => {
+  if (!podeGerenciarUsuarios.value) return
+  gerenciamentoUsuariosAberto.value = true
+  await carregarUsuarios()
+}
+
+const fecharGerenciamentoUsuarios = () => {
+  if (excluindoUsuarioId.value) return
+  gerenciamentoUsuariosAberto.value = false
+  erroUsuarios.value = ''
+}
+
+const carregarUsuarios = async () => {
+  carregandoUsuarios.value = true
+  erroUsuarios.value = ''
+  try {
+    const resposta = await api.get('/usuarios')
+    usuarios.value = resposta.data || []
+  } catch (e) {
+    erroUsuarios.value = e.response?.data?.erro || 'Não foi possível carregar os usuários.'
+  } finally {
+    carregandoUsuarios.value = false
+  }
+}
+
+const confirmarExclusaoUsuario = async (usuario) => {
+  if (!podeGerenciarUsuarios.value || usuario.perfil === 'ADMIN') return
+  const ok = window.confirm(`Excluir logicamente o usuário ${usuario.nome}?`)
+  if (!ok) return
+
+  excluindoUsuarioId.value = usuario.publicId
+  erroUsuarios.value = ''
+  try {
+    await api.delete(`/usuarios/${usuario.publicId}`)
+    usuarios.value = usuarios.value.filter((item) => item.publicId !== usuario.publicId)
+  } catch (e) {
+    erroUsuarios.value = e.response?.data?.erro || 'Não foi possível excluir o usuário.'
+  } finally {
+    excluindoUsuarioId.value = null
+  }
 }
 
 const excluirMinhaConta = async () => {

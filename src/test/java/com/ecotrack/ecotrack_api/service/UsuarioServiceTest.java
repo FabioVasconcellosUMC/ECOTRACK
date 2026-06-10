@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -57,7 +58,7 @@ class UsuarioServiceTest {
 
         assertThatThrownBy(() -> usuarioService.excluirLogicamente(usuario))
                 .isInstanceOf(RegraNegocioException.class)
-                .hasMessage("Usuário já está excluído");
+                .hasMessage("Usuario ja esta excluido");
 
         verify(usuarioRepository, never()).save(usuario);
     }
@@ -70,7 +71,40 @@ class UsuarioServiceTest {
 
         assertThatThrownBy(() -> usuarioService.excluirLogicamente(usuario))
                 .isInstanceOf(RegraNegocioException.class)
-                .hasMessage("A conta administradora principal não pode ser excluída por esta tela");
+                .hasMessage("A conta administradora principal nao pode ser excluida por esta tela");
+
+        assertThat(usuario.isAtivo()).isTrue();
+        verify(usuarioRepository, never()).save(usuario);
+    }
+
+    @Test
+    void excluirPorPublicIdInativaUsuarioNaoAdmin() {
+        UUID publicId = UUID.randomUUID();
+        Usuario usuario = criarUsuarioAtivo();
+        usuario.setPublicId(publicId);
+        when(usuarioRepository.findByPublicId(publicId)).thenReturn(Optional.of(usuario));
+        when(criptografiaService.criptografar("Fabio")).thenReturn("nome-criptografado");
+        when(criptografiaService.criptografar("fabio@email.com")).thenReturn("email-criptografado");
+        when(criptografiaService.criptografar("senha-hash")).thenReturn("senha-criptografada");
+
+        usuarioService.excluirPorPublicId(publicId);
+
+        assertThat(usuario.isAtivo()).isFalse();
+        assertThat(usuario.getExcluidoEm()).isNotNull();
+        verify(usuarioRepository).save(usuario);
+    }
+
+    @Test
+    void excluirPorPublicIdRejeitaContaAdmin() {
+        UUID publicId = UUID.randomUUID();
+        Usuario usuario = criarUsuarioAtivo();
+        usuario.setPublicId(publicId);
+        usuario.setPerfil(Perfil.ADMIN);
+        when(usuarioRepository.findByPublicId(publicId)).thenReturn(Optional.of(usuario));
+
+        assertThatThrownBy(() -> usuarioService.excluirPorPublicId(publicId))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessage("Contas administradoras nao podem ser excluidas");
 
         assertThat(usuario.isAtivo()).isTrue();
         verify(usuarioRepository, never()).save(usuario);
@@ -79,6 +113,7 @@ class UsuarioServiceTest {
     private Usuario criarUsuarioAtivo() {
         Usuario usuario = new Usuario();
         usuario.setId(10L);
+        usuario.setPublicId(UUID.randomUUID());
         usuario.setNome("Fabio");
         usuario.setEmail("fabio@email.com");
         usuario.setSenha("senha-hash");
