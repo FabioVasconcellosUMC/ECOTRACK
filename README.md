@@ -12,12 +12,12 @@ A Politica Nacional de Residuos Solidos (PNRS) e utilizada como referencia conce
 
 ## Estado atual
 
-O projeto esta funcional em ambiente publicado, com frontend hospedado na Vercel e API hospedada no Render. A aplicacao possui autenticacao, controle de acesso por perfil, CRUD operacional de empresas, cadastro e acompanhamento de lotes, criacao e acompanhamento de transportes, confirmacao ou recusa de recebimento final, manifesto PDF interno, dashboards, relatorios e exclusao logica de usuarios.
+O projeto esta funcional em ambiente publicado, com frontend hospedado na Vercel e API hospedada na AWS. A aplicacao possui autenticacao, controle de acesso por perfil, CRUD operacional de empresas, cadastro e acompanhamento de lotes, criacao e acompanhamento de transportes, confirmacao ou recusa de recebimento final, manifesto PDF interno, dashboards, relatorios e exclusao logica de usuarios.
 
 ## Acessos
 
 - Frontend: https://ecotrack-khaki.vercel.app
-- Backend API: https://ecotrack-d5i0.onrender.com
+- Backend API: https://api-ecotrack.duckdns.org
 
 As credenciais de acesso nao sao versionadas neste repositorio. Usuarios e senhas devem ser gerenciados apenas pelos responsaveis do projeto ou pelo ambiente de producao.
 
@@ -51,8 +51,10 @@ Frontend:
 
 Infraestrutura e integracoes:
 
-- Render para hospedagem da API
+- AWS para hospedagem da API
 - Vercel para hospedagem do frontend
+- DuckDNS para o dominio publico da API
+- Caddy como proxy HTTPS/reverso da API publicada
 - PostgreSQL em nuvem
 - BrasilAPI para consulta de CNPJ no frontend
 - Resend para notificacoes operacionais por e-mail
@@ -271,7 +273,7 @@ Frontend:
 VITE_API_BASE_URL
 ```
 
-Quando `VITE_API_BASE_URL` nao e informada, o frontend usa a API publicada no Render.
+Quando `VITE_API_BASE_URL` nao e informada, o frontend usa a API publicada em `https://api-ecotrack.duckdns.org`.
 
 ## Execucao local
 
