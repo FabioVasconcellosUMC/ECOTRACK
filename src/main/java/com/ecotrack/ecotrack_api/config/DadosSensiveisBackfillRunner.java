@@ -48,6 +48,18 @@ public class DadosSensiveisBackfillRunner implements ApplicationRunner {
     private boolean protegerUsuario(Usuario usuario) {
         boolean alterado = false;
         String emailNormalizado = criptografiaService.normalizarEmail(criptografiaService.descriptografar(usuario.getEmail()));
+
+        if (!usuario.isAtivo()) {
+            boolean precisaProtegerDados = precisaCriptografar(usuario.getNome()) || precisaCriptografar(usuario.getEmail());
+            if (usuario.getEmailHash() != null) {
+                usuario.setEmailHash(null);
+                alterado = true;
+            }
+            usuario.setNome(criptografiaService.criptografar(usuario.getNome()));
+            usuario.setEmail(criptografiaService.criptografar(emailNormalizado));
+            return alterado || precisaProtegerDados;
+        }
+
         if (usuario.getEmailHash() == null && emailNormalizado != null) {
             String emailHash = criptografiaService.hashBusca(emailNormalizado);
             boolean hashDisponivel = usuarioRepository.findByEmailHash(emailHash)
