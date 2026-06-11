@@ -161,12 +161,12 @@ public class LoteService {
 
     private Lote buscarPorIdInterno(Long id) {
         return loteRepository.findByIdWithEmpresa(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Lote não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Lote nao encontrado"));
     }
 
     private Lote buscarPorPublicIdInterno(UUID publicId) {
         return loteRepository.findByPublicIdWithEmpresa(publicId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Lote não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Lote nao encontrado"));
     }
 
     private void prepararNovoLote(Lote lote, Usuario usuario) {
@@ -177,11 +177,11 @@ public class LoteService {
 
     private void validarTransicao(StatusLote atual, StatusLote novo) {
         if (atual == novo) {
-            throw new RegraNegocioException("Lote já está com o status informado");
+            throw new RegraNegocioException("Lote ja esta com o status informado");
         }
 
         if (atual == StatusLote.DESCARTADO || atual == StatusLote.CANCELADO) {
-            throw new RegraNegocioException("Lote já está em status final e não pode ser alterado");
+            throw new RegraNegocioException("Lote ja esta em status final e nao pode ser alterado");
         }
     }
 
@@ -372,16 +372,24 @@ public class LoteService {
         }
 
         if (lote.getEmpresaGeradora().getId() != null) {
-            return empresaRepository.findById(lote.getEmpresaGeradora().getId())
+            Empresa empresa = empresaRepository.findById(lote.getEmpresaGeradora().getId())
                     .orElseThrow(() -> new RecursoNaoEncontradoException("Empresa geradora nao encontrada"));
+            if (!empresa.isAtiva()) {
+                throw new RegraNegocioException("Empresa geradora esta inativa");
+            }
+            return empresa;
         }
 
         if (lote.getEmpresaGeradora().getPublicId() == null) {
             throw new RegraNegocioException("Empresa geradora e obrigatoria para criar lote");
         }
 
-        return empresaRepository.findByPublicId(lote.getEmpresaGeradora().getPublicId())
+        Empresa empresa = empresaRepository.findByPublicId(lote.getEmpresaGeradora().getPublicId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Empresa geradora nao encontrada"));
+        if (!empresa.isAtiva()) {
+            throw new RegraNegocioException("Empresa geradora esta inativa");
+        }
+        return empresa;
     }
 
     private Lote descriptografarEmpresaGeradora(Lote lote) {
