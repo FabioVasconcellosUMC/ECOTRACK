@@ -39,10 +39,13 @@ public class EmpresaService {
 
     @Transactional(readOnly = true)
     public List<Empresa> listar(String termoBusca, Integer limite) {
+        Usuario usuario = usuarioAtual();
+
         if (limiteNormalizado(limite) == null) {
             if (termoBusca == null || termoBusca.isBlank()) {
                 return empresaRepository.findAll().stream()
-                        .map(this::descriptografarDadosSensiveis)
+                        .filter(empresa -> podeListarEmpresa(empresa, usuario))
+                        .map(empresa -> prepararEmpresaParaResposta(empresa, usuario))
                         .toList();
             }
 
@@ -50,24 +53,28 @@ public class EmpresaService {
                             termoBusca.trim(),
                             PageRequest.of(0, Integer.MAX_VALUE)
                     ).stream()
-                    .map(this::descriptografarDadosSensiveis)
+                    .filter(empresa -> podeListarEmpresa(empresa, usuario))
+                    .map(empresa -> prepararEmpresaParaResposta(empresa, usuario))
                     .toList();
         }
 
         PageRequest pageRequest = PageRequest.of(0, limiteNormalizado(limite));
         if (termoBusca != null && !termoBusca.isBlank()) {
             return empresaRepository.findByRazaoSocialContainingIgnoreCaseOrderByCriadoEmDesc(termoBusca.trim(), pageRequest).stream()
-                    .map(this::descriptografarDadosSensiveis)
+                    .filter(empresa -> podeListarEmpresa(empresa, usuario))
+                    .map(empresa -> prepararEmpresaParaResposta(empresa, usuario))
                     .toList();
         }
 
         return empresaRepository.findAllByOrderByCriadoEmDesc(pageRequest).stream()
-                .map(this::descriptografarDadosSensiveis)
+                .filter(empresa -> podeListarEmpresa(empresa, usuario))
+                .map(empresa -> prepararEmpresaParaResposta(empresa, usuario))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public EmpresaPaginaResponse listarPagina(String termoBusca, Integer pagina, Integer limite) {
+        Usuario usuario = usuarioAtual();
         int limiteConsulta = limitePaginado(limite);
         int paginaConsulta = paginaNormalizada(pagina);
         PageRequest pageRequest = PageRequest.of(paginaConsulta, limiteConsulta + 1);
@@ -79,7 +86,8 @@ public class EmpresaService {
 
         boolean temProxima = empresas.size() > limiteConsulta;
         List<Empresa> itens = (temProxima ? empresas.subList(0, limiteConsulta) : empresas).stream()
-                .map(this::descriptografarDadosSensiveis)
+                .filter(empresa -> podeListarEmpresa(empresa, usuario))
+                .map(empresa -> prepararEmpresaParaResposta(empresa, usuario))
                 .toList();
 
         return new EmpresaPaginaResponse(
@@ -96,14 +104,20 @@ public class EmpresaService {
 
     @Transactional(readOnly = true)
     public Empresa buscarPorId(Long id) {
-        return descriptografarDadosSensiveis(empresaRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Empresa não encontrada")));
+        Empresa empresa = empresaRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Empresa nao encontrada"));
+        return prepararEmpresaParaResposta(empresa, usuarioAtual());
     }
 
     @Transactional(readOnly = true)
     public Empresa buscarPorPublicId(UUID publicId) {
-        return descriptografarDadosSensiveis(empresaRepository.findByPublicId(publicId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Empresa não encontrada")));
+        Empresa empresa = empresaRepository.findByPublicId(publicId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Empresa nao encontrada"));
+        Usuario usuario = usuarioAtual();
+        if (!escopoUsuarioService.isAdmin(usuario) && !empresa.isAtiva()) {
+            throw new RecursoNaoEncontradoException("Empresa nao encontrada");
+        }
+        return prepararEmpresaParaResposta(empresa, usuario);
     }
 
     public Empresa salvar(Empresa empresa) {
@@ -117,17 +131,15 @@ public class EmpresaService {
     }
 
     public void deletar(Long id) {
-        if (!empresaRepository.existsById(id)) {
-            throw new RecursoNaoEncontradoException("Empresa não encontrada");
-        }
-
-        empresaRepository.deleteById(id);
+        Empresa empresa = empresaRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Empresa nao encontrada"));
+        excluirLogicamente(empresa);
     }
 
     public void deletarPorPublicId(UUID publicId) {
         Empresa empresa = empresaRepository.findByPublicId(publicId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Empresa não encontrada"));
-        empresaRepository.delete(empresa);
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Empresa nao encontrada"));
+        excluirLogicamente(empresa);
     }
 
     private void prepararDadosSensiveis(Empresa empresa) {
@@ -248,6 +260,60 @@ public class EmpresaService {
         }
 
         return empresaRepository.countByRazaoSocialContainingIgnoreCaseAndTipo(busca, tipo);
+    }
+
+    private Usuario usuarioAtual() {
+        return escopoUsuarioService.usuarioAutenticado();
+    }
+
+    private boolean podeListarEmpresa(Empresa empresa, Usuario usuario) {
+        return escopoUsuarioService.isAdmin(usuario) || empresa.isAtiva();
+    }
+
+    private Empresa prepararEmpresaParaResposta(Empresa empresa, Usuario usuario) {
+        if (escopoUsuarioService.isAdmin(usuario) || empresaDoUsuario(empresa, usuario)) {
+            return descriptografarDadosSensiveis(empresa);
+        }
+
+        return resumoOperacional(empresa);
+    }
+
+    private boolean empresaDoUsuario(Empresa empresa, Usuario usuario) {
+        return usuario != null
+                && usuario.getEmpresa() != null
+                && usuario.getEmpresa().getId() != null
+                && empresa.getId() != null
+                && usuario.getEmpresa().getId().equals(empresa.getId());
+    }
+
+    private Empresa resumoOperacional(Empresa empresa) {
+        Empresa resumo = new Empresa();
+        resumo.setPublicId(empresa.getPublicId());
+        resumo.setRazaoSocial(empresa.getRazaoSocial());
+        resumo.setTipo(empresa.getTipo());
+        resumo.setAtiva(empresa.isAtiva());
+        resumo.setCriadoEm(empresa.getCriadoEm());
+        return resumo;
+    }
+
+    private void excluirLogicamente(Empresa empresa) {
+        if (!empresa.isAtiva()) {
+            throw new RegraNegocioException("Empresa ja esta inativa");
+        }
+
+        String sufixo = empresa.getPublicId() == null
+                ? String.valueOf(empresa.getId())
+                : empresa.getPublicId().toString().substring(0, 8);
+
+        empresa.setAtiva(false);
+        empresa.setRazaoSocial("Empresa excluida " + sufixo);
+        empresa.setCnpjHash(null);
+        empresa.setEmailHash(null);
+        empresa.setCnpj(criptografiaService.criptografar("cnpj-removido-" + sufixo));
+        empresa.setEmail(criptografiaService.criptografar("empresa-removida-" + sufixo + "@anonimo.local"));
+        empresa.setTelefone(criptografiaService.criptografar("telefone-removido"));
+        empresa.setEndereco(criptografiaService.criptografar("endereco-removido"));
+        empresaRepository.save(empresa);
     }
 
     private Empresa descriptografarDadosSensiveis(Empresa empresa) {
