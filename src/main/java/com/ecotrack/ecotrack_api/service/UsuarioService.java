@@ -56,9 +56,14 @@ public class UsuarioService {
             throw new RegraNegocioException(mensagemAdmin);
         }
 
-        usuario.setNome(criptografiaService.criptografar(valorSeguro(usuario.getNome())));
-        usuario.setEmail(criptografiaService.criptografar(valorSeguro(usuario.getEmail())));
-        usuario.setSenha(criptografiaService.criptografar(valorSeguro(usuario.getSenha())));
+        String sufixo = usuario.getPublicId() == null
+                ? String.valueOf(usuario.getId())
+                : usuario.getPublicId().toString().substring(0, 8);
+
+        usuario.setNome(criptografiaService.criptografar("Usuario excluido " + sufixo));
+        usuario.setEmail(criptografiaService.criptografar("usuario-removido-" + sufixo + "@anonimo.local"));
+        usuario.setEmailHash(null);
+        usuario.setSenha(criptografiaService.criptografar("senha-removida-" + sufixo));
         usuario.setAtivo(false);
         usuario.setExcluidoEm(LocalDateTime.now());
 
@@ -91,7 +96,4 @@ public class UsuarioService {
         return prefixo + "***@" + dominio;
     }
 
-    private String valorSeguro(String valor) {
-        return valor == null ? "" : valor;
-    }
 }
