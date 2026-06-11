@@ -6,6 +6,7 @@ import com.ecotrack.ecotrack_api.entity.Lote;
 import com.ecotrack.ecotrack_api.entity.Perfil;
 import com.ecotrack.ecotrack_api.entity.StatusLote;
 import com.ecotrack.ecotrack_api.entity.StatusTransporte;
+import com.ecotrack.ecotrack_api.entity.TipoEmpresa;
 import com.ecotrack.ecotrack_api.entity.Transporte;
 import com.ecotrack.ecotrack_api.entity.Usuario;
 import com.ecotrack.ecotrack_api.exception.RegraNegocioException;
@@ -69,9 +70,9 @@ class TransporteServiceTest {
     @Test
     void criarDefineStatusPendenteEEnviaEmailParaTransportadora() {
         Lote lote = lote(1L, StatusLote.AGUARDANDO_COLETA);
-        lote.setDescricao("Resíduo químico");
-        Empresa transportadora = empresa(2L, "Transportadora Eco", "transporte@email.com");
-        Empresa receptora = empresa(3L, "Receptora Eco", "receptora@email.com");
+        lote.setDescricao("Residuo quimico");
+        Empresa transportadora = empresa(2L, "Transportadora Eco", "transporte@email.com", TipoEmpresa.TRANSPORTADORA);
+        Empresa receptora = empresa(3L, "Receptora Eco", "receptora@email.com", TipoEmpresa.RECEPTORA);
         Transporte transporte = transporteComReferencias(lote.getId(), transportadora.getId(), receptora.getId());
 
         when(loteRepository.findById(1L)).thenReturn(Optional.of(lote));
@@ -92,7 +93,7 @@ class TransporteServiceTest {
                 "transporte@email.com",
                 "Transportadora Eco",
                 1L,
-                "Resíduo químico"
+                "Residuo quimico"
         );
     }
 
@@ -104,7 +105,39 @@ class TransporteServiceTest {
 
         assertThatThrownBy(() -> transporteService.criar(transporte))
                 .isInstanceOf(RegraNegocioException.class)
-                .hasMessage("Lote não está disponível para transporte");
+                .hasMessage("Lote nao esta disponivel para transporte");
+
+        verify(transporteRepository, never()).save(any(Transporte.class));
+    }
+
+    @Test
+    void criarRejeitaLoteComTransporteAberto() {
+        Lote lote = lote(1L, StatusLote.AGUARDANDO_COLETA);
+        Transporte transporte = transporteComReferencias(1L, 2L, 3L);
+        when(loteRepository.findById(1L)).thenReturn(Optional.of(lote));
+        when(transporteRepository.existsByLoteIdAndStatusIn(any(), any())).thenReturn(true);
+
+        assertThatThrownBy(() -> transporteService.criar(transporte))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessage("Lote ja possui transporte em andamento");
+
+        verify(transporteRepository, never()).save(any(Transporte.class));
+    }
+
+    @Test
+    void criarRejeitaEmpresaTransportadoraComTipoIncorreto() {
+        Lote lote = lote(1L, StatusLote.AGUARDANDO_COLETA);
+        Empresa transportadora = empresa(2L, "Empresa Geradora", "geradora@email.com", TipoEmpresa.GERADORA);
+        Empresa receptora = empresa(3L, "Receptora Eco", "receptora@email.com", TipoEmpresa.RECEPTORA);
+        Transporte transporte = transporteComReferencias(lote.getId(), transportadora.getId(), receptora.getId());
+
+        when(loteRepository.findById(1L)).thenReturn(Optional.of(lote));
+        when(empresaRepository.findById(2L)).thenReturn(Optional.of(transportadora));
+        when(empresaRepository.findById(3L)).thenReturn(Optional.of(receptora));
+
+        assertThatThrownBy(() -> transporteService.criar(transporte))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessage("Empresa selecionada nao e transportadora");
 
         verify(transporteRepository, never()).save(any(Transporte.class));
     }
@@ -307,11 +340,15 @@ class TransporteServiceTest {
     }
 
     private Empresa empresa(Long id, String razaoSocial, String email) {
+        return empresa(id, razaoSocial, email, null);
+    }
+
+    private Empresa empresa(Long id, String razaoSocial, String email, TipoEmpresa tipo) {
         Empresa empresa = new Empresa();
         empresa.setId(id);
         empresa.setRazaoSocial(razaoSocial);
         empresa.setEmail(email);
+        empresa.setTipo(tipo);
         return empresa;
     }
 }
-
