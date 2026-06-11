@@ -7,6 +7,7 @@ import com.ecotrack.ecotrack_api.entity.Lote;
 import com.ecotrack.ecotrack_api.entity.Perfil;
 import com.ecotrack.ecotrack_api.entity.StatusLote;
 import com.ecotrack.ecotrack_api.entity.StatusTransporte;
+import com.ecotrack.ecotrack_api.entity.TipoEmpresa;
 import com.ecotrack.ecotrack_api.entity.Transporte;
 import com.ecotrack.ecotrack_api.entity.Usuario;
 import com.ecotrack.ecotrack_api.exception.RecursoNaoEncontradoException;
@@ -32,6 +33,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Transactional
 public class TransporteService {
+
+    private static final List<StatusTransporte> STATUS_TRANSPORTE_ABERTOS = List.of(
+            StatusTransporte.PENDENTE,
+            StatusTransporte.ACEITO,
+            StatusTransporte.EM_TRANSITO
+    );
 
     private final TransporteRepository transporteRepository;
     private final LoteRepository loteRepository;
@@ -127,6 +134,8 @@ public class TransporteService {
 
         Empresa transportadora = buscarEmpresa(transporte.getTransportadora(), "Transportadora nao encontrada");
         Empresa receptora = buscarEmpresa(transporte.getReceptora(), "Receptora nao encontrada");
+        validarTipoEmpresa(transportadora, TipoEmpresa.TRANSPORTADORA, "Empresa selecionada nao e transportadora");
+        validarTipoEmpresa(receptora, TipoEmpresa.RECEPTORA, "Empresa selecionada nao e receptora");
 
         transporte.setLote(lote);
         transporte.setTransportadora(transportadora);
@@ -192,12 +201,12 @@ public class TransporteService {
 
     private Transporte buscarPorIdInterno(Long id) {
         return transporteRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Transporte não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Transporte nao encontrado"));
     }
 
     private Transporte buscarPorPublicIdInterno(UUID publicId) {
         return transporteRepository.findByPublicId(publicId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Transporte não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Transporte nao encontrado"));
     }
 
     private Transporte confirmarRecebimentoFinal(Transporte transporte, String observacao) {
@@ -557,7 +566,7 @@ public class TransporteService {
 
         if (transporte.getLote().getId() != null) {
             return loteRepository.findById(transporte.getLote().getId())
-                    .orElseThrow(() -> new RecursoNaoEncontradoException("Lote não encontrado"));
+                    .orElseThrow(() -> new RecursoNaoEncontradoException("Lote nao encontrado"));
         }
 
         if (transporte.getLote().getPublicId() == null) {
@@ -565,7 +574,7 @@ public class TransporteService {
         }
 
         return loteRepository.findByPublicId(transporte.getLote().getPublicId())
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Lote não encontrado"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Lote nao encontrado"));
     }
 
     private Empresa buscarEmpresa(Empresa empresa, String mensagemErro) {
@@ -588,7 +597,21 @@ public class TransporteService {
 
     private void validarLoteDisponivel(Lote lote) {
         if (lote.getStatus() != StatusLote.AGUARDANDO_COLETA) {
-            throw new RegraNegocioException("Lote não está disponível para transporte");
+            throw new RegraNegocioException("Lote nao esta disponivel para transporte");
+        }
+
+        if (transporteRepository.existsByLoteIdAndStatusIn(lote.getId(), STATUS_TRANSPORTE_ABERTOS)) {
+            throw new RegraNegocioException("Lote ja possui transporte em andamento");
+        }
+    }
+
+    private void validarTipoEmpresa(Empresa empresa, TipoEmpresa tipoEsperado, String mensagem) {
+        if (!empresa.isAtiva()) {
+            throw new RegraNegocioException("Empresa selecionada esta inativa");
+        }
+
+        if (empresa.getTipo() != tipoEsperado) {
+            throw new RegraNegocioException(mensagem);
         }
     }
 
