@@ -34,18 +34,19 @@ class UsuarioServiceTest {
     @Test
     void excluirLogicamenteInativaUsuarioECriptografaDadosPessoais() {
         Usuario usuario = criarUsuarioAtivo();
+        String sufixo = usuario.getPublicId().toString().substring(0, 8);
         when(usuarioRepository.findById(10L)).thenReturn(Optional.of(usuario));
-        when(criptografiaService.criptografar("Fabio")).thenReturn("nome-criptografado");
-        when(criptografiaService.criptografar("fabio@email.com")).thenReturn("email-criptografado");
-        when(criptografiaService.criptografar("senha-hash")).thenReturn("senha-criptografada");
+        when(criptografiaService.criptografar("Usuario excluido " + sufixo)).thenReturn("nome-anonimo");
+        when(criptografiaService.criptografar("usuario-removido-" + sufixo + "@anonimo.local")).thenReturn("email-anonimo");
+        when(criptografiaService.criptografar("senha-removida-" + sufixo)).thenReturn("senha-anonima");
 
         usuarioService.excluirLogicamente(usuario);
 
         assertThat(usuario.isAtivo()).isFalse();
-        assertThat(usuario.getNome()).isEqualTo("nome-criptografado");
-        assertThat(usuario.getEmail()).isEqualTo("email-criptografado");
-        assertThat(usuario.getSenha()).isEqualTo("senha-criptografada");
-        assertThat(usuario.getEmailHash()).isEqualTo("hash-email");
+        assertThat(usuario.getNome()).isEqualTo("nome-anonimo");
+        assertThat(usuario.getEmail()).isEqualTo("email-anonimo");
+        assertThat(usuario.getSenha()).isEqualTo("senha-anonima");
+        assertThat(usuario.getEmailHash()).isNull();
         assertThat(usuario.getExcluidoEm()).isNotNull();
         verify(usuarioRepository).save(usuario);
     }
@@ -82,14 +83,16 @@ class UsuarioServiceTest {
         UUID publicId = UUID.randomUUID();
         Usuario usuario = criarUsuarioAtivo();
         usuario.setPublicId(publicId);
+        String sufixo = publicId.toString().substring(0, 8);
         when(usuarioRepository.findByPublicId(publicId)).thenReturn(Optional.of(usuario));
-        when(criptografiaService.criptografar("Fabio")).thenReturn("nome-criptografado");
-        when(criptografiaService.criptografar("fabio@email.com")).thenReturn("email-criptografado");
-        when(criptografiaService.criptografar("senha-hash")).thenReturn("senha-criptografada");
+        when(criptografiaService.criptografar("Usuario excluido " + sufixo)).thenReturn("nome-anonimo");
+        when(criptografiaService.criptografar("usuario-removido-" + sufixo + "@anonimo.local")).thenReturn("email-anonimo");
+        when(criptografiaService.criptografar("senha-removida-" + sufixo)).thenReturn("senha-anonima");
 
         usuarioService.excluirPorPublicId(publicId);
 
         assertThat(usuario.isAtivo()).isFalse();
+        assertThat(usuario.getEmailHash()).isNull();
         assertThat(usuario.getExcluidoEm()).isNotNull();
         verify(usuarioRepository).save(usuario);
     }
