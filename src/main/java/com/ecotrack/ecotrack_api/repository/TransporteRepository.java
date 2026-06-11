@@ -7,6 +7,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,6 +20,7 @@ public interface TransporteRepository extends JpaRepository<Transporte, Long> {
     Optional<Transporte> findByPublicId(UUID publicId);
     boolean existsByLoteIdAndTransportadoraId(Long loteId, Long transportadoraId);
     boolean existsByLoteIdAndReceptoraId(Long loteId, Long receptoraId);
+    boolean existsByLoteIdAndStatusIn(Long loteId, Collection<StatusTransporte> statuses);
     List<Transporte> findAllByOrderByCriadoEmDesc(Pageable pageable);
     List<Transporte> findByLote_EmpresaGeradoraIdOrderByCriadoEmDesc(Long empresaId, Pageable pageable);
     List<Transporte> findByTransportadoraIdOrderByCriadoEmDesc(Long empresaId, Pageable pageable);
