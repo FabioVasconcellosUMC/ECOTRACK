@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,6 +52,7 @@ class EmpresaServiceTest {
 
     @Test
     void buscarPorIdRetornaEmpresaEncontradaComDadosLegiveis() {
+        autenticarComo(Perfil.ADMIN);
         Empresa empresa = new Empresa();
         empresa.setId(1L);
         empresa.setRazaoSocial("Transportadora Eco");
@@ -69,27 +71,53 @@ class EmpresaServiceTest {
 
         assertThatThrownBy(() -> empresaService.buscarPorId(1L))
                 .isInstanceOf(RecursoNaoEncontradoException.class)
-                .hasMessage("Empresa não encontrada");
+                .hasMessage("Empresa nao encontrada");
     }
 
     @Test
-    void deletarRemoveEmpresaExistente() {
-        when(empresaRepository.existsById(1L)).thenReturn(true);
+    void listarParaUsuarioComumOcultaDadosSensiveisDeOutrasEmpresas() {
+        autenticarComo(Perfil.GERADORA);
+        Empresa empresa = empresaValida(TipoEmpresa.TRANSPORTADORA);
+        empresa.setId(2L);
+        when(empresaRepository.findAll()).thenReturn(List.of(empresa));
+
+        List<Empresa> resultado = empresaService.listar();
+
+        assertThat(resultado).hasSize(1);
+        assertThat(resultado.get(0).getRazaoSocial()).isEqualTo("Empresa Eco");
+        assertThat(resultado.get(0).getPublicId()).isEqualTo(empresa.getPublicId());
+        assertThat(resultado.get(0).getTipo()).isEqualTo(TipoEmpresa.TRANSPORTADORA);
+        assertThat(resultado.get(0).getCnpj()).isNull();
+        assertThat(resultado.get(0).getEmail()).isNull();
+        assertThat(resultado.get(0).getTelefone()).isNull();
+        assertThat(resultado.get(0).getEndereco()).isNull();
+    }
+
+    @Test
+    void deletarInativaEmpresaExistente() {
+        Empresa empresa = empresaValida(TipoEmpresa.TRANSPORTADORA);
+        empresa.setId(1L);
+        when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
+        when(criptografiaService.criptografar(any())).thenAnswer(invocation -> "enc:" + invocation.getArgument(0));
 
         empresaService.deletar(1L);
 
-        verify(empresaRepository).deleteById(1L);
+        assertThat(empresa.isAtiva()).isFalse();
+        assertThat(empresa.getRazaoSocial()).startsWith("Empresa excluida ");
+        assertThat(empresa.getCnpjHash()).isNull();
+        assertThat(empresa.getEmailHash()).isNull();
+        verify(empresaRepository).save(empresa);
     }
 
     @Test
     void deletarRejeitaEmpresaInexistente() {
-        when(empresaRepository.existsById(1L)).thenReturn(false);
+        when(empresaRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> empresaService.deletar(1L))
                 .isInstanceOf(RecursoNaoEncontradoException.class)
-                .hasMessage("Empresa não encontrada");
+                .hasMessage("Empresa nao encontrada");
 
-        verify(empresaRepository, never()).deleteById(1L);
+        verify(empresaRepository, never()).save(any());
     }
 
     @Test
@@ -149,6 +177,9 @@ class EmpresaServiceTest {
         TestingAuthenticationToken authentication = new TestingAuthenticationToken(usuario, null, "ROLE_" + perfil.name());
         SecurityContextHolder.getContext().setAuthentication(authentication);
         when(escopoUsuarioService.usuarioAutenticado()).thenReturn(usuario);
+        if (perfil == Perfil.ADMIN) {
+            when(escopoUsuarioService.isAdmin(usuario)).thenReturn(true);
+        }
     }
 
     private Empresa empresaValida(TipoEmpresa tipo) {
